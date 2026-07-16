@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "NodeNext",          // 현대적인 Node.js ESM/CJS 지원
+    "moduleResolution": "NodeNext",  // [해결 키포인트] node10 대신 최신 알고리즘 지정
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  },
+  "include": ["src/**/*", "../frontend/src/main.ts"]
+}

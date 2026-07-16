@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TapLang // VINTAGE WORKSTATION</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Galmuri9:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+
+
+
+
+<!--
+<style>
+  .vintage-monitor {
+    background-image: 
+      linear-gradient(rgba(18, 20, 24, 0) 50%, rgba(0, 0, 0, 0.15) 50%),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 4px, 20px 20px, 20px 20px;
+  }
+  
+  .crt-glow {
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.5), 0 25px 70px -10px rgba(0,0,0,0.7);
+  }
+
+  ::-webkit-scrollbar {
+    width: 14px;
+    height: 14px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #e6e2db;
+    border-left: 2px solid #2d2b28;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: #c5bfb6;
+    border: 2px solid #2d2b28;
+    box-shadow: inset 1.5px 1.5px 0px #ffffff;
+  }
+</style>
+-->
+
+</head>
+<body class="bg-[#18191c] h-screen w-screen flex items-center justify-center p-4 lg:p-8 overflow-hidden vintage-monitor font-sans text-[#2d2b28]">
+<div id="app"></div>
+
+<script type="module" src="/src/main.ts"></script>
+
+
+<!--
+<script>
+  const { createApp, ref, computed } = Vue;
+
+  createApp({
+    setup() {
+      const isLoggedIn = ref(false);
+      const login = () => { isLoggedIn.value = true; };
+      const logout = () => { isLoggedIn.value = false; currentTab.value = 'memo'; };
+
+      const currentTab = ref('memo');
+      const isTopTab = computed(() => ['memo', 'findPeople', 'notice'].includes(currentTab.value));
+
+      // --- 사이드바 인맥 데이터 ---
+      const friends = ref([
+        { id: 1, name: '사이버_러버', avatar: '🪐', statusMsg: '로그 분석 시스템 기동 중', online: true },
+        { id: 2, name: '아날로그_웨이브', avatar: '💾', statusMsg: '버디버디 전보 대기', online: true },
+        { id: 3, name: '미래지향99', avatar: '🗼', statusMsg: '부재중 (쪽지 남겨주세요)', online: false },
+        { id: 4, name: '은하수_여행자', avatar: '📻', statusMsg: '터미널 접속 종료', online: false },
+      ]);
+      const onlineFriends = computed(() => friends.value.filter(f => f.online));
+      const offlineFriends = computed(() => friends.value.filter(f => !f.online));
+
+      // 모달 상태 관리
+      const activeModal = ref(null);
+      const friendFormData = ref({ name: '', status: '' });
+      const openModal = (type) => { activeModal.value = type; };
+      const closeModal = () => { activeModal.value = null; friendFormData.value = { name: '', status: '' }; };
+      const handleAddFriend = () => {
+        if (!friendFormData.value.name) return alert('성명을 기입하세요.');
+        friends.value.unshift({
+          id: Date.now(), name: friendFormData.value.name,
+          avatar: '🛰️', statusMsg: friendFormData.value.status || '터미널 활성화.', online: true
+        });
+        closeModal();
+      };
+
+      // --- 사람찾기 데이터 ---
+      const dummyUsers = ref([
+        { name: '사이버_드리프터', avatar: '🪐', role: '네트워크 노드 분석가' },
+        { name: '테크노_스타일', avatar: '🕶️', role: '오픈 테크니션' }
+      ]);
+
+      // --- 사설 대화방 데이터 ---
+      const privateFilter = ref('all'); // 'all' or 'secret'
+      const privateRooms = ref([
+        { id: 1, title: '영어 슬랭 완전 정복', desc: '새로 등록된 태그 공유합니다.', owner: '영문학도', members: 12, isSecret: false },
+        { id: 2, title: '시크릿 프로젝트 V', desc: '비인가자 접근 금지 구역', owner: 'admin_00', members: 4, isSecret: true },
+        { id: 3, title: '레트로 코딩 스터디', desc: 'C언어와 어셈블리 토론방', owner: '해커박', members: 8, isSecret: false },
+        { id: 4, title: '사내 임원진 회의실', desc: '관계자 외 출입 금지', owner: 'CEO', members: 6, isSecret: true },
+      ]);
+
+      const filteredPrivateRooms = computed(() => {
+        if (privateFilter.value === 'all') return privateRooms.value;
+        return privateRooms.value.filter(room => room.isSecret);
+      });
+
+      const handlePrivateRoomClick = (room) => {
+        if (room.isSecret) {
+          const pwd = prompt(`[${room.title}] 은(는) 비밀 대화방입니다.\n입장 패스워드를 입력하세요:`);
+          if (pwd) alert('패스워드 검증 로직 연결이 필요합니다.');
+        } else {
+          alert(`[${room.title}] 사설 대화방 입장을 시도합니다.`);
+        }
+      };
+
+      // --- 영어 태그 데이터 ---
+      const newTag = ref({ eng: '', kor: '' });
+      const engTags = ref([
+        { eng: 'Based', kor: '주관이 뚜렷하고 당당한 훌륭한 태도' },
+        { eng: 'Slay', kor: '압도적으로 멋지게 해내다' }
+      ]);
+
+      const registerEngTag = () => {
+        if (!newTag.value.eng || !newTag.value.kor) {
+          alert('영어 원문과 한국어 순화 내용을 모두 입력해주세요.'); return;
+        }
+        engTags.value.unshift({ eng: newTag.value.eng, kor: newTag.value.kor });
+        newTag.value = { eng: '', kor: '' };
+        alert('태그가 데이터베이스에 성공적으로 등록되었습니다.');
+      };
+
+      const alertFunc = (msg) => { alert(msg); };
+
+      return {
+        isLoggedIn, login, logout, currentTab, isTopTab,
+        friends, onlineFriends, offlineFriends, activeModal, friendFormData, openModal, closeModal, handleAddFriend,
+        dummyUsers,
+        privateFilter, privateRooms, filteredPrivateRooms, handlePrivateRoomClick,
+        newTag, engTags, registerEngTag, alertFunc
+      };
+    }
+  }).mount('#app');
+
+</script>
+-->
+</body>
+</html>
