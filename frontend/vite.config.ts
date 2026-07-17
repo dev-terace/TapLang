@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
-import path from 'path'
+import { fileURLToPath, URL } from 'node:url'
 
 // https://vitejs.dev/config/
 export default defineConfig({
@@ -15,7 +15,8 @@ export default defineConfig({
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src')
+      // '@'를 입력하면 현재 프로젝트 루트의 'src' 폴더를 가리키도록 설정
+      '@': fileURLToPath(new URL('./src', import.meta.url))
     }
   }
 

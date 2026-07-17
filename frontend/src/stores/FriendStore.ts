@@ -44,7 +44,8 @@ export const useFriendStore = defineStore('friend', () => {
   return {
     friends,
     onlineFriends,
-    offlineFriends
+    offlineFriends,
+    addFriend
   }
 })
 
