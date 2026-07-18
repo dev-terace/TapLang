@@ -1,9 +1,20 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { Friend } from '../types'
+import type { Friend, MyProfile } from '../types'
+
 
 export const useFriendStore = defineStore('friend', () => {
 
+  // 내 프로필
+  const myProfile = ref<MyProfile>({
+    id: 0,
+    name: '나',
+    avatar: '🙂',
+    statusMsg: '오늘도 코딩중'
+  })
+
+
+  // 친구 목록
   const friends = ref<Friend[]>([
     {
       id: 1,
@@ -21,32 +32,43 @@ export const useFriendStore = defineStore('friend', () => {
     }
   ])
 
+
   const onlineFriends = computed(() =>
     friends.value.filter(friend => friend.online)
   )
+
 
   const offlineFriends = computed(() =>
     friends.value.filter(friend => !friend.online)
   )
 
 
+  // 내 프로필 변경
+  const updateProfile = (data: Partial<MyProfile>) => {
+    myProfile.value = {
+      ...myProfile.value,
+      ...data
+    }
+  }
+
+
   const addFriend = (data: { name: string; statusMsg: string }) => {
     friends.value.push({
-      id: Date.now(), // 중복 없는 고유 ID 생성 (매우 중요!)
+      id: Date.now(),
       name: data.name,
-      avatar: '👾', // 기본 아바타 이모지 설정
+      avatar: '👾',
       statusMsg: data.statusMsg || '시스템 대기 중',
-      online: true // 새로 등록한 친구는 기본적으로 온라인으로 추가
+      online: true
     })
   }
-  
+
 
   return {
+    myProfile,
     friends,
     onlineFriends,
     offlineFriends,
+    updateProfile,
     addFriend
   }
 })
-
-

@@ -35,23 +35,11 @@
       <section class="flex-1 bg-[#fbf9f5] flex flex-col overflow-hidden relative">
         <div class="flex-1 flex flex-col overflow-hidden">
           
-          <div class="border-b-2 border-[#2d2b28] px-4 py-2 bg-[#f4f1eb] flex justify-between items-center text-xs">
-            <div class="flex items-center gap-2">
-              <span class="font-bold text-[#2d2b28] uppercase tracking-wider">// VIEWPORT: {{ currentTab }}</span>
-            </div>
-            <div class="flex items-center gap-1">
-              <span class="w-2.5 h-2.5 rounded-full border border-[#2d2b28]" :class="isTopTab ? 'bg-green-400' : 'bg-neutral-300'"></span>
-              <span class="w-2.5 h-2.5 rounded-full border border-[#2d2b28]" :class="!isTopTab ? 'bg-blue-400' : 'bg-neutral-300'"></span>
-            </div>
-          </div>
-
+          <ViewPort />
           <Memo />
           <FindPeople />
           <Notice />
           <Chat />
-        
-
-
           <GroupChat />
           <TransTag />
          
@@ -81,30 +69,19 @@ import Footer from './components/footer/Footer.vue'
 import Chat from './components/footer/Chat.vue'
 import GroupChat from './components/footer/GroupChat.vue'
 import TransTag from './components/footer/TransTag.vue'
-
+import ViewPort from './components/header/ViewPort.vue'
 import { ref, computed } from 'vue'
+import { useAuthStore } from '@/stores/AuthStore'
+import { storeToRefs } from 'pinia'
 
 
 
 
+const authStore = useAuthStore()
 
+const { isLoggedIn } = storeToRefs(authStore)
 
-const isLoggedIn = ref(false)
-
-const login = () => {
-  isLoggedIn.value = true
-}
-
-const currentTab = ref('memo')
-
-const logout = () => {
-  isLoggedIn.value = false
-  currentTab.value = 'memo'
-}
-
-const isTopTab = computed(() =>
-  ['memo', 'findPeople', 'notice'].includes(currentTab.value)
-)
+const { login } = authStore
 
 
 

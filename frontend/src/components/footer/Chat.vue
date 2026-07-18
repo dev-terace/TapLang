@@ -1,23 +1,98 @@
 <script setup lang="ts">
 import { useUIStore } from '@/stores/UiStore'
+import { useChatStore } from '@/stores/ChatStore'
 
-const uiStore = useUIStore();
-
+const uiStore = useUIStore()
+const chatStore = useChatStore()
 </script>
 
 <template>
-         <div v-if="uiStore.currentTab === 'chat'" class="flex-1 flex flex-col h-full bg-[#fbf9f5]">
-            <div class="bg-[#e6e2db] p-3 border-b-2 border-[#2d2b28] flex justify-between items-center">
-              <span class="font-bold text-xs">💬 채팅방</span>
-              <span class="text-[10px] bg-green-500 text-white px-1.5 py-0.5 rounded">현재 42명 접속 중</span>
-            </div>
-            <div class="flex-1 overflow-y-auto p-4 space-y-3">
-              <div class="text-xs bg-white border-2 border-[#2d2b28] p-2 rounded max-w-md shadow-[2px_2px_0px_0px_#2d2b28]"><span class="font-bold text-blue-800">[시스템]</span> 공용 라운지에 입장하셨습니다. 매너 채팅 부탁드립니다.</div>
-              <div class="text-xs bg-white border-2 border-[#2d2b28] p-2 rounded max-w-md shadow-[2px_2px_0px_0px_#2d2b28]"><span class="font-bold text-purple-800">[아날로그]</span> 다들 점심은 드셨나요?</div>
-            </div>
-            <div class="p-3 border-t-2 border-[#2d2b28] bg-[#f4f1eb] flex gap-2">
-              <input type="text" placeholder="메시지를 입력하세요..." class="flex-1 bg-white border-2 border-[#2d2b28] p-2 text-xs outline-none" />
-              <button class="bg-[#2d2b28] text-[#fbf9f5] px-4 font-bold text-xs border-2 border-[#2d2b28]">전송</button>
+  <div
+    v-if="uiStore.currentTab === 'chat'"
+    class="flex h-full flex-col bg-[#dfdad1]"
+  >
+    <!-- 헤더 -->
+    <div
+      class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
+    >
+      <span class="text-xs font-bold tracking-wider">
+        // 채팅방_목록.sh
+      </span>
+
+      <span class="text-[10px] text-[#726e67]">
+        {{ chatStore.rooms.length }}개
+      </span>
+    </div>
+
+    <!-- 채팅방 목록 -->
+    <div class="flex-1 overflow-y-auto p-4 space-y-3">
+
+      <div
+        v-for="room in chatStore.rooms"
+        :key="room.id"
+        class="group flex items-center gap-3 p-2 bg-[#f4f1eb]
+               hover:bg-[#2d2b28] hover:text-[#fbf9f5]
+               border-2 border-[#2d2b28]
+               shadow-[3px_3px_0px_0px_#2d2b28]
+               cursor-pointer transition-all"
+      >
+        <!-- 프로필 -->
+        <div class="w-10 h-10 shrink-0">
+
+          <!-- 1:1 -->
+          <div
+            v-if="room.members.length === 1"
+            class="w-full h-full bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-lg"
+          >
+            {{ room.members[0].avatar }}
+          </div>
+
+          <!-- 그룹 -->
+          <div
+            v-else
+            class="grid grid-cols-2 grid-rows-2 gap-[2px] w-full h-full"
+          >
+            <div
+              v-for="member in room.members.slice(0, 4)"
+              :key="member.id"
+              class="bg-[#2d2b28] text-white flex items-center justify-center border border-[#2d2b28] text-[10px]"
+            >
+              {{ member.avatar }}
             </div>
           </div>
+        </div>
+
+        <!-- 채팅 정보 -->
+        <div class="flex-1 min-w-0">
+          <div class="flex justify-between items-center">
+            <span class="text-xs font-bold truncate">
+              {{ room.name }}
+            </span>
+
+            <span
+              class="text-[10px] text-neutral-500 group-hover:text-neutral-300"
+            >
+              {{ room.lastTime }}
+            </span>
+          </div>
+
+          <div
+            class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate"
+          >
+            {{ room.lastMessage }}
+          </div>
+        </div>
+
+        <!-- 안 읽은 메시지 -->
+        <div
+          v-if="room.unread > 0"
+          class="w-5 h-5 rounded-full bg-red-500 text-white
+                 flex items-center justify-center text-[10px] font-bold"
+        >
+          {{ room.unread }}
+        </div>
+      </div>
+
+    </div>
+  </div>
 </template>

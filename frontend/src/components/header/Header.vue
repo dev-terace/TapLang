@@ -2,15 +2,16 @@
 
 import { ref, computed } from 'vue'
 import { useUIStore } from '@/stores/UiStore'
-
+import { useAuthStore} from '@/stores/AuthStore'
 
 const uiStore = useUIStore()
+const authStore = useAuthStore()
 
-const isLoggedIn = ref(false)
+
 
 
 const logout = () => {
-  isLoggedIn.value = false
+  authStore.logout()
   uiStore.currentTab = 'memo'
 }
 
@@ -51,7 +52,7 @@ const logout = () => {
         </span>
       </div>
       <div class="flex items-center gap-3 text-[10px]">
-        <button @click="logout" class="border border-neutral-500 px-2 py-0.5 bg-[#423f3a] text-neutral-300 hover:text-white hover:bg-neutral-700">로그아웃</button>
+        <button @click="logout()" class="border border-neutral-500 px-2 py-0.5 bg-[#423f3a] text-neutral-300 hover:text-white hover:bg-neutral-700">로그아웃</button>
       </div>
     </header>
 

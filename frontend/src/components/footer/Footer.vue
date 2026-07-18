@@ -45,7 +45,7 @@ const uiStore = useUIStore()
     <button
       :class="[
         'px-3 py-1.5 text-xs font-bold border-2 border-[#2d2b28] flex items-center gap-2 transition-all shrink-0',
-        uiStore.currentTab === 'tagReg'
+        uiStore.currentTab === 'transTag'
           ? 'bg-[#fbf9f5] shadow-inner translate-y-[1px] text-emerald-700'
           : 'bg-[#c5bfb6] shadow-[2px_2px_0px_0px_#2d2b28] text-[#2d2b28]'
       ]"

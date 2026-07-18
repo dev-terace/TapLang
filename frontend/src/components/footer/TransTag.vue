@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useUIStore } from '@/stores/UiStore'
-import { useTransTagStore } from '@/stores/TransTag'
+import { useTransTagStore } from '@/stores/TransTagStore'
 
 const uiStore = useUIStore()
 const transTagStore = useTransTagStore()

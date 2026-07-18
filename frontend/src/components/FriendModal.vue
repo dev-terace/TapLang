@@ -1,8 +1,8 @@
 <script setup lang="ts">
 
 import { ref } from 'vue'
-import { useFriendStore } from '../stores/FriendStore'
-import { useModalStore } from '../stores/ModalStore'
+import { useFriendStore } from '@/stores/FriendStore'
+import { useModalStore } from '@/stores/ModalStore'
 
 
 const friendStore = useFriendStore()
