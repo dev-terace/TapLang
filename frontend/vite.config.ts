@@ -10,7 +10,15 @@ export default defineConfig({
   ],
   server: {
     port: 5173,
-    host: true // Docker 컨테이너 외부에서 접속할 수 있도록 허용
+    host: true, // Docker 컨테이너 외부에서 접속할 수 있도록 허용
+    proxy: {
+      // /api 로 시작하는 요청은 백엔드(3000 포트)로 우회 처리
+      '/api': {
+        target: 'http://backend:3000',
+        changeOrigin: true,
+      }
+    }
+
   },
 
   resolve: {

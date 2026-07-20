@@ -5,11 +5,11 @@ import { useFriendStore } from '@/stores/FriendStore'
 import { useModalStore } from '@/stores/ModalStore'
 import FriendModal from './FriendModal.vue'
 import CountryModal from './CountryModal.vue'
-
+import { useAuthStore } from '@/stores/AuthStore'
 
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
-
+const authStore = useAuthStore()
 
 const alertFunc = (msg: string) => {
   alert(msg)
@@ -99,7 +99,7 @@ const onlineList = computed(() => [
         <div class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-full"></span>
-            <span class="text-xs font-bold truncate tracking-tight">{{ friend.name }}</span>
+            <span class="text-xs font-bold truncate tracking-tight">{{ friend.isMe ? authStore.userId : friend.name }}</span>
           </div>
           <div class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate mt-0.5">
             {{ friend.statusMsg }}

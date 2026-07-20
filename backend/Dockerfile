@@ -1,12 +1,34 @@
-FROM node:20-alpine
+# ---- Build stage ----
+FROM node:20-alpine AS builder
+
+RUN apk add --no-cache openssl
 
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-
 RUN npm install
 
-COPY . .
+COPY prisma ./prisma
+RUN npx prisma generate
 
-# 개발 모드로 실행 (package.json에 dev 스크립트가 있어야 합니다)
-CMD ["npm", "run", "dev"]
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+# ---- Run stage ----
+FROM node:20-alpine
+
+RUN apk add --no-cache openssl
+
+WORKDIR /usr/src/app
+
+COPY package*.json ./
+RUN npm install --omit=dev
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/prisma ./prisma
+COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
+
+EXPOSE 3000
+
+CMD ["node", "dist/index.js"]

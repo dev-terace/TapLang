@@ -39,16 +39,17 @@ services:
     environment:
       - NODE_ENV=development
       - PORT=3000
-      - DATABASE_URL=postgresql://chat_user:chat_password@postgres:5432/chat_db
+      - DATABASE_URL=postgresql://admin:TapLang1901603!@postgres:5432/tap_lang_db
       - REDIS_URL=redis://redis:6379
     depends_on:
       - postgres
       - redis
-    volumes:
-      - ./backend:/usr/src/app
-      - /usr/src/app/node_modules
+    command: sh -c "npx prisma migrate deploy && node dist/index.js"  
+
     networks:
       - tap-lang-network
+
+    
 
   # 4. Vue.js + TypeScript 프론트엔드 (개발용)
   frontend:
@@ -68,6 +69,9 @@ services:
       - backend
     networks:
       - tap-lang-network
+
+
+
 
 volumes:
   pgdata:

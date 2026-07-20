@@ -1,0 +1,15 @@
+# 환경 변수 (최상단 및 하위 폴더 전체 적용)
+.env
+.env.*
+
+# 의존성 패키지 (어느 위치에 있든 node_modules 폴더 무시)
+node_modules/
+
+# 빌드 결과물
+dist/
+build/
+
+# OS / Editor 설정 파일
+.DS_Store
+.vscode/
+.idea/
