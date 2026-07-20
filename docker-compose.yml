@@ -7,9 +7,9 @@ services:
     container_name: postgres
     restart: always
     environment:
-      POSTGRES_USER: admin
-      POSTGRES_PASSWORD: TapLang1901603!
-      POSTGRES_DB: tap_lang_db
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
     ports:
       - "5432:5432"
     volumes:
@@ -35,12 +35,12 @@ services:
     container_name: node_js
     restart: always
     ports:
-      - "3000:3000"
+      - "${APP_PORT}:${APP_PORT}"
     environment:
-      - NODE_ENV=development
-      - PORT=3000
-      - DATABASE_URL=postgresql://admin:TapLang1901603!@postgres:5432/tap_lang_db
-      - REDIS_URL=redis://redis:6379
+      NODE_ENV: ${NODE_ENV}
+      PORT: ${APP_PORT}
+      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public"
+      REDIS_URL: redis://redis:6379
     depends_on:
       - postgres
       - redis
