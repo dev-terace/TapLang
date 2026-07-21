@@ -1,7 +1,32 @@
 <script setup lang="ts">
 import { useUIStore } from '@/stores/UiStore'
+import {ref} from 'vue'
 
 const uiStore = useUIStore();
+
+interface User {
+  
+  name: string
+  avatar: string
+  role: string
+}
+
+const dummyUsers = ref<User[]>([
+  {
+    name: '사이버_드리프터',
+    avatar: '🪐',
+    role: '네트워크 노드 분석가'
+  },
+  {
+    name: '테크노_스타일',
+    avatar: '🕶️',
+    role: '오픈 테크니션'
+  }
+])
+
+const alertFunc = (msg: string) => {
+  alert(msg);
+};
 
 </script>
 

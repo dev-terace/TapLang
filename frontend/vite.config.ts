@@ -9,8 +9,12 @@ export default defineConfig({
     tailwindcss(),
   ],
   server: {
-    port: 5173,
+    port: 5174,
     host: true, // Docker 컨테이너 외부에서 접속할 수 있도록 허용
+    watch: { usePolling: true },
+    hmr: {
+      clientPort: 5174, // 브라우저가 접속하는 실제 포트
+    },
     proxy: {
       // /api 로 시작하는 요청은 백엔드(3000 포트)로 우회 처리
       '/api': {

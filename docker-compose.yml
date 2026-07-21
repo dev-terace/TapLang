@@ -1,4 +1,7 @@
-version: '3.8'
+# 개발 환경 hot-reload 환경
+# backend package.json devDependencies "ts-node-dev": "^2.0.0" 추가
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 services:
   # 1. PostgreSQL 데이터베이스
@@ -16,6 +19,11 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - tap-lang-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d tap_lang_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10  
 
   # 2. Redis (Socket.IO 어댑터 및 캐싱용)
   redis:
@@ -44,7 +52,8 @@ services:
     depends_on:
       - postgres
       - redis
-    command: sh -c "npx prisma migrate deploy && node dist/index.js"  
+      
+    command: sh -c "npx prisma migrate deploy && npm start"
 
     networks:
       - tap-lang-network
@@ -59,12 +68,11 @@ services:
     container_name: vite
     restart: always
     ports:
-      - "5173:5173" # Vite 기본 포트
-    volumes:
-      - ./frontend:/usr/src/app
-      - /usr/src/app/node_modules
+      - "5173:80" #nginx 포트
     environment:
       - VITE_API_URL=http://localhost:3000
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
     depends_on:
       - backend
     networks:

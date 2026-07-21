@@ -13,6 +13,7 @@
     "skipLibCheck": true,
     "noEmit": true,                      // 컴파일 결과물 출력은 Vite가 담당하므로 true로 설정
     "baseUrl": ".",
+    "types": ["vite/client"],
     "paths": {
       "@/*": [
         "src/*"

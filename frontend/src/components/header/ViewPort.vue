@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { useUIStore } from '@/stores/UiStore'
+import { computed} from 'vue'
 
 const uiStore = useUIStore();
 
+
+ const isTopTab = computed(() => ['memo', 'findPeople', 'notice'].includes(uiStore.currentTab ));
 </script>
 
 <template>

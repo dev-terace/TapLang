@@ -28,13 +28,12 @@
   <template v-else>
     <Header />
   
-
+    
     <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
       
       <FriendList />
       <section class="flex-1 bg-[#fbf9f5] flex flex-col overflow-hidden relative">
         <div class="flex-1 flex flex-col overflow-hidden">
-          
           <ViewPort />
           <Memo />
           <FindPeople />

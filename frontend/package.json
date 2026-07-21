@@ -15,7 +15,7 @@
     "socket.io-client": "^4.7.5",
     "axios": "^1.6.8",
     "flag-icons": "^7.2.3",
-     "@clerk/vue": "^2.0.0"
+    "@clerk/vue": "^2.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",

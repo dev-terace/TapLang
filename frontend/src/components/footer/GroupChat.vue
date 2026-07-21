@@ -5,6 +5,11 @@ import { useGroupChatStore } from '@/stores/GroupChatStore'
 const uiStore = useUIStore()
 const groupChatStore = useGroupChatStore()
 
+
+const alert = (message: string): void => {
+  window.alert(message)
+}
+
 </script>
 
 
