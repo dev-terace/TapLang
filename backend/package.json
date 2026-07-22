@@ -2,9 +2,10 @@
   "name": "node_js",
   "version": "1.0.0",
   "scripts": {
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "dev": " ts-node-dev --respawn --transpile-only --poll src/index.ts",
     "build": "tsc",
-    "start": "node dist/index.js"
+    "start": "node dist/index.js",
+    "test": "jest"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0",
@@ -13,7 +14,8 @@
     "express": "^4.19.2",
     "pg": "^8.11.5",
     "redis": "^4.6.13",
-    "socket.io": "^4.7.5"
+    "socket.io": "^4.7.5",
+    "ioredis": "^5.6.1"
   },
   "devDependencies": {
     "ts-node-dev": "^2.0.0",  
@@ -23,6 +25,11 @@
     "@types/pg": "^8.11.5",
     "prisma": "^5.22.0",
     "tsx": "^4.23.1",
-    "typescript": "^5.4.5"
+    "typescript": "^5.4.5",
+    "jest": "^30.0.0",
+    "ts-jest": "^29.4.0",
+    "@types/jest": "^30.0.0",
+    "supertest": "^7.0.0",
+    "@types/supertest": "^6.0.0"
   }
 }

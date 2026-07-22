@@ -1,7 +1,9 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import type { Friend, MyProfile } from '../types'
+import {useAuthStore} from '@/stores/AuthStore'
 
+import axios from 'axios'
 
 export const useFriendStore = defineStore('friend', () => {
 
@@ -13,24 +15,34 @@ export const useFriendStore = defineStore('friend', () => {
     statusMsg: '오늘도 코딩중'
   })
 
-
+  const authStore = useAuthStore()
   // 친구 목록
   const friends = ref<Friend[]>([
-    {
-      id: 1,
-      name: '사이버_러버',
-      avatar: '🪐',
-      statusMsg: '로그 분석 시스템 기동 중',
-      online: true
-    },
-    {
-      id: 2,
-      name: '아날로그_웨이브',
-      avatar: '💾',
-      statusMsg: '버디버디 전보 대기',
-      online: true
-    }
+    // {
+    //   id: 1,
+    //   name: '사이버_러버',
+    //   avatar: '🪐',
+    //   statusMsg: '로그 분석 시스템 기동 중',
+    //   online: true
+    // },
   ])
+
+
+  const fetchFriends = async (ownId: number) => {
+  const { data } = await axios.get(`/api/friends/${ownId}`)
+    friends.value = data.friends
+}
+
+watch(
+  () => authStore.userInfo,
+  (user) => {
+    if (user) {
+      fetchFriends(user.id)
+    }
+  },
+  { immediate: true }
+)
+
 
 
   const onlineFriends = computed(() =>

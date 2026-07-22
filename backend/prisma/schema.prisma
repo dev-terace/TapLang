@@ -9,13 +9,11 @@ datasource db {
 }
 
 
-
-
-model MyProfile{
+model MyProfile {
   id         Int      @id @default(autoincrement())
   provider   String
   providerId String   @unique
-  email      String  @unique
+  email      String   @unique
   name       String
   flag       String
   statusMsg  String?

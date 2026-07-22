@@ -69,21 +69,32 @@ import Chat from './components/footer/Chat.vue'
 import GroupChat from './components/footer/GroupChat.vue'
 import TransTag from './components/footer/TransTag.vue'
 import ViewPort from './components/header/ViewPort.vue'
-
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/AuthStore'
 import { storeToRefs } from 'pinia'
+import { useSocketStore } from "@/stores/socketStore";
 
 
-
+const socketStore = useSocketStore();
 
 const authStore = useAuthStore()
+
+const userInfo = authStore.userInfo
 
 const { isLoggedIn } = storeToRefs(authStore)
 
 const { login } = authStore
 
+watch(
+  isLoggedIn,
+  (loggedIn) => {
 
+    if (loggedIn && userInfo) {
+      socketStore.connect(userInfo.id);
+    }
+
+  }
+);
 
 
 

@@ -3,7 +3,7 @@ import { userService } from '../services/user.service';
 
 export const loginOrRegister = async (req: Request, res: Response) => {
   try {
-    const { provider, providerId, email, name, flag, statusMsg } = req.body;
+    const { provider, providerId, email, name, statusMsg } = req.body;
 
     // 필수 항목 검증
     if (!provider || !providerId || !email || !name) {
@@ -16,7 +16,6 @@ export const loginOrRegister = async (req: Request, res: Response) => {
       providerId,
       email,
       name,
-      flag,
       statusMsg,
     });
 
@@ -28,6 +27,7 @@ export const loginOrRegister = async (req: Request, res: Response) => {
       isNew,
       user,
     });
+
   } catch (error) {
     res.status(500).json({ error: '인증 처리 중 오류가 발생했습니다.' });
   }

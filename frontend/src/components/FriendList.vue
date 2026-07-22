@@ -21,9 +21,9 @@ const alertFunc = (msg: string) => {
 const onlineList = computed(() => [
   {
     id: friendStore.myProfile.id,
-    name: friendStore.myProfile.name,
-    avatar: friendStore.myProfile.avatar,
-    statusMsg: friendStore.myProfile.statusMsg,
+    name: authStore.userInfo?.name,
+    flag: authStore.userInfo?.flag,
+    statusMsg: authStore.statusMsg,
     online: true,
     isMe: true
   },
@@ -33,6 +33,7 @@ const onlineList = computed(() => [
     isMe: false
   }))
 ])
+
 
 
 
@@ -85,7 +86,10 @@ const onlineList = computed(() => [
           class="transition-opacity"
           :class="friend.isMe ? 'group-hover/avatar:opacity-30' : ''"
         >
-          {{ friend.avatar }}
+            <img 
+            :src="`https://flagcdn.com/w40/${friend.isMe ? friend.flag : 'kr'}.png`"
+            alt=""
+            class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"/>
         </span>
 
         <span
@@ -97,10 +101,10 @@ const onlineList = computed(() => [
       </div>
         
         <!-- 이름 및 상태메시지 -->
-        <div class="flex-1 min-w-0">
+        <div v-if ="authStore.userInfo" class="flex-1 min-w-0">
           <div class="flex items-center gap-1.5">
             <span class="w-1.5 h-1.5 bg-emerald-500 inline-block rounded-full"></span>
-            <span class="text-xs font-bold truncate tracking-tight">{{ friend.isMe ? authStore.name : friend.name }}</span>
+            <span class="text-xs font-bold truncate tracking-tight">{{ friend.name  }}</span>
           </div>
           <div class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate mt-0.5">
             {{ friend.statusMsg }}
@@ -121,7 +125,10 @@ const onlineList = computed(() => [
       >
         <!-- 아바타 (비활성화 필터) -->
         <div class="w-8 h-8 bg-neutral-400 text-neutral-200 flex items-center justify-center shrink-0 font-pixel text-lg filter grayscale">
-          {{ friend.avatar }}
+          <img 
+            :src="`https://flagcdn.com/w40/${'kr'}.png`"
+            alt=""
+            class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"/>
         </div>
         
         <!-- 이름 및 상태메시지 -->

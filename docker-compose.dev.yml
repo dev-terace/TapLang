@@ -1,4 +1,5 @@
-
+# prisma 스키마 db 생성 
+# - docker compose exec backend  npx prisma migrate dev
   services:
     backend:
       build:
