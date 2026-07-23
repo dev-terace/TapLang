@@ -45,8 +45,6 @@ const selectCountry = (country: Country) => {
 const closeModal = () => {
   modalStore.closeModal()
 }
-
-console.log(countryStore.countries)
 </script>
 
 

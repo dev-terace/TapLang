@@ -28,6 +28,7 @@
   <template v-else>
     <Header />
   
+  
     
     <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
       
@@ -44,6 +45,19 @@
          
         </div>
       </section>
+       
+      
+       <!-- 로딩 오버레이: 전체를 덮음 -->
+    <div
+      v-if="showLoading"
+      class="absolute inset-0 z-50 bg-[#e6e2db] flex flex-col items-center justify-center gap-4"
+    >
+      <div class="font-pixel text-3xl text-[#2d2b28] tracking-tighter">TapLang</div>
+      <div class="w-64 h-4 border-2 border-[#2d2b28] bg-[#fbf9f5] overflow-hidden relative">
+        <div class="h-full bg-[#2d2b28] animate-pulse w-full"></div>
+      </div>
+      <p class="text-[10px] font-mono text-neutral-500 tracking-widest animate-pulse">SYNCING_ONLINE_STATUS...</p>
+    </div>
 
     </main>
 
@@ -75,7 +89,11 @@ import { storeToRefs } from 'pinia'
 import { useSocketStore } from "@/stores/socketStore";
 
 
+
 const socketStore = useSocketStore();
+
+const { isOnlineUsersLoaded } = storeToRefs(socketStore)
+const showLoading = computed(() => isLoggedIn.value && !isOnlineUsersLoaded.value)
 
 const authStore = useAuthStore()
 
@@ -99,24 +117,6 @@ watch(
 
 
 
-
-
-
-
-// // --- 사람찾기 ---
-
-// const dummyUsers = ref<User[]>([
-//   {
-//     name: '사이버_드리프터',
-//     avatar: '🪐',
-//     role: '네트워크 노드 분석가'
-//   },
-//   {
-//     name: '테크노_스타일',
-//     avatar: '🕶️',
-//     role: '오픈 테크니션'
-//   }
-// ])
 
 
 </script>

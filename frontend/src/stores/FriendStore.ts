@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Friend, MyProfile } from '../types'
 import {useAuthStore} from '@/stores/AuthStore'
+import { useSocketStore } from "./SocketStore";
 
 import axios from 'axios'
 
@@ -28,20 +29,24 @@ export const useFriendStore = defineStore('friend', () => {
   ])
 
 
+
   const fetchFriends = async (ownId: number) => {
   const { data } = await axios.get(`/api/friends/${ownId}`)
     friends.value = data.friends
+    console.log("friends: " + friends)
 }
 
-watch(
-  () => authStore.userInfo,
-  (user) => {
-    if (user) {
-      fetchFriends(user.id)
-    }
-  },
-  { immediate: true }
-)
+  watch(
+    () => authStore.userInfo,
+    (user) => {
+      if (user) {
+        fetchFriends(user.id)
+      }
+    },
+    { immediate: true }
+  )
+
+
 
 
 

@@ -1,30 +1,47 @@
 import { defineStore } from "pinia";
 import { ref } from "vue";
 import type { Socket } from "socket.io-client";
+import { useFriendStore } from "./FriendStore";
+
 import {
   connectSocket,
   disconnectSocket
 } from "../services/socket.service";
 
 
+
+
 export const useSocketStore = defineStore("socket", () => {
 
   const socket = ref<Socket | null>(null);
-
-  const onlineUsers = ref<number[]>([]);
+  const isOnlineUsersLoaded = ref(false)
+  
 
   let heartbeatTimer: number | null = null;
+  const friendStore = useFriendStore()
+  
+
+  const findOnlineUsers = () => {
+      const friendIds = friendStore.friends.map(friend => friend.id);
+      console.log("보내는 친구 ID", friendIds);
+      socket.value?.emit("findOnlineUsers", friendIds)
+  }
 
 
-  const startHeartbeat = () => {
+const startHeartbeat = () => {
+  if (!socket.value) return;
 
-    if (!socket.value) return;
+  // 즉시 한 번 실행
+  socket.value.emit("heartbeat");
+  findOnlineUsers();
 
-    heartbeatTimer = window.setInterval(() => {
-      socket.value?.emit("heartbeat");
-    }, 30000);
+  // 이후 30초마다 반복
+  heartbeatTimer = window.setInterval(() => {
+    socket.value?.emit("heartbeat");
+    findOnlineUsers();
+  }, 20000);
+};
 
-  };
 
 
   const stopHeartbeat = () => {
@@ -49,28 +66,17 @@ export const useSocketStore = defineStore("socket", () => {
 
 
     socket.value.on(
-      "userOnline",
-      (onlineUserId: number) => {
+      "getOnlineUsers",
+      (onlineUserIds: number[]) => {
+        friendStore.friends.forEach(friend => {
+          friend.online = onlineUserIds.includes(friend.id);
+        });
 
-        if (!onlineUsers.value.includes(onlineUserId)) {
-          onlineUsers.value.push(onlineUserId);
-        }
-
+        isOnlineUsersLoaded.value = true
       }
     );
 
 
-    socket.value.on(
-      "userOffline",
-      (offlineUserId: number) => {
-
-        onlineUsers.value =
-          onlineUsers.value.filter(
-            id => id !== offlineUserId
-          );
-
-      }
-    );
 
   };
 
@@ -78,26 +84,21 @@ export const useSocketStore = defineStore("socket", () => {
   const disconnect = () => {
 
     stopHeartbeat();
-
     disconnectSocket();
-
     socket.value = null;
-    onlineUsers.value = [];
+    isOnlineUsersLoaded.value = false
+
 
   };
 
 
-  const isOnline = (userId: number) => {
-    return onlineUsers.value.includes(userId);
-  };
 
 
   return {
     socket,
-    onlineUsers,
     connect,
     disconnect,
-    isOnline
+    isOnlineUsersLoaded
   };
 
 });

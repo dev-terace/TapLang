@@ -11,8 +11,14 @@ export const registerOnlineEvents = (socket: Socket) => {
     console.log("하트비트 실행: " + userId + ", id: "+socket.id)
     await onlineUsersService.heartbeat(userId, socket.id);
 
-    socket.broadcast.emit("userOnline", userId);
 
+  });
+
+  socket.on("findOnlineUsers", async (data) => {
+     const onlineUsers = await onlineUsersService.getOnlineUsers(data);
+    
+     console.log("onlineUsers : "+onlineUsers)
+      socket.emit("getOnlineUsers", onlineUsers);
   });
 
   socket.on("disconnect", async () => {

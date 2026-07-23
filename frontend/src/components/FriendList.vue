@@ -6,6 +6,7 @@ import { useModalStore } from '@/stores/ModalStore'
 import FriendModal from './FriendModal.vue'
 import CountryModal from './CountryModal.vue'
 import { useAuthStore } from '@/stores/AuthStore'
+import { useSocketStore } from "./SocketStore";
 
 
 const friendStore = useFriendStore()
@@ -33,6 +34,9 @@ const onlineList = computed(() => [
     isMe: false
   }))
 ])
+
+
+
 
 
 

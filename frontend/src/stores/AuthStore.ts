@@ -8,7 +8,7 @@ export const useAuthStore = defineStore('auth', () => {
   const clerk = useClerk()
   const { isSignedIn, userId: clerkId } = useAuth()
   const { user } = useUser()
-  const socketStore = useSocketStore();
+ 
 
   const email = computed(() =>
     user.value?.primaryEmailAddress?.emailAddress ?? ''
@@ -48,7 +48,7 @@ export const useAuthStore = defineStore('auth', () => {
       })
 
       userInfo.value = data.user
-      
+      const socketStore = useSocketStore();
       socketStore.connect(data.user.id)
 
       console.log('유저 백엔드 동기화 성공:', data.user.id)
