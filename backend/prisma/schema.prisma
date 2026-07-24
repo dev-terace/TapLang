@@ -14,7 +14,7 @@ model MyProfile {
   provider   String
   providerId String   @unique
   email      String   @unique
-  name       String
+  name       String   @unique
   flag       String
   statusMsg  String?
   createdAt  DateTime @default(now())
@@ -22,6 +22,9 @@ model MyProfile {
     
   sentFriendships     Friends[] @relation("MyFriendRelation")
   receivedFriendships Friends[] @relation("FriendWithMeRelation")
+
+  sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
+  receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 }
 
 model Friends {
@@ -32,4 +35,18 @@ model Friends {
     friend   MyProfile @relation("FriendWithMeRelation", fields: [friendId], references: [id])
     @@unique([ownId, friendId])
     
+}
+
+model FriendRequest {
+  id Int @id @default(autoincrement())
+
+  senderId Int
+  sender MyProfile @relation("FriendRequestSender", fields: [senderId], references: [id])
+
+  receiverId Int
+  receiver MyProfile @relation("FriendRequestReceiver", fields: [receiverId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([senderId, receiverId])
 }

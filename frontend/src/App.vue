@@ -93,13 +93,16 @@ import { useSocketStore } from "@/stores/socketStore";
 const socketStore = useSocketStore();
 
 const { isOnlineUsersLoaded } = storeToRefs(socketStore)
+const authStore = useAuthStore()
+const { isLoggedIn } = storeToRefs(authStore)
+
 const showLoading = computed(() => isLoggedIn.value && !isOnlineUsersLoaded.value)
 
-const authStore = useAuthStore()
+
 
 const userInfo = authStore.userInfo
 
-const { isLoggedIn } = storeToRefs(authStore)
+
 
 const { login } = authStore
 

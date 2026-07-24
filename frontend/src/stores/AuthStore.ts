@@ -1,14 +1,16 @@
 import { defineStore } from 'pinia'
 import { computed, watch, ref } from 'vue'
 import { useClerk, useAuth, useUser } from '@clerk/vue'
-import axios from 'axios'
+import api from '@/services/api.service'
 import { useSocketStore } from "./SocketStore";
+import { setTokenGetter } from "@/services/auth.service";
 
 export const useAuthStore = defineStore('auth', () => {
   const clerk = useClerk()
-  const { isSignedIn, userId: clerkId } = useAuth()
+  const { isSignedIn, userId: clerkId, getToken } = useAuth()
   const { user } = useUser()
- 
+  setTokenGetter(() => getToken.value())
+
 
   const email = computed(() =>
     user.value?.primaryEmailAddress?.emailAddress ?? ''
@@ -36,17 +38,19 @@ export const useAuthStore = defineStore('auth', () => {
     // 로그인 상태가 아니거나, 유저 프로필 정보가 아직 로드되지 않았다면 대기
     if (!signedIn || !currentUser) return
     
-    const providerId = clerkId.value
+   
     const provider = 'clerk'
     
+
     try {
-      const { data } = await axios.post('/api/users', {
+      console.log("api 요청 전");
+      const { data } = await api.post('/api/users', {
         provider,
-        providerId,
         email: email.value, // 👈 1. .value 추가 (순환참조 에러 방지)
         name: name.value,   // 👈 1. .value 추가 (순환참조 에러 방지)
-      })
-
+      }
+     )
+      console.log("api 요청 후");
       userInfo.value = data.user
       const socketStore = useSocketStore();
       socketStore.connect(data.user.id)

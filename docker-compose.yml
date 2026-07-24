@@ -44,6 +44,9 @@ services:
     restart: always
     ports:
       - "${APP_PORT}:${APP_PORT}"
+
+    env_file:
+      - .env
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${APP_PORT}

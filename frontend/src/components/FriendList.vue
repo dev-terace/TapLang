@@ -21,7 +21,7 @@ const alertFunc = (msg: string) => {
 // 내 프로필 + 온라인 친구 목록
 const onlineList = computed(() => [
   {
-    id: friendStore.myProfile.id,
+    id: authStore.userInfo?.id,
     name: authStore.userInfo?.name,
     flag: authStore.userInfo?.flag,
     statusMsg: authStore.statusMsg,

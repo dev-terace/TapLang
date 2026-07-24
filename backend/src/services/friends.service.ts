@@ -40,8 +40,25 @@ const addFriend = async (ownId: number, friendId: number) => {
   ]);
 };
 
+const searchFriend = async (name: string) => {
+  const friend = await prisma.myProfile.findUnique({
+    where: {
+      name,
+    },
+    select: {
+      id: true,
+      name: true,
+      flag: true,
+      statusMsg: true,
+    },
+  });
+
+  return friend;
+};
+
 
 export const friendsService = {
   getFriends,
   addFriend,
+  searchFriend
 };

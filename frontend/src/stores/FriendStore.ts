@@ -3,29 +3,19 @@ import { ref, computed, watch } from 'vue'
 import type { Friend, MyProfile } from '../types'
 import {useAuthStore} from '@/stores/AuthStore'
 import { useSocketStore } from "./SocketStore";
+import { useAuth } from '@clerk/vue'
 
-import axios from 'axios'
-
+import axios, { AxiosError } from "axios";
+import api from '@/services/api.service'
+import { setTokenGetter } from "@/services/auth.service";
 export const useFriendStore = defineStore('friend', () => {
 
-  // 내 프로필
-  const myProfile = ref<MyProfile>({
-    id: 0,
-    name: '나',
-    avatar: '🙂',
-    statusMsg: '오늘도 코딩중'
-  })
+  const { getToken } = useAuth();
+  setTokenGetter(getToken);
 
   const authStore = useAuthStore()
   // 친구 목록
   const friends = ref<Friend[]>([
-    // {
-    //   id: 1,
-    //   name: '사이버_러버',
-    //   avatar: '🪐',
-    //   statusMsg: '로그 분석 시스템 기동 중',
-    //   online: true
-    // },
   ])
 
 
@@ -34,7 +24,7 @@ export const useFriendStore = defineStore('friend', () => {
   const { data } = await axios.get(`/api/friends/${ownId}`)
     friends.value = data.friends
     console.log("friends: " + friends)
-}
+  }
 
   watch(
     () => authStore.userInfo,
@@ -60,32 +50,44 @@ export const useFriendStore = defineStore('friend', () => {
   )
 
 
-  // 내 프로필 변경
-  const updateProfile = (data: Partial<MyProfile>) => {
-    myProfile.value = {
-      ...myProfile.value,
-      ...data
+
+
+
+interface AddFriendRequest {
+  searchName: string;
+  ownId: Number;
+}
+
+
+const reqFriend = async ({ searchName, ownId }: AddFriendRequest) => {
+  try {
+    const { data } = await api.post("/api/friends/request", {
+      searchName,
+      ownId,
+    },
+    
+  );
+
+    console.log("name :" +name +", ownId : " +ownId)
+
+    return data;
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      alert(error.response?.data?.message ?? "친구 요청 중 오류가 발생했습니다.");
+    } else {
+      alert("알 수 없는 오류가 발생했습니다.");
     }
-  }
 
-
-  const addFriend = (data: { name: string; statusMsg: string }) => {
-    friends.value.push({
-      id: Date.now(),
-      name: data.name,
-      avatar: '👾',
-      statusMsg: data.statusMsg || '시스템 대기 중',
-      online: true
-    })
+    throw error;
   }
+};
+  
 
 
   return {
-    myProfile,
     friends,
     onlineFriends,
     offlineFriends,
-    updateProfile,
-    addFriend
+    reqFriend
   }
 })
