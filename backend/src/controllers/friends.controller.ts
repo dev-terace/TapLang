@@ -4,13 +4,38 @@ import { friendReqService } from "../services/friendReq.service";
 
 export const findFriends = async (req: Request, res: Response) => {
     try {
-      const ownId = Number(req.params.ownId);
+
+      console.log("===============================2222")
+      const ownId =  req.session.userId; 
       const friends = await friendsService.getFriends(ownId);
       
       res.status(200).json({
         message: "친구 목록 조회 성공",
         friends,
       });
+
+    } catch (error) {
+      console.error(error);
+
+      res.status(500).json({
+        message: "친구 목록 조회 실패",
+      });
+    }
+  };
+
+
+  export const findReqFriends = async (req: Request, res: Response) => {
+    try {
+      const ownId = req.session.userId;
+
+      console.log("findReqFriends ownId: " + ownId)
+      const friends = await friendReqService.findRequestFriends(ownId)
+      
+      res.status(200).json({
+        message: "친구 목록 조회 성공!!!",
+        friends,
+      });
+
 
     } catch (error) {
       console.error(error);
@@ -57,9 +82,16 @@ export const findFriends = async (req: Request, res: Response) => {
     } catch (error) {
       console.error(error);
 
-      res.status(500).json({
+      if (error instanceof Error) {
+        return res.status(409).json({
+          message: error.message,
+        });
+      }
+
+       return res.status(500).json({
         message: "친구 검색 실패",
-      });
+        });
+
     }
   }
 

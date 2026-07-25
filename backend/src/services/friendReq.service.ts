@@ -1,6 +1,30 @@
 import { prisma } from "../lib/prisma";
 
 
+export const findRequestFriends = async (userId: number) => {
+  
+const requests = await prisma.friendRequest.findMany({
+  where: {
+    OR: [
+      { senderId: userId },
+    ],
+  },
+  include: {
+    receiver: true,
+  },
+});
+
+const result = requests.map((request) => 
+  ({
+  profile:
+    request.senderId === userId
+      ? request.receiver
+      : request.sender,
+}));
+
+  return result;
+};
+
 
 const sendFriendRequest = async (
   senderId: number,
@@ -17,6 +41,7 @@ const sendFriendRequest = async (
     });
 
     if (friend) {
+    
       throw new Error("이미 친구입니다.");
     }
 
@@ -57,5 +82,6 @@ const sendFriendRequest = async (
 };
 
 export const friendReqService = {
-  sendFriendRequest
+  sendFriendRequest,
+  findRequestFriends
 };

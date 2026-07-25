@@ -17,6 +17,9 @@ const alertFunc = (msg: string) => {
   alert(msg)
 }
 
+// const data = await friendStore.findReqFriends() 
+// console.log("findReqFriends : "+JSON.stringify(data, null, 2));
+
 
 // 내 프로필 + 온라인 친구 목록
 const onlineList = computed(() => [
@@ -29,15 +32,13 @@ const onlineList = computed(() => [
     isMe: true
   },
 
-  ...friendStore.onlineFriends.map(friend => ({
+    ...friendStore.onlineFriends.map(friend => ({
     ...friend,
     isMe: false
   }))
 ])
 
-
-
-
+const reqFriends = computed(() => friendStore.reqFriends);
 
 
 
@@ -66,6 +67,51 @@ const onlineList = computed(() => [
     <!-- 친구 목록 영역 -->
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
       
+
+          <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mt-6 mb-2">
+      ● 친구 요청
+    </div>
+
+    <!-- 친구 요청 리스트 -->
+    <div
+      v-for="friend in reqFriends"
+      :key="friend.id"
+      class="group flex items-center gap-3 p-2 bg-[#f4f1eb] hover:bg-[#5c5851] hover:text-[#fbf9f5] border-2 border-[#2d2b28] shadow-[3px_3px_0px_0px_#2d2b28]"
+    >
+      <!-- 아바타 -->
+      <div
+        class="w-8 h-8 bg-[#2d2b28] flex items-center justify-center border-2 border-[#2d2b28] shrink-0"
+      >
+        <img
+          :src="`https://flagcdn.com/w40/${friend.flag}.png`"
+          alt=""
+          class="w-5 h-3.5 object-cover border border-[#2d2b28]"
+        />
+      </div>
+
+      <!-- 이름 -->
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5">
+          <span class="w-1.5 h-1.5 bg-yellow-500 inline-block rounded-full"></span>
+          <span class="text-xs font-bold truncate">
+            {{ friend.name }}
+          </span>
+        </div>
+        <div class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate mt-0.5">
+          친구 요청 대기중
+        </div>
+      </div>
+
+      <div class="flex gap-1">
+        <button
+          class="bg-amber-500 text-white border-2 border-[#2d2b28] text-[10px] px-2 py-0.5 font-bold hover:bg-amber-600 transition-colors"
+          @click="cancelFriendRequest(friend.id)"
+        >
+          요청 취소
+        </button>
+      </div>
+    </div>
+
 
       <!-- ● 온라인 인맥 타이틀 -->
       <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mb-2">

@@ -1,13 +1,13 @@
 import { Request, Response } from 'express';
 import { userService } from '../services/user.service';
-import "@clerk/express";
+import { getAuth } from "@clerk/express";
 
 export const loginOrRegister = async (req: Request, res: Response) => {
   try {
     console.log("[user.controller] loginOrRegister 시작")
     const { provider,  email, name, statusMsg } = req.body;
 
-    const { userId: providerId } = req.auth();
+    const { userId: providerId } = getAuth(req);
 
     console.log("[user.controller] 검증 시작: " + providerId)
     // 필수 항목 검증

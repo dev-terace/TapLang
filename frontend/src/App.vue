@@ -86,11 +86,11 @@ import ViewPort from './components/header/ViewPort.vue'
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/stores/AuthStore'
 import { storeToRefs } from 'pinia'
-import { useSocketStore } from "@/stores/socketStore";
-
+import { useSocketStore } from '@/stores/socketStore';
 
 
 const socketStore = useSocketStore();
+
 
 const { isOnlineUsersLoaded } = storeToRefs(socketStore)
 const authStore = useAuthStore()

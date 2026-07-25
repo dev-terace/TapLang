@@ -6,6 +6,13 @@ export interface Friend {
   online: boolean
 }
 
+
+
+export interface ReqFriends{
+  name: String   
+  flag: String  
+}
+
 export interface Country {
   code: string
   name: string
