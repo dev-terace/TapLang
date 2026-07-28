@@ -34,6 +34,7 @@ services:
       - "6379:6379"
     networks:
       - tap-lang-network
+    command: redis-server --notify-keyspace-events Ex 
 
   # 3. Node.js + Socket.IO 백엔드
   backend:

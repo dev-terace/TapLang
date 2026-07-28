@@ -4,7 +4,7 @@ import { getAuth } from "@clerk/express";
 
 export const loginOrRegister = async (req: Request, res: Response) => {
   try {
-    console.log("[user.controller] loginOrRegister 시작")
+    
     const { provider,  email, name, statusMsg } = req.body;
 
     const { userId: providerId } = getAuth(req);

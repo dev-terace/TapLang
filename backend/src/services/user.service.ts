@@ -8,6 +8,24 @@ interface FindOrCreateInput {
   statusMsg?: string;
 }
 
+
+const findUserIdByProviderId = async (
+  providerId: string
+) => {
+
+  const user = await prisma.myProfile.findUnique({
+    where: {
+      providerId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+
+  return user?.id ?? null;
+};
+
 const findOrCreateUser = async (userInput: FindOrCreateInput) => {
   // 1. providerId로 기존 유저 조회
 const existingUser = await prisma.myProfile.findUnique({
@@ -63,4 +81,5 @@ return {
 
 export const userService = {
   findOrCreateUser,
+  findUserIdByProviderId
 };

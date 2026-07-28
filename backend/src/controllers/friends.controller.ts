@@ -5,7 +5,7 @@ import { friendReqService } from "../services/friendReq.service";
 export const findFriends = async (req: Request, res: Response) => {
     try {
 
-      console.log("===============================2222")
+  
       const ownId =  req.session.userId; 
       const friends = await friendsService.getFriends(ownId);
       

@@ -1,6 +1,7 @@
 import { redis } from "../lib/redis";
 
 const PREFIX = "online:";
+const TTL = 60;
 
 const addOnlineUser = async (
   userId: number,
@@ -9,9 +10,9 @@ const addOnlineUser = async (
 
   await redis.set(
     `${PREFIX}${userId}`,
-    socketId,
+    socketId, 
     "EX",
-    60
+    TTL
   );
 
 };
@@ -21,22 +22,50 @@ const heartbeat = async (
   socketId: string
 ) => {
 
-  await redis.set(
-    `${PREFIX}${userId}`,
-    socketId,
-    "EX",
-    60
+  const key = `${PREFIX}${userId}`;
+
+  const currentSocket =
+    await redis.get(key);
+
+
+  // 이미 다른 소켓이면 무시
+  if (
+    currentSocket &&
+    currentSocket !== socketId
+  ) {
+    return false;
+  }
+
+
+  await redis.expire(
+    key,
+    TTL
   );
+
+  return true;
 
 };
 
 const removeOnlineUser = async (
-  userId: number
-) => {
+  userId:number,
+  socketId:string
+)=> {
 
-  await redis.del(
-    `${PREFIX}${userId}`
-  );
+  const key =
+    `${PREFIX}${userId}`;
+
+
+  const current =
+    await redis.get(key);
+
+
+  // 다른 세션이면 삭제하면 안됨
+  if(current !== socketId){
+    return;
+  }
+
+
+  await redis.del(key);
 
 };
 
@@ -66,7 +95,7 @@ const getOnlineUsers = async (): Promise<number[]> => {
 
 };
 
-export const onlineUsersService = {
+export const friendsRedisService = {
   addOnlineUser,
   heartbeat,
   removeOnlineUser,

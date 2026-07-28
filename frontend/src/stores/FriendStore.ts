@@ -2,17 +2,11 @@ import { defineStore } from 'pinia'
 import { ref, computed, watch } from 'vue'
 import type { Friend, MyProfile, ReqFriends } from '../types'
 import {useAuthStore} from '@/stores/AuthStore'
-import { useSocketStore } from "./SocketStore";
-import { useAuth } from '@clerk/vue'
-
 import axios from "axios";
 import api from '@/services/api.service'
-import { setTokenGetter } from "@/services/auth.service";
 
 export const useFriendStore = defineStore('friend', () => {
 
-  const { getToken } = useAuth();
-  setTokenGetter(getToken);
 
   const authStore = useAuthStore()
   // 친구 목록

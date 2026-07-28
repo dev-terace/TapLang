@@ -23,6 +23,8 @@ const getFriends = async (ownId: number) => {
 };
 
 
+
+
 const addFriend = async (ownId: number, friendId: number) => {
   return await prisma.$transaction([
     prisma.friends.create({
