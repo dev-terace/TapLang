@@ -12,7 +12,8 @@ function requireEnv(key: string): string {
 
 interface Settings {
   db: {
-    url: string;
+    postgresUrl: string;
+    mongoUrl: string;
   };
   app: {
     port: number;
@@ -22,7 +23,8 @@ interface Settings {
 
 const settings: Settings = {
   db: {
-    url: requireEnv('DATABASE_URL'),
+    postgresUrl: requireEnv("POSTGRES_DATABASE_URL"),
+    mongoUrl: requireEnv("MONGODB_DATABASE_URL"),
   },
   app: {
     port: Number(process.env.PORT) || 3000,

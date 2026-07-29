@@ -3,6 +3,11 @@
 # docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
 # docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
+# prisma 듀얼 DB 환경
+# docker compose exec backend npx prisma generate --schema prisma/postgres/schema.prisma
+# docker compose exec backend npx prisma generate --schema prisma/mongodb/schema.prisma
+
+
 services:
   # 1. PostgreSQL 데이터베이스
   postgres:
@@ -23,7 +28,21 @@ services:
       test: ["CMD-SHELL", "pg_isready -U admin -d tap_lang_db"]
       interval: 5s
       timeout: 5s
-      retries: 10  
+      retries: 10
+
+  mongo:
+      image: mongo:7
+      container_name: mongo
+      restart: always
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
+        MONGO_INITDB_ROOT_PASSWORD: ${DB_PASSWORD}
+        MONGO_INITDB_DATABASE: ${DB_NAME}
+      ports:
+        - "27017:27017"
+      volumes:
+        - ./mongo-data:/data/db
+      
 
   # 2. Redis (Socket.IO 어댑터 및 캐싱용)
   redis:
@@ -51,13 +70,14 @@ services:
     environment:
       NODE_ENV: ${NODE_ENV}
       PORT: ${APP_PORT}
-      DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public"
+      POSTGRES_DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public"
+      MONGODB_DATABASE_URL: mongodb://mongo:27017/${DB_USER}
       REDIS_URL: redis://redis:6379
     depends_on:
       - postgres
       - redis
       
-    command: sh -c "npx prisma migrate deploy && npm start"
+    command: sh -c "npm start"
 
     networks:
       - tap-lang-network

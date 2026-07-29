@@ -16,16 +16,20 @@ export const useFriendStore = defineStore('friend', () => {
   const fetchFriends = async (ownId: number) => {
   const { data } = await api.get(`/api/friends/${ownId}`)
     friends.value = data.friends
-    console.log("friends: " + friends)
+    console.log("friends: ", {friends, ownId})
   }
 
   watch(
     () => authStore.userInfo,
     (user) => {
-      if (user) {
+      if (!user?.id) {
+        return;
+      }
+
+      
         fetchFriends(user.id);
         findReqFriends();
-      }
+      
     },
     { immediate: true }
   )

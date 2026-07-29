@@ -1,4 +1,4 @@
-import { prisma } from "../lib/prisma";
+import { postgresPrisma as prisma } from "../lib/prisma";
 
 
 export const findRequestFriends = async (userId: number) => {

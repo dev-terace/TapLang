@@ -1,8 +1,10 @@
-import { PrismaClient } from '@prisma/client';
-import settings from '../settings';
+import { PrismaClient as PostgresClient } from "../../generated/postgres";
+import { PrismaClient as MongoClient } from "../../generated/mongodb";
 
-export const prisma = new PrismaClient({
-  datasources: {
-    db: { url: settings.db.url },
-  },
+export const postgresPrisma = new PostgresClient({
+  log: ["query"],
+});
+
+export const mongoPrisma = new MongoClient({
+  log: ["query"],
 });

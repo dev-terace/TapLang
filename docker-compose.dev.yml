@@ -10,11 +10,13 @@
       depends_on:
         postgres:
           condition: service_healthy
+        mongo:
+          condition: service_started  
 
       volumes:
         - ./backend:/usr/src/app
         - /usr/src/app/node_modules 
-      command: sh -c "npx prisma migrate deploy && npm run dev"
+      command: sh -c "npm run dev"
 
     frontend:
       build:

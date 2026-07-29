@@ -3,7 +3,7 @@ import { ref } from "vue";
 import type { Socket } from "socket.io-client";
 import { useFriendStore } from "./FriendStore";
 import {registerFriendSocket} from "@/socket/friend.socket"
-
+import { startHeartbeat } from "@/socket/friend.heartbeat.socket";
 
 import {
   connectSocket,
@@ -39,6 +39,7 @@ export const useSocketStore = defineStore("socket", () => {
   registerFriendSocket(
     socketInstance
   );
+  startHeartbeat(socketInstance);
 
     
 

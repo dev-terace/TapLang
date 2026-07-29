@@ -1,12 +1,31 @@
-import { prisma } from "../lib/prisma";
+import { postgresPrisma as prisma } from "../lib/prisma";
 
 
 const getFriends = async (ownId: number) => {
+if (ownId == null) {
+  throw new Error('ownId가 값이 없습니다.');
+}
+
   const friends = await prisma.friends.findMany({
     where: {
-      ownId,
+      OR: [
+        {
+          ownId,
+          friendId: {
+            not: ownId,
+          },
+        },
+        {
+          friendId: ownId,
+          ownId: {
+            not: ownId,
+          },
+        },
+      ],
     },
     select: {
+      ownId: true,
+      friendId: true,
       friend: {
         select: {
           id: true,
@@ -19,8 +38,17 @@ const getFriends = async (ownId: number) => {
     },
   });
 
-  return friends.map((f) => f.friend);
+  const uniqueFriends = Array.from(
+    new Map(
+      friends
+        .filter((item) => item.friend.id !== ownId) // 본인 제외
+        .map((item) => [item.friend.id, item.friend])
+    ).values()
+  );
+
+  return uniqueFriends;
 };
+
 
 
 

@@ -16,13 +16,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET!,
-    resave: false,
-    saveUninitialized: false,
-  })
-);
+
 
 app.use(clerkMiddleware());
 
@@ -36,6 +30,13 @@ const requireApiAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
+// app.use(
+//   session({
+//     secret: process.env.SESSION_SECRET!,
+//     resave: false,
+//     saveUninitialized: false,
+//   })
+// );
 
 app.use("/api/users", requireApiAuth, userRouter);
 app.use("/api/friends", requireApiAuth, friendsRouter);

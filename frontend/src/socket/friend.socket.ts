@@ -12,27 +12,6 @@ export function registerFriendSocket(
 socket.emit("friend:own:init");
   
 
-const heartbeat = () => {
-  if (!socket.connected) {
-    return;
-  }
-
-  socket.timeout(5000).emit(
-    "friend:heartbeat",
-    (err: Error | null) => {
-
-      if (!err) {
-        setTimeout(heartbeat, 30000);
-      } else {
-        setTimeout(heartbeat, 5000);
-      }
-
-    }
-  );
-};
-heartbeat();
-
-
 socket.on(
   "friend:online",
   (onlineUserId: number) => {
@@ -70,13 +49,6 @@ socket.on(
   }
 );
 
-  socket.on(
-    "disconnect",
-    () => {
-      clearInterval(
-        heartbeatInterval
-      );
-    }
-  );
+
 
 }

@@ -1,4 +1,5 @@
-import { prisma } from '../lib/prisma';
+import { postgresPrisma as prisma } from '../lib/prisma';
+import { getAuth } from "@clerk/express";
 
 interface FindOrCreateInput {
   provider: string;
@@ -25,6 +26,10 @@ const findUserIdByProviderId = async (
 
   return user?.id ?? null;
 };
+const findUserIdByAuthToken = async(req: Request) => {
+  const { userId: providerId } = getAuth(req);
+  return findUserIdByProviderId(providerId)
+}
 
 const findOrCreateUser = async (userInput: FindOrCreateInput) => {
   // 1. providerId로 기존 유저 조회
@@ -81,5 +86,6 @@ return {
 
 export const userService = {
   findOrCreateUser,
-  findUserIdByProviderId
+  findUserIdByProviderId,
+  findUserIdByAuthToken
 };

@@ -24,9 +24,7 @@ export const loginOrRegister = async (req: Request, res: Response) => {
       statusMsg,
     });
 
-    req.session.userId = user.id
-
-    console.log("[user.service] session Id : "+req.session.userId)
+  
     // 신규 생성되었으면 201 Created, 기존 유저면 200 OK
     const statusCode = isNew ? 201 : 200;
 

@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { friendsService } from "../services/friends.service";
 import { friendReqService } from "../services/friendReq.service";
+import { userService } from "../services/user.service";
 
 export const findFriends = async (req: Request, res: Response) => {
     try {
 
-  
-      const ownId =  req.session.userId; 
+      
+      const ownId =  await userService.findUserIdByAuthToken(req); 
       const friends = await friendsService.getFriends(ownId);
       
       res.status(200).json({
@@ -26,7 +27,7 @@ export const findFriends = async (req: Request, res: Response) => {
 
   export const findReqFriends = async (req: Request, res: Response) => {
     try {
-      const ownId = req.session.userId;
+      const ownId =  await userService.findUserIdByAuthToken(req); 
 
       console.log("findReqFriends ownId: " + ownId)
       const friends = await friendReqService.findRequestFriends(ownId)
@@ -51,13 +52,13 @@ export const findFriends = async (req: Request, res: Response) => {
     try {
        const { searchName } = req.body;
 
-      const senderId = req.session.userId; 
+      const senderId =  await userService.findUserIdByAuthToken(req); 
       
        
 
       console.log("[friends.controller] senderId : " + senderId + ", searchName : "+searchName)
       const receiver = await friendsService.searchFriend(searchName)
-
+ 
       if (senderId === receiver?.id) {
         return res.status(409).json({
           message: "자기 자신은 친구 추가할 수 없습니다.",
@@ -98,7 +99,7 @@ export const findFriends = async (req: Request, res: Response) => {
 
   export const addFriend = async (req: Request, res: Response) => {
     try {
-      const ownId = Number(req.params.ownId);
+      const ownId =  await userService.findUserIdByAuthToken(req); 
       const friendId = Number(req.params.friendId)
 
       const friends = await friendsService.addFriend(ownId, friendId);
