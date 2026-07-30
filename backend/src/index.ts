@@ -3,7 +3,7 @@ import { Server } from "socket.io";
 import app from "./app";
 import { initializeSocket } from "./socket/socket";
 import { setSocketIO } from "./socket/socket";
-import { startPresenceExpiredListener } from "./services/friends.expired.redis.service";
+import { startPresenceExpiredListener } from "./friends/services/friends.expired.redis.service";
 
 
 const PORT =

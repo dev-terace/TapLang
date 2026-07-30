@@ -10,7 +10,7 @@
       depends_on:
         postgres:
           condition: service_healthy
-        mongo:
+        mongodb:
           condition: service_started  
 
       volumes:

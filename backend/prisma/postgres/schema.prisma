@@ -19,23 +19,27 @@ model MyProfile {
   flag       String
   statusMsg  String?
   createdAt  DateTime @default(now())
-  
-    
-  sentFriendships     Friends[] @relation("MyFriendRelation")
-  receivedFriendships Friends[] @relation("FriendWithMeRelation")
 
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
+
+  friendshipsA Friends[] @relation("FriendA")
+  friendshipsB Friends[] @relation("FriendB")
 }
 
+
 model Friends {
-    id       Int       @id @default(autoincrement())
-    ownId    Int
-    own      MyProfile @relation("MyFriendRelation", fields: [ownId], references: [id])
-    friendId Int
-    friend   MyProfile @relation("FriendWithMeRelation", fields: [friendId], references: [id])
-    @@unique([ownId, friendId])
-    
+  id Int @id @default(autoincrement())
+
+  userAId Int
+  userA MyProfile @relation("FriendA", fields: [userAId], references: [id])
+
+  userBId Int
+  userB MyProfile @relation("FriendB", fields: [userBId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  @@unique([userAId, userBId])
 }
 
 model FriendRequest {

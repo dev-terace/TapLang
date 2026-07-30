@@ -1,9 +1,7 @@
 generator client {
-  provider      = "prisma-client-js"
-  output        = "../../generated/mongodb"
-  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+  provider = "prisma-client-js"
+  output   = "../../generated/mongo"
 }
-
 
 datasource db {
   provider = "mongodb"
@@ -11,23 +9,62 @@ datasource db {
 }
 
 
-model Message {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+model Conversation {
+  id String @id @default(uuid()) @map("_id")
 
-  roomId String
+  type ConversationType
 
-  senderId Int
+  // 1:1 중복 방지
+  // 예: "2:9"
+  // GROUP은 null
+  directKey String? @unique
 
-  content String
+  // 그룹명
+  name String?
+
+  members ConversationMember[]
+
+  createdBy String
 
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+
+  messages Message[]
+
+
 }
 
 
-model ChatRoom {
-  id String @id @default(auto()) @map("_id") @db.ObjectId
+type ConversationMember {
+  userId String
 
-  roomId String @unique
+  joinedAt DateTime @default(now())
+
+  lastReadAt DateTime?
+}
+
+
+model Message {
+  id String @id @default(uuid()) @map("_id")
+
+  conversationId String
+
+  senderId String
+
+  content String
+
+  attachments Json?
 
   createdAt DateTime @default(now())
+
+  conversation Conversation @relation(fields: [conversationId], references: [id])
+
+  @@index([conversationId, createdAt])
+}
+
+
+enum ConversationType {
+  DIRECT
+  GROUP
 }

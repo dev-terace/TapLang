@@ -1,7 +1,7 @@
 import { Server, Socket } from "socket.io";
-import { registerFriendEvents, registerHeartBeatEvents } from "./friends.handler";
+import { registerFriendEvents, registerHeartBeatEvents } from "../friends/socket/friends.handler";
 import { verifyToken } from "@clerk/backend";
-import { userService } from "../services/user.service"
+import { userService } from "../users/services/user.service";
 
 let io: Server;
 

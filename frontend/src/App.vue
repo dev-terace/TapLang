@@ -73,20 +73,20 @@
 
 
 <script setup lang="ts">
-import FriendList from './components/FriendList.vue'
-import Header from './components/header/Header.vue'
-import Memo from './components/header/Memo.vue'
-import FindPeople from './components/header/FindPeople.vue'
-import Notice from './components/header/Notice.vue'
-import Footer from './components/footer/Footer.vue'
-import Chat from './components/footer/Chat.vue'
-import GroupChat from './components/footer/GroupChat.vue'
-import TransTag from './components/footer/TransTag.vue'
-import ViewPort from './components/header/ViewPort.vue'
+import FriendList from './friends/components/FriendList.vue'
+import Header from './shared/ui/components/Header.vue'
+import Memo from './memo/Memo.vue'
+import FindPeople from './find_people/components/FindPeople.vue'
+import Notice from './notice/Notice.vue'
+import Footer from './shared/ui/components/Footer.vue'
+import Chat from './chat/components/Chat.vue'
+import GroupChat from './group_chat/components/GroupChat.vue'
+import TransTag from './trans_tag/components/TransTag.vue'
+import ViewPort from './shared/ui/components/ViewPort.vue'
 import { ref, computed, watch } from 'vue'
-import { useAuthStore } from '@/stores/AuthStore'
+import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'
-import { useSocketStore } from '@/stores/socketStore';
+import { useSocketStore } from '@/shared/socket/socket.register.js';
 
 
 const socketStore = useSocketStore();

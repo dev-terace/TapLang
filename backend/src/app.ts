@@ -1,7 +1,7 @@
 import express, { Application, Request, Response } from "express";
 import cors from "cors";
-import userRouter from "./routes/user.route";
-import friendsRouter from "./routes/friends.route";
+import userRouter from "./users/routes/user.route";
+import friendsRouter from "./friends/routes/friends.route";
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 import session from "express-session";
 
@@ -30,13 +30,6 @@ const requireApiAuth = (req: Request, res: Response, next: NextFunction) => {
   next();
 };
 
-// app.use(
-//   session({
-//     secret: process.env.SESSION_SECRET!,
-//     resave: false,
-//     saveUninitialized: false,
-//   })
-// );
 
 app.use("/api/users", requireApiAuth, userRouter);
 app.use("/api/friends", requireApiAuth, friendsRouter);

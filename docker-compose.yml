@@ -1,9 +1,10 @@
 # 개발 환경 hot-reload 환경
 # backend package.json devDependencies "ts-node-dev": "^2.0.0" 추가
-# docker compose -f docker-compose.yml -f docker-compose.dev.yml down -v
+# docker compose -f docker-compose.yml -f docker-compose.dev.yml down
 # docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 # prisma 듀얼 DB 환경
+# docker compose exec backend npx prisma db push --schema prisma/mongodb/schema.prisma
 # docker compose exec backend npx prisma generate --schema prisma/postgres/schema.prisma
 # docker compose exec backend npx prisma generate --schema prisma/mongodb/schema.prisma
 
@@ -30,9 +31,9 @@ services:
       timeout: 5s
       retries: 10
 
-  mongo:
+  mongodb:
       image: mongo:7
-      container_name: mongo
+      container_name: mongodb
       restart: always
       environment:
         MONGO_INITDB_ROOT_USERNAME: ${DB_USER}
@@ -42,6 +43,8 @@ services:
         - "27017:27017"
       volumes:
         - ./mongo-data:/data/db
+      networks:
+        - tap-lang-network  
       
 
   # 2. Redis (Socket.IO 어댑터 및 캐싱용)
@@ -71,7 +74,7 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: ${APP_PORT}
       POSTGRES_DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public"
-      MONGODB_DATABASE_URL: mongodb://mongo:27017/${DB_USER}
+      MONGODB_DATABASE_URL: "mongodb://${DB_USER}:${DB_PASSWORD}@mongodb:27017/${DB_NAME}?authSource=admin"
       REDIS_URL: redis://redis:6379
     depends_on:
       - postgres
