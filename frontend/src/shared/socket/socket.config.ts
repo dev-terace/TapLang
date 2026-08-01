@@ -15,6 +15,9 @@ export const connectSocket = async (): Promise<Socket> =>  {
     auth: {
       token,
     },
+    reconnection: true,
+    reconnectionAttempts: Infinity,
+    reconnectionDelay: 1000,
   });
 
   return socket;

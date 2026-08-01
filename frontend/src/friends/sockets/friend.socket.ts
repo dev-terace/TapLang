@@ -9,7 +9,27 @@ export function registerFriendSocket(
   const friendStore = useFriendStore();
 
 
-socket.emit("friend:own:init");
+
+
+socket.on("disconnect", (reason) => {
+  console.log("disconnect", reason);
+});
+
+socket.io.on("reconnect_attempt", () => {
+  console.log("reconnect attempt");
+});
+
+socket.io.on("reconnect", (attempt) => {
+  console.log("reconnected", attempt);
+  window.location.reload();
+});
+
+
+socket.on("connect", () => {
+  console.log("connected", socket.id);
+  socket.emit("friend:own:init");
+});
+
   
 
 socket.on(
@@ -22,7 +42,7 @@ socket.on(
     );
 
    
-
+    console.log("friend:online : ", friend)
     if (friend) {
       friend.online = true;
     }

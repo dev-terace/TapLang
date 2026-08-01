@@ -10,6 +10,7 @@ const requests = await prisma.friendRequest.findMany({
     ],
   },
   include: {
+    sender: true,
     receiver: {
         select: {
           id: true,

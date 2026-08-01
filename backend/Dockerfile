@@ -10,8 +10,14 @@ RUN npm install
 
 COPY prisma ./prisma
 
+# Prisma Client 생성
+RUN npx prisma generate --schema=prisma/postgres/schema.prisma
+RUN npx prisma generate --schema=prisma/mongodb/schema.prisma
+
 COPY tsconfig.json ./
 COPY src ./src
+
+
 RUN npm run build
 
 # ---- Run stage ----
@@ -26,6 +32,7 @@ RUN npm install --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma
+COPY --from=builder /usr/src/app/generated ./generated
 COPY --from=builder /usr/src/app/node_modules/.prisma ./node_modules/.prisma
 
 EXPOSE 3000

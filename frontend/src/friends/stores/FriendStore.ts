@@ -9,7 +9,7 @@ interface Friend {
   id: number
   name: string
   flag: string
-  statusMsg: string
+  statusMsg?: string
   online: boolean
 }
 interface ReqFriends{
@@ -30,7 +30,10 @@ export const useFriendStore = defineStore('friend', () => {
   const response = await FriendApi.getFriends();
 
   console.log("fetchFriends : ", response);
-  friends.value = response.data.friends
+  friends.value = response.data.friends.map(friend => ({
+  ...friend,
+  online: false
+}))
   
   }
 
@@ -76,27 +79,9 @@ const findReqFriends = async () => {
     }  
 }
   const addFriendRequest = FriendApi.addFriendRequest
-// const reqFriend = async ({ searchName }: AddFriendRequest) => {
-//   try {
-//     const { data } = await api.post("/api/friends/request", {
-//       searchName
-//     },
-    
-//   );
 
 
 
-//     return data;
-//   } catch (error) {
-//     if (axios.isAxiosError(error)) {
-//       alert(error.response?.data?.message ?? "친구 요청 중 오류가 발생했습니다.");
-//     } else {
-//       alert("알 수 없는 오류가 발생했습니다.");
-//     }
- 
-//     throw error;
-//   }
-// };
   
 
 

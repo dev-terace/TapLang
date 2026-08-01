@@ -8,6 +8,20 @@
 # docker compose exec backend npx prisma generate --schema prisma/postgres/schema.prisma
 # docker compose exec backend npx prisma generate --schema prisma/mongodb/schema.prisma
 
+#mongo db 환경 
+# docker run --rm alpine sh -c "apk add --no-cache openssl && openssl rand -base64 756" > mongo-keyfile
+# docker run --rm -v ${PWD}:/data alpine chmod 400 /data/mongo-keyfile
+#docker로 mongo db 로 접근하여 아래 명령 수행
+#rs.initiate({
+#   _id: "rs0",
+#   members: [
+#     {
+#       _id: 0,
+#       host: "mongodb:27017"
+#     }
+#   ]
+# })
+# rs.status()
 
 services:
   # 1. PostgreSQL 데이터베이스
@@ -43,8 +57,12 @@ services:
         - "27017:27017"
       volumes:
         - ./mongo-data:/data/db
+        - ./mongo-keyfile:/etc/mongo-keyfile
       networks:
         - tap-lang-network  
+
+      command: >
+        sh -c "chmod 400 /etc/mongo-keyfile && exec mongod --replSet rs0 --keyFile /etc/mongo-keyfile --bind_ip_all"
       
 
   # 2. Redis (Socket.IO 어댑터 및 캐싱용)
@@ -74,8 +92,9 @@ services:
       NODE_ENV: ${NODE_ENV}
       PORT: ${APP_PORT}
       POSTGRES_DATABASE_URL: "postgresql://${DB_USER}:${DB_PASSWORD}@postgres:${DB_PORT}/${DB_NAME}?schema=public"
-      MONGODB_DATABASE_URL: "mongodb://${DB_USER}:${DB_PASSWORD}@mongodb:27017/${DB_NAME}?authSource=admin"
-      REDIS_URL: redis://redis:6379
+      MONGODB_DATABASE_URL: "mongodb://${DB_USER}:${DB_PASSWORD}@mongodb:27017/${DB_NAME}?authSource=admin&replicaSet=rs0"
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
     depends_on:
       - postgres
       - redis

@@ -40,6 +40,7 @@
           <FindPeople />
           <Notice />
           <Chat />
+          <ChatRoom />
           <GroupChat />
           <TransTag />
          
@@ -80,19 +81,21 @@ import FindPeople from './find_people/components/FindPeople.vue'
 import Notice from './notice/Notice.vue'
 import Footer from './shared/ui/components/Footer.vue'
 import Chat from './chat/components/Chat.vue'
+import ChatRoom from './chat/components/ChatRoom.vue'
 import GroupChat from './group_chat/components/GroupChat.vue'
 import TransTag from './trans_tag/components/TransTag.vue'
 import ViewPort from './shared/ui/components/ViewPort.vue'
+
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'
-import { useSocketStore } from '@/shared/socket/socket.register.js';
+import { useSocketRegister } from '@/shared/socket/socket.register.js';
 
 
-const socketStore = useSocketStore();
+const socketRegister = useSocketRegister();
 
 
-const { isOnlineUsersLoaded } = storeToRefs(socketStore)
+const { isOnlineUsersLoaded } = storeToRefs(socketRegister)
 const authStore = useAuthStore()
 const { isLoggedIn } = storeToRefs(authStore)
 
@@ -111,7 +114,7 @@ watch(
   (loggedIn) => {
 
     if (loggedIn && userInfo) {
-      socketStore.connect(userInfo.id);
+      socketRegister.connect();
     }
 
   }

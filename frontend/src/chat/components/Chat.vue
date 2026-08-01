@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useUIStore } from '@/shared/ui/UiStore'
-import { useChatStore } from '@/chat/store/ChatStore'
+import { useChatRoomStore } from '@/chat/store/ChatRoom'
 
 const uiStore = useUIStore()
-const chatStore = useChatStore()
+const chatStore = useChatRoomStore()
 </script>
 
 <template>
@@ -44,7 +44,7 @@ const chatStore = useChatStore()
             v-if="room.members.length === 1"
             class="w-full h-full bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-lg"
           >
-            {{ room.members[0].avatar }}
+            {{ room.members[0].flag }}
           </div>
 
           <!-- 그룹 -->
@@ -57,7 +57,7 @@ const chatStore = useChatStore()
               :key="member.id"
               class="bg-[#2d2b28] text-white flex items-center justify-center border border-[#2d2b28] text-[10px]"
             >
-              {{ member.avatar }}
+              {{ member.flag }}
             </div>
           </div>
         </div>

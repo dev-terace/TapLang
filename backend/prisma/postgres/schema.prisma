@@ -20,6 +20,8 @@ model MyProfile {
   statusMsg  String?
   createdAt  DateTime @default(now())
 
+  allowGroupInvite Boolean @default(true)
+
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 

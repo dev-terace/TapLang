@@ -13,7 +13,7 @@ import {
 
 
 
-export const useSocketStore = defineStore("socket", () => {
+export const useSocketRegister = defineStore("socket", () => {
 
   const socket = ref<Socket | null>(null);
   const isOnlineUsersLoaded = ref(false)
@@ -42,8 +42,6 @@ export const useSocketStore = defineStore("socket", () => {
   startHeartbeat(socketInstance);
 
     
-
-
 
 
   };

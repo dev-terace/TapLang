@@ -1,6 +1,15 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import type { PrivateRoom } from '../types'
+
+
+export interface PrivateRoom {
+  id: number;
+  title: string;
+  desc: string;
+  owner: string;
+  members: number;
+  isSecret: boolean;
+}
 
 export const useGroupChatStore = defineStore('groupChat', () => {
   const privateFilter = ref<'all' | 'secret'>('all')

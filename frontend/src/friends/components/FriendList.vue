@@ -6,12 +6,12 @@ import { useModalStore } from '@/shared/modal/ModalStore.js'
 import FriendModal from './FriendModal.vue'
 import CountryModal from './CountryModal.vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
-import { useSocketStore } from "./SocketStore";
-
-
+import {useChatStore} from "@/chat/store/ChatRoom.js"
+import { useUIStore } from '@/shared/ui/UiStore.js'
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
+const uiStore = useUIStore()
 
 const alertFunc = (msg: string) => {
   alert(msg)
@@ -20,21 +20,25 @@ const alertFunc = (msg: string) => {
 
 
 // 내 프로필 + 온라인 친구 목록
-const onlineList = computed(() => [
-  {
-    id: authStore.userInfo?.id,
-    name: authStore.userInfo?.name,
-    flag: authStore.userInfo?.flag,
-    statusMsg: authStore.statusMsg,
-    online: true,
-    isMe: true
-  },
+const onlineList = computed(() => {
+  if (!authStore.userInfo) return [];
+
+  return [
+    {
+      id: authStore.userInfo.id,
+      name: authStore.userInfo.name,
+      flag: authStore.userInfo.flag,
+      statusMsg: authStore.userInfo.statusMsg,
+      online: true,
+      isMe: true
+    },
 
     ...friendStore.onlineFriends.map(friend => ({
-    ...friend,
-    isMe: false
-  }))
-])
+      ...friend,
+      isMe:false
+    }))
+  ];
+});
 
 const reqFriends = computed(() => friendStore.reqFriends);
 
@@ -105,7 +109,7 @@ console.log("friendList.vue : ", reqFriends);
       <div class="flex gap-1">
         <button
           class="bg-amber-500 text-white border-2 border-[#2d2b28] text-[10px] px-2 py-0.5 font-bold hover:bg-amber-600 transition-colors"
-          @click="cancelFriendRequest(friend.id)"
+          
         >
           요청 취소
         </button>
@@ -123,7 +127,8 @@ console.log("friendList.vue : ", reqFriends);
       <div 
         v-for="friend in onlineList" 
         :key="friend.id" 
-        @dblclick="!friend.isMe && alertFunc(friend.name + ' 님에게 귓속말을 보냅니다.')"
+        @dblclick="!friend.isMe && friend.id && uiStore.changeChatRoomTab(true, [friend.id])"
+
         class="group flex items-center gap-3 p-2 bg-[#f4f1eb] hover:bg-[#5c5851] hover:text-[#fbf9f5] border-2 border-[#2d2b28] shadow-[3px_3px_0px_0px_#2d2b28] cursor-pointer transition-all"
       >
         <!-- 아바타 (호버 시 색상 반전) -->
@@ -160,6 +165,8 @@ console.log("friendList.vue : ", reqFriends);
             {{ friend.statusMsg }}
           </div>
         </div>
+
+        
       </div>
 
       <!-- ○ 오프라인 인맥 타이틀 -->

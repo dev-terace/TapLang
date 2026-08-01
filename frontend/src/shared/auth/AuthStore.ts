@@ -2,8 +2,17 @@ import { defineStore } from 'pinia'
 import { computed, watch, ref } from 'vue'
 import { useClerk, useAuth, useUser } from '@clerk/vue'
 import api from '@/shared/auth/api.config'
-import { useSocketStore } from "../socket/socket.register";
+import { useSocketRegister } from "../socket/socket.register";
 import { setTokenGetter } from "@/shared/auth/auth.util";
+
+
+interface UserInfo {
+  id: number;
+  name: string;
+  flag: string;
+  email: string;
+  statusMsg: string;
+}
 
 export const useAuthStore = defineStore('auth', () => {
   const clerk = useClerk()
@@ -32,7 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   // 💡 [개선] isSignedIn과 user 객체 둘 다 로드되었을 때 안전하게 백엔드로 요청
   
-  let userInfo = ref(null)
+  const userInfo = ref<UserInfo | null>(null);
 
   watch([isSignedIn, user], async ([signedIn, currentUser]) => {
     // 로그인 상태가 아니거나, 유저 프로필 정보가 아직 로드되지 않았다면 대기
@@ -52,8 +61,8 @@ export const useAuthStore = defineStore('auth', () => {
      )
       console.log("api 요청 후");
       userInfo.value = data.user
-      const socketStore = useSocketStore();
-      socketStore.connect(data.user.id)
+      const socketStore = useSocketRegister();
+      socketStore.connect()
 
       socketStore.isOnlineUsersLoaded = true
       console.log('유저 백엔드 동기화 성공:', data.user.id)

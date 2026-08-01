@@ -1,7 +1,7 @@
 import { redis } from "../../lib/redis";
 
 const PREFIX = "online:";
-const TTL = 60;
+const TTL = 90;
 
 const addOnlineUser = async (
   userId: number,

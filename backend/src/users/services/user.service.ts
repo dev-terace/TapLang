@@ -1,6 +1,6 @@
 import { postgresPrisma as prisma } from '../../lib/prisma';
 import { getAuth } from "@clerk/express";
-
+import { Request } from "express";
 interface FindOrCreateInput {
   provider: string;
   providerId: string;
@@ -26,10 +26,22 @@ const findUserIdByProviderId = async (
 
   return user?.id ?? null;
 };
-const findUserIdByAuthToken = async(req: Request) => {
+
+const findUserIdByAuthToken = async(req: Request): Promise<number> => {
   const { userId: providerId } = getAuth(req);
-  return findUserIdByProviderId(providerId)
-}
+
+  if (!providerId) {
+    throw new Error("인증 정보 없음");
+  }
+
+  const userId = await findUserIdByProviderId(providerId);
+
+  if (!userId) {
+    throw new Error("유저 없음");
+  }
+
+  return userId;
+};
 
 const findOrCreateUser = async (userInput: FindOrCreateInput) => {
   // 1. providerId로 기존 유저 조회
