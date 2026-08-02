@@ -21,6 +21,7 @@ export const useUIStore = defineStore('ui', () => {
     currentTab,
     changeTab,
     changeChatRoomTab,
-    chatRoomMemberIds
+    chatRoomMemberIds,
+    isChatRoomCreate
   }
 })

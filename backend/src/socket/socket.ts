@@ -5,6 +5,7 @@ import { userService } from "../users/services/user.service";
 
 let io: Server;
 
+export const userSockets = new Map<number, string>();
 
 export const setSocketIO = (
   socketIO: Server
@@ -68,11 +69,23 @@ export const initializeSocket = (
 
       const userId = socket.data.userId;
 
+      userSockets.set(userId, socket.id);
 
       socket.join(
         `user:${userId}`
       );
 
+      socket.on("disconnect", () => {
+        for (const [id, socketId] of userSockets) {
+          if (socketId === socket.id) {
+            userSockets.delete(id);
+            break;
+          }
+        }
+
+        console.log("disconnect user:", userId);
+      });
+      
       console.log("socket.join user:",  userId)
       
 

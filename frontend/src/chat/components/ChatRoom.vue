@@ -69,14 +69,17 @@ onUnmounted(() => {
 const sendMessage = async () => {
   const trimmedMessage = newMessage.value.trim()
 
+  
   // 메시지가 없는 상태면 return
   if (!trimmedMessage) return
-
+  
   const chatRoomMemberIds = uiStore.chatRoomMemberIds
   // memberIds 배열에서 첫 번째 멤버 객체를 탐색
   const targetMember = uiStore.chatRoomMemberIds.find(() => true)
 
+  console.log("uistore is chat room create : ", uiStore.isChatRoomCreate)
   if (uiStore.isChatRoomCreate) {
+    
     // 💡 방 이름 구성 (상대방 이름이 있으면 "~님과의 대화방", 없으면 "새 대화방")
     const roomName = targetMember?.name 
       ? `${targetMember.name}_님과의_대화방` 
@@ -85,11 +88,12 @@ const sendMessage = async () => {
     // 💡 입력한 메시지(trimmedMessage)를 전달하되, 빈 값이면 기본값('안녕하세요!') 설정
     const initialMessage = trimmedMessage || '안녕하세요!'
 
-    await chatRoomStore.createChat(
-      chatRoomMemberIds,
-      'DIRECT',
-      roomName,
-      initialMessage // ✨ 사용자 입력 메시지가 들어가는 부분!
+    await chatRoomStore.createChat({
+      memberIds: chatRoomMemberIds,
+      chatType: 'DIRECT',
+      name: roomName,
+      message: initialMessage // ✨ 사용자 입력 메시지가 들어가는 부분!
+    }
     )
     
     // 생성 후 상태 초기화
@@ -189,7 +193,7 @@ const sendMessage = async () => {
       </div>
 
       <!-- 폼 영역 -->
-      <form @submit.prevent="sendMessage" class="flex gap-2 items-center">
+      <div class="flex gap-2 items-center">
         
         <!-- 이전에 썼던 기능 아이콘 (최근 사용 기록) -->
         <button
@@ -236,7 +240,7 @@ const sendMessage = async () => {
         >
           전송
         </button>
-      </form>
+      </div>
     </div>
   </div>
 </template>

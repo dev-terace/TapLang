@@ -18,6 +18,25 @@ prisma.$connect().then(async () => {
 });
 
 //memberIds 값의 ownId가 포함 됨
+
+export const createMessage = async (
+  conversationId: string,
+  senderId: number,
+  content: string,
+  attachments?: unknown | null
+) => {
+  const message = await prisma.message.create({
+    data: {
+      conversationId,
+      senderId,
+      content,
+      attachments: attachments ?? null,
+    },
+  });
+
+  return message;
+};
+
 export const createChatInfo = async (
     memberIds: number[], 
     ownId: number, 
@@ -131,6 +150,7 @@ async function getOrCreateDirect(
 
 
 export const chatService = {
-  createChatInfo
+  createChatInfo,
+  createMessage
   
 };

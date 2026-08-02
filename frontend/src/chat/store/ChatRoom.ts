@@ -21,9 +21,17 @@ export interface ChatMember {
   flag: string
 }
 
+export interface Message {
+  id: string;
+  conversationId: string;
+  senderId: string;
+  content: string;
+  attachments?: unknown | null;
+  createdAt?: Date;
+}
+
 export const useChatRoomStore = defineStore('chat', () => {
-  const rooms = ref<ChatRoom[]>([
-  ])
+  const rooms = ref<ChatRoom[]>([])
 
   const createChat = ChatApi.createChat
 

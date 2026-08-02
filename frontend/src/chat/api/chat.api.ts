@@ -9,7 +9,9 @@ export namespace ChatApi{
       chatType: "DIRECT" | "GROUP";
       name?: String
       message: String
+      attachments?: unknown | null;
    }
+
 
    interface CreateChatResponse{
       conversationId: String
@@ -21,13 +23,16 @@ export namespace ChatApi{
 
 export async function createChat(request: CreateChatRequest) {
 
-    console.log("createChat request:", request);
+  console.log("createChat request:", request);
   console.log("memberIds:", request.memberIds);
   console.log("chatType:", request.chatType);
 
   const response = await api.post<CreateChatResponse>("/api/chat", {
     memberIds: request.memberIds,
-    chatType: request.chatType
+    chatType: request.chatType,
+    name: request.name,
+    message: request.message,
+    attachments: request.attachments
   });
 
   console.log("response data", response.data)
