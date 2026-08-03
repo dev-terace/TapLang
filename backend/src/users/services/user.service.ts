@@ -10,6 +10,24 @@ interface FindOrCreateInput {
 }
 
 
+const findUserById = async (
+  id: number
+) => {
+  const user = await prisma.myProfile.findUnique({
+    where: {
+      id,
+    },
+    select: {
+      id: true,
+      name: true,
+      flag: true,
+      statusMsg: true,
+    },
+  });
+
+  return user ?? null;
+};
+
 const findUserIdByProviderId = async (
   providerId: string
 ) => {
@@ -99,5 +117,6 @@ return {
 export const userService = {
   findOrCreateUser,
   findUserIdByProviderId,
-  findUserIdByAuthToken
+  findUserIdByAuthToken,
+  findUserById
 };

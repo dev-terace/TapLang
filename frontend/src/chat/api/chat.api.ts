@@ -18,9 +18,25 @@ export namespace ChatApi{
    }
 
 
+   interface createMessageRequest {
+      conversationId: string;
+      content: string;
+      attachments?: unknown | null;
+}
 
     
-
+export async function createMessage(request: createMessageRequest)
+{
+   const response = await api.post("/api/chat/message",
+      {
+         conversationId: request.conversationId,
+         content: request.content,
+         attachments: request.attachments
+         
+      }
+   )
+   console.log("createMessage data: ", response.data)
+}
 export async function createChat(request: CreateChatRequest) {
 
   console.log("createChat request:", request);
@@ -36,7 +52,7 @@ export async function createChat(request: CreateChatRequest) {
   });
 
   console.log("response data", response.data)
-  return response;
+  return response.data.conversationId;
 }
 
 }

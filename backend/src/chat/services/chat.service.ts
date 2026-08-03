@@ -5,19 +5,26 @@ import { ConversationMemberRole } from "../../../generated/mongo";
 const prisma = new PrismaClient();
 
 
-prisma.$connect().then(async () => {
-  console.log(
-    "Mongo connected"
-  );
-
-  const result = await prisma.$runCommandRaw({
-    hello: 1
-  });
-
-  console.log(result);
-});
 
 //memberIds 값의 ownId가 포함 됨
+
+export const existsConversationMember = async (
+  conversationId: string,
+  userId: number
+) => {
+  const member = await prisma.conversationMember.findFirst({
+    where: {
+      conversationId,
+      userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return !!member;
+};
+
 
 export const createMessage = async (
   conversationId: string,
@@ -151,6 +158,7 @@ async function getOrCreateDirect(
 
 export const chatService = {
   createChatInfo,
-  createMessage
+  createMessage,
+  existsConversationMember
   
 };

@@ -4,7 +4,7 @@ import type { Socket } from "socket.io-client";
 import { useFriendStore } from "../../friends/stores/FriendStore";
 import {registerFriendSocket} from "@/friends/sockets/friend.socket"
 import { startHeartbeat } from "@/friends/sockets/friend.heartbeat.socket";
-import { registerChatSocket } from "@/chat/sockets/chat.socket";
+import { registerChatRoomSocket } from "@/chat/sockets/chatRoom.socket";
 import {
   connectSocket,
   disconnectSocket
@@ -40,7 +40,7 @@ export const useSocketRegister = defineStore("socket", () => {
     socketInstance
   );
   startHeartbeat(socketInstance);
-  registerChatSocket(socketInstance);
+  registerChatRoomSocket(socketInstance);
     
 
 

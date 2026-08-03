@@ -18,6 +18,7 @@ export const useAuthStore = defineStore('auth', () => {
   const clerk = useClerk()
   const { isSignedIn, userId: clerkId, getToken } = useAuth()
   const { user } = useUser()
+
   setTokenGetter(() => getToken.value())
 
 
@@ -66,6 +67,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       socketStore.isOnlineUsersLoaded = true
       console.log('유저 백엔드 동기화 성공:', data.user.id)
+      
     } catch (error) {
       console.error('유저 동기화 실패:', error)
     }

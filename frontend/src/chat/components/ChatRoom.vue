@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue' // onMounted, onUnmounted 추가
+import { ref, onMounted, onUnmounted, computed} from 'vue' // onMounted, onUnmounted 추가
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
+import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
+import { useAuthStore } from '@/shared/auth/AuthStore'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
+
+const authStore = useAuthStore();
+
+const ownId = computed(() => authStore.userInfo?.id);
+
 
 // 메시지 입력 상태
 const newMessage = ref('')
@@ -21,6 +28,7 @@ const features = [
   { id: 'Translate', name: '번역 태그', subName: '검색', icon: '🏷️' },
   { id: 'Image', name: '사진 삽입', icon: '📷' }
 ]
+
 
 
 // 기능 선택 로직
@@ -65,6 +73,7 @@ onUnmounted(() => {
 })
 
 
+const conversationId = ref<number | null>(null);
 
 const sendMessage = async () => {
   const trimmedMessage = newMessage.value.trim()
@@ -72,7 +81,8 @@ const sendMessage = async () => {
   
   // 메시지가 없는 상태면 return
   if (!trimmedMessage) return
-  
+  const initialMessage = trimmedMessage || '안녕하세요!'
+
   const chatRoomMemberIds = uiStore.chatRoomMemberIds
   // memberIds 배열에서 첫 번째 멤버 객체를 탐색
   const targetMember = uiStore.chatRoomMemberIds.find(() => true)
@@ -86,9 +96,9 @@ const sendMessage = async () => {
       : '새_대화방'
 
     // 💡 입력한 메시지(trimmedMessage)를 전달하되, 빈 값이면 기본값('안녕하세요!') 설정
-    const initialMessage = trimmedMessage || '안녕하세요!'
+    
 
-    await chatRoomStore.createChat({
+    conversationId.value = await chatRoomStore.createChat({
       memberIds: chatRoomMemberIds,
       chatType: 'DIRECT',
       name: roomName,
@@ -99,8 +109,16 @@ const sendMessage = async () => {
     // 생성 후 상태 초기화
     uiStore.isChatRoomCreate = false
   } else {
-    // 일반 메시지 전송 로직 (기존 방 전송)
-    // await chatStore.sendMessage(trimmedMessage)
+    
+   await chatRoomStore.createMessage(
+    {
+      conversationId: conversationId.value,
+      
+      content: initialMessage
+      // content: string;
+      // attachments?: unknown | null;
+    }
+   )
   }
 
   // 입력창 초기화
@@ -135,7 +153,14 @@ const sendMessage = async () => {
 
     <!-- 채팅 메시지 목록 영역 -->
     <div class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-      <!-- 상대방 메시지 -->
+
+      <ChatRoomMessage
+           v-for="message in chatRoomStore.messages"
+      :key="message.id"
+      :message="message"
+      :own-id="ownId"
+      />
+      <!-- 상대방 메시지
       <div class="flex gap-3 max-w-[85%] self-start">
         <div class="w-8 h-8 shrink-0 bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-sm">
           A
@@ -147,17 +172,17 @@ const sendMessage = async () => {
           </div>
           <span class="text-[9px] text-[#726e67]">오전 10:30</span>
         </div>
-      </div>
+      </div> -->
 
       <!-- 내 메시지 -->
-      <div class="flex gap-3 max-w-[85%] self-end flex-row-reverse">
+      <!-- <div class="flex gap-3 max-w-[85%] self-end flex-row-reverse">
         <div class="flex flex-col gap-1 items-end">
           <div class="p-2 text-xs bg-[#2d2b28] text-[#fbf9f5] border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28]">
             네, 확인 감사합니다. 오늘 중으로 반영해두겠습니다!
           </div>
           <span class="text-[9px] text-[#726e67]">오전 10:32</span>
         </div>
-      </div>
+      </div> -->
 
       <!-- 날짜 구분선 -->
       <div class="flex justify-center my-2">

@@ -33,17 +33,20 @@ export const emitNewMessage = (
     content: string;
     attachments?: unknown | null;
     createdAt: Date;
+  },
+  userInfo: {
+    id: number,
+    name: string,
+    flag: string,
+    statusMsg: string | null,
+
   }
 ) => {
   const io = getSocketIO();
 
   io.to(`conversation:${conversationId}`)
     .emit("message:new", {
-      messageId: message.id,
-      conversationId,
-      senderId: message.senderId,
-      content: message.content,
-      attachments: message.attachments,
-      createdAt: message.createdAt,
+      message: message,
+      userInfo: userInfo
     });
 };

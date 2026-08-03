@@ -6,7 +6,7 @@ import { ChatApi } from '../api/chat.api'
 export interface ChatRoom {
   id: number
   name: string
-  type: 'dm' | 'group'
+  type: 'DIRECT' | 'GROUP'
   members: ChatMember[]
   lastMessage: string
   lastTime: string
@@ -23,40 +23,40 @@ export interface ChatMember {
 
 export interface Message {
   id: string;
-  conversationId: string;
-  senderId: string;
+  senderId: number;
+  senderName?: string;
   content: string;
-  attachments?: unknown | null;
-  createdAt?: Date;
+  createdAt: string;
 }
 
 export const useChatRoomStore = defineStore('chat', () => {
-  const rooms = ref<ChatRoom[]>([])
+  // const rooms = ref<ChatRoom[]>([])
+  const messages = ref<Message[]>([]);
 
+  const addMessage = (message: Message) => {
+    messages.value.push(message);
+  };
+  
   const createChat = ChatApi.createChat
+  const createMessage = ChatApi.createMessage
 
-  const unreadRooms = computed(() =>
-    rooms.value.filter(room => room.unread > 0)
-  )
 
-  const pinnedRooms = computed(() =>
-    rooms.value.filter(room => room.pinned)
-  )
 
-  const dmRooms = computed(() =>
-    rooms.value.filter(room => room.type === 'dm')
-  )
+  // const directRooms = computed(() =>
+  //   rooms.value.filter(room => room.type === 'dm')
+  // )
 
-  const groupRooms = computed(() =>
-    rooms.value.filter(room => room.type === 'group')
-  )
+  // const groupRooms = computed(() =>
+  //   rooms.value.filter(room => room.type === 'group')
+  // )
 
   return {
-    rooms,
-    unreadRooms,
-    pinnedRooms,
-    dmRooms,
-    groupRooms,
-    createChat
+    // rooms,
+    // directRooms,
+    // groupRooms,
+    createChat,
+    createMessage, 
+    messages,
+    addMessage
   }
 })
