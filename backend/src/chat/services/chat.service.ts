@@ -1,164 +1,392 @@
-import { PrismaClient} from "../../../generated/mongo";
-import { v7 as uuidv7 } from "uuid";
-import { ConversationMemberRole } from "../../../generated/mongo";
-
-const prisma = new PrismaClient();
+import { connectMongoDB } from "../../lib/mongo";
+import { postgresPrisma  } from "../../lib/prisma";
 
 
-
-//memberIds 값의 ownId가 포함 됨
-
-export const existsConversationMember = async (
-  conversationId: string,
-  userId: number
-) => {
-  const member = await prisma.conversationMember.findFirst({
-    where: {
-      conversationId,
-      userId,
-    },
-    select: {
-      id: true,
-    },
-  });
-
-  return !!member;
-};
-
-
-export const createMessage = async (
-  conversationId: string,
-  senderId: number,
-  content: string,
-  attachments?: unknown | null
-) => {
-  const message = await prisma.message.create({
-    data: {
-      conversationId,
-      senderId,
-      content,
-      attachments: attachments ?? null,
-    },
-  });
-
-  return message;
-};
-
-export const createChatInfo = async (
-    memberIds: number[], 
-    ownId: number, 
-    chatType: "DIRECT" | "GROUP",
-    name?: string //채팅방 이름
-) => {
-
-    let conversation;
-    memberIds.push(ownId);
-    
-    console.log("prisma : ", Object.keys(prisma));
-
-
-    if((memberIds.length !== 2) && chatType === "DIRECT")
-    {
-         throw new Error("잘못된 요청입니다!");
-    }
-
-    if (chatType === "DIRECT") {
-        
-
-        const receiverId = memberIds.find(
-             (id) => id !== ownId
-        );
-
-        if (receiverId === undefined) {
-        throw new Error("상대방이 없습니다.");}
-
-        conversation = await getOrCreateDirect(ownId, receiverId);
-        return conversation;
-    } else { //그룹
-        if(name == null)
-        {
-            throw new Error("제목을 입력하세요.");
-        }
-        conversation =  await createGroup(memberIds, ownId, name);
-
-        return conversation
-    }
-}
-   
-
-
-async function createGroup(
-  memberIds: number[],
-  ownId: number,
-  name: string
-) {
-  return prisma.conversation.create({
-    data: {
-      id: uuidv7(),
-      type: "GROUP",
-      name: name,  
-      members: {
-        create: memberIds.map(id => ({
-          userId: id,
-          role: id === ownId
-          ? ConversationMemberRole.OWNER : 
-            ConversationMemberRole.MEMBER
-        }))
-      }
-    }
-  });
-}
-
-async function getOrCreateDirect(
-  ownId: number,
-  receiverId: number
-) {
-
-  if (ownId === receiverId) {
-    throw new Error("same user");
+export const getMyConversations = async (
+  userId: number,
+  limit = 20,
+  cursor?: {
+    lastMessageAt: Date;
+    conversationId: string;
   }
+) => {
 
-  // 친구 확인
-
-  const directKey = [
-    ownId,
-    receiverId
-  ]
-    .sort()
-    .join(":");
+  const db = await connectMongoDB();
 
 
-  return prisma.conversation.upsert({
-    where: {
-      directKey
+  const pipeline: any[] = [
+
+    // 내가 속한 채팅방
+    {
+      $match: {
+        userId
+      }
     },
 
-    update: {
+
+    // Conversation 조회
+    {
+      $lookup: {
+        from: "Conversation",
+        localField: "conversationId",
+        foreignField: "_id",
+        as: "conversation"
+      }
     },
 
-    create: {
-      id: uuidv7(),
-      type: "DIRECT",
-      directKey,
 
-      members: {
-        create: [
+    {
+      $unwind: "$conversation"
+    }
+
+  ];
+
+
+  // cursor
+  if (cursor) {
+
+    pipeline.push({
+      $match: {
+        $or: [
           {
-            userId: ownId
+            "conversation.lastMessageAt": {
+              $lt: cursor.lastMessageAt
+            }
           },
           {
-            userId: receiverId
+            "conversation.lastMessageAt": cursor.lastMessageAt,
+            "conversation._id": {
+              $lt: cursor.conversationId
+            }
           }
         ]
       }
-    }
-  });
-}
+    });
 
+  }
+
+
+
+  pipeline.push(
+
+    // 멤버 조회
+    {
+      $lookup: {
+        from: "ConversationMember",
+
+        let: {
+          cid: "$conversationId"
+        },
+
+        pipeline: [
+
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $eq:[
+                      "$conversationId",
+                      "$$cid"
+                    ]
+                  },
+                  {
+                    $ne:[
+                      "$userId",
+                      userId
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+
+
+          {
+            $limit:4
+          },
+
+
+          {
+            $project:{
+              _id:0,
+              userId:1,
+              role:1
+            }
+          }
+
+        ],
+
+        as:"members"
+      }
+    },
+
+
+    // 마지막 메시지
+    {
+      $lookup:{
+        from:"Message",
+
+        localField:
+          "conversation.lastMessageId",
+
+        foreignField:"_id",
+
+        as:"lastMessage"
+      }
+    },
+
+
+    {
+      $unwind:{
+        path:"$lastMessage",
+        preserveNullAndEmptyArrays:true
+      }
+    },
+
+
+    {
+      $sort:{
+        "conversation.lastMessageAt":-1,
+        "conversation._id":-1
+      }
+    },
+
+
+    {
+      $limit: limit
+    },
+
+
+    {
+      $project:{
+        _id:0,
+
+        conversationId:"$conversation._id",
+
+        type:"$conversation.type",
+
+        name:"$conversation.name",
+
+        unreadCount:1,
+
+        members:1,
+
+
+        lastMessage:{
+          id:"$lastMessage._id",
+          senderId:"$lastMessage.senderId",
+          content:"$lastMessage.content",
+          attachments:"$lastMessage.attachments",
+          createdAt:"$lastMessage.createdAt"
+        },
+
+
+        lastMessageId:
+          "$conversation.lastMessageId",
+
+        lastMessageAt:
+          "$conversation.lastMessageAt"
+      }
+    }
+
+  );
+
+
+  const data =
+    await db
+      .collection("ConversationMember")
+      .aggregate(pipeline)
+      .toArray();
+
+
+
+  /**
+   * 프로필 조회
+   */
+
+  const memberIds = [
+    ...new Set(
+      data.flatMap(room =>
+        room.members.map(
+          (member:any)=>member.userId
+        )
+      )
+    )
+  ];
+
+
+
+  const profiles =
+    await postgresPrisma.myProfile.findMany({
+
+      where:{
+        id:{
+          in:memberIds
+        }
+      },
+
+      select:{
+        id:true,
+        name:true,
+        flag:true
+      }
+
+    });
+
+
+
+  const profileMap = new Map(
+    profiles.map(profile=>[
+      profile.id,
+      profile
+    ])
+  );
+
+
+
+  /**
+   * 응답 데이터 재구성
+   */
+
+  const result =
+    data.map(room=>({
+
+      ...room,
+
+      members:
+        room.members.map((member:any)=>({
+
+          userId:member.userId,
+
+          role:member.role,
+
+          name:
+            profileMap.get(member.userId)?.name ?? "",
+
+          flag:
+            profileMap.get(member.userId)?.flag ?? ""
+
+        }))
+
+    }));
+
+
+
+  const last =
+    result[result.length-1];
+
+
+  const nextCursor =
+    last
+    ? {
+        lastMessageAt:
+          last.lastMessageAt,
+
+        conversationId:
+          last.conversationId
+      }
+    : null;
+
+
+
+  return {
+    data:result,
+    nextCursor
+  };
+
+};
+
+export const getConversationUnreadCounts = async (
+  userId: number
+) => {
+  const db = await connectMongoDB();
+
+  console.log("userId: ", userId);
+  console.log("userId Type ", typeof userId);
+
+  const result = await db
+    .collection("ConversationMember")
+    .aggregate([
+      // 1. 내가 속한 채팅방만 조회
+      {
+        $match: {
+          userId,
+        },
+      },
+
+      // 2. Message 조회
+      {
+        $lookup: {
+          from: "Message",
+          let: {
+            conversationId: "$conversationId",
+            lastReadAt: "$lastReadAt",
+          },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    {
+                      $eq: [
+                        "$conversationId",
+                        "$$conversationId",
+                      ],
+                    },
+                    {
+                      $gt: [
+                        "$createdAt",
+                        "$$lastReadAt",
+                      ],
+                    },
+                  ],
+                },
+              },
+            },
+
+            // count만 가져오기
+            {
+              $count: "count",
+            },
+          ],
+          as: "unread",
+        },
+      },
+
+      // 3. unread 배열 -> 숫자로 변환
+      {
+        $addFields: {
+          unreadCount: {
+            $ifNull: [
+              {
+                $arrayElemAt: [
+                  "$unread.count",
+                  0,
+                ],
+              },
+              0,
+            ],
+          },
+        },
+      },
+
+      // 4. 필요한 데이터만 반환
+      {
+        $project: {
+          _id: 0,
+          conversationId: 1,
+          lastReadAt: 1,
+          unreadCount: 1,
+        },
+      },
+    ])
+    .toArray();
+
+  return result;
+};
 
 export const chatService = {
-  createChatInfo,
-  createMessage,
-  existsConversationMember
-  
-};
+  getConversationUnreadCounts,
+  getMyConversations
+}

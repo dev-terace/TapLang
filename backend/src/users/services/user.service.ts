@@ -46,13 +46,17 @@ const findUserIdByProviderId = async (
 };
 
 const findUserIdByAuthToken = async(req: Request): Promise<number> => {
+  
+
   const { userId: providerId } = getAuth(req);
 
   if (!providerId) {
+    
     throw new Error("인증 정보 없음");
   }
 
   const userId = await findUserIdByProviderId(providerId);
+
 
   if (!userId) {
     throw new Error("유저 없음");

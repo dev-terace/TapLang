@@ -2,6 +2,7 @@ import express, { Application, Request, Response,  NextFunction } from "express"
 import cors from "cors";
 import userRouter from "./users/routes/user.route";
 import friendsRouter from "./friends/routes/friends.route";
+import chatRoomRouter from "./chat/routes/chatRoom.route"
 import chatRouter from "./chat/routes/chat.route"
 
 import { clerkMiddleware, requireAuth } from "@clerk/express";
@@ -26,7 +27,9 @@ const requireApiAuth = requireAuth();
 
 app.use("/api/users", requireApiAuth, userRouter);
 app.use("/api/friends", requireApiAuth, friendsRouter);
+app.use("/api/chatRoom", requireApiAuth, chatRoomRouter)
 app.use("/api/chat", requireApiAuth, chatRouter)
+
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

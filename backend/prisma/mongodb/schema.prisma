@@ -27,9 +27,10 @@ model Conversation {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-
+  
   messages Message[]
-
+  lastMessageId String?
+  lastMessageAt DateTime?
 
 }
 
@@ -45,6 +46,7 @@ model ConversationMember {
 
   joinedAt DateTime @default(now())
 
+  unreadCount Int @default(0)
   lastReadAt DateTime?
 
   conversation Conversation @relation(fields: [conversationId],references: [id])

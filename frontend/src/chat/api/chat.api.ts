@@ -1,58 +1,21 @@
 import api from "@/shared/auth/api.config";
-import axios from "axios";
+
 
 export namespace ChatApi{
+export async function getConversationUnreadCounts(){
+   const response = await api.get("/api/chat/unread-count");
 
+   console.log("getConvUnreadCount  response : ", response.data);
 
-   interface CreateChatRequest {
-      memberIds: number[];
-      chatType: "DIRECT" | "GROUP";
-      name?: String
-      message: String
-      attachments?: unknown | null;
-   }
-
-
-   interface CreateChatResponse{
-      conversationId: String
-   }
-
-
-   interface createMessageRequest {
-      conversationId: string;
-      content: string;
-      attachments?: unknown | null;
+   return response.data;
 }
 
-    
-export async function createMessage(request: createMessageRequest)
-{
-   const response = await api.post("/api/chat/message",
-      {
-         conversationId: request.conversationId,
-         content: request.content,
-         attachments: request.attachments
-         
-      }
-   )
-   console.log("createMessage data: ", response.data)
-}
-export async function createChat(request: CreateChatRequest) {
+export async function getMyConversations(){
+   const response = await api.get("/api/chat");
 
-  console.log("createChat request:", request);
-  console.log("memberIds:", request.memberIds);
-  console.log("chatType:", request.chatType);
+   console.log("getConvUnreadCount  response : ", response.data);
 
-  const response = await api.post<CreateChatResponse>("/api/chat", {
-    memberIds: request.memberIds,
-    chatType: request.chatType,
-    name: request.name,
-    message: request.message,
-    attachments: request.attachments
-  });
-
-  console.log("response data", response.data)
-  return response.data.conversationId;
+   return response.data;
 }
 
 }
