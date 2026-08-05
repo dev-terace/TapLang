@@ -3,9 +3,14 @@ import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatStore } from '@/chat/store/Chat'
 import { onMounted, computed } from 'vue'
 import { formatTime } from '@/shared/utils/DateUtils'
+import { useAuthStore } from '@/shared/auth/AuthStore'
+import { storeToRefs } from 'pinia'
+import { Conversation } from '@/chat/store/Chat'
+
 const uiStore = useUIStore()
 const chatStore = useChatStore()
-
+const authStore = useAuthStore()
+const { userInfo } = storeToRefs(authStore) 
 
 const conversations = computed(() => {
   return chatStore.conversations?.data ?? []
@@ -15,6 +20,32 @@ const conversations = computed(() => {
 onMounted(async () => {
   await chatStore.getMyConversations()
 })
+
+const openConversation = (conversation: Conversation) => {
+  if (conversation.type === "DIRECT") {
+    const otherMember = conversation.members.find(
+      member => member.userId !== userInfo.value.id
+    );
+
+    uiStore.changeChatRoomTab(
+      false,
+      otherMember ? [otherMember.userId] : [],
+      otherMember?.name ?? ""
+    );
+    return;
+  }
+
+  // GROUP
+  uiStore.changeChatRoomTab(
+    false,
+    conversation.members
+      .filter(member => member.userId !== userInfo.value.id)
+      .map(member => member.userId),
+    conversation.name ?? ""
+  );
+};
+
+
 
 </script>
 
@@ -37,7 +68,7 @@ onMounted(async () => {
     </div>
 
 
-    <!-- 채팅방 목록 -->
+    <!-- 채팅방 목록 --> 
     <div class="flex-1 overflow-y-auto p-4 space-y-3">
 
       <div
@@ -48,6 +79,7 @@ onMounted(async () => {
                border-2 border-[#2d2b28]
                shadow-[3px_3px_0px_0px_#2d2b28]
                cursor-pointer transition-all"
+        @dblclick="openConversation(conversation)"       
       >
 
         <!-- 프로필 -->
@@ -97,7 +129,14 @@ onMounted(async () => {
           <div class="flex justify-between items-center">
 
             <span class="text-xs font-bold truncate">
-              {{ conversation.name ?? '1:1 채팅' }}
+{{
+  conversation?.name
+    ?.split('|')
+    .find(v => v !== userInfo?.name)
+  ?? '1:1 채팅'
+
+}}
+             <!-- {{ userInfo?.name?.split('|').map(v => v.split('#')[0]).find(v => v !== conversation?.name) ?? '1:1 채팅' }} -->
             </span>
 
 

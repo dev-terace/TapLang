@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, computed} from 'vue' // onMounted, onUnmounted 추가
+import { ref, onMounted, onUnmounted, computed, watch, nextTick } from 'vue' // onMounted, onUnmounted 추가
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
@@ -64,7 +64,11 @@ const handleKeydown = (e: KeyboardEvent) => {
   }
 }
 
-onMounted(() => {
+const conversationId = ref<string | null>(null);
+
+
+
+onMounted(async () => {
   window.addEventListener('keydown', handleKeydown)
 })
 
@@ -73,7 +77,53 @@ onUnmounted(() => {
 })
 
 
-const conversationId = ref<number | null>(null);
+
+watch(
+  () => uiStore.chatRoomMemberIds,
+  async (memberIds) => {
+    if (memberIds.length === 1 && !conversationId.value) {
+
+     
+
+      const responseId = await chatRoomStore.createChat({
+        memberIds,
+        chatType: 'DIRECT',
+        name: null,
+        message: ""
+      });
+
+       console.log("============================ convId", conversationId)
+      conversationId.value = responseId;
+    }
+  },
+  {
+    deep: true,
+    immediate: true
+  }
+);
+
+watch(
+  () => conversationId.value,
+  async (id) => {
+    if (!id) return;
+
+    const messages = await chatRoomStore.getChatMessages(id);
+
+    const list = messages.data.reverse();
+
+    if (list.length > 0) {
+      chatRoomStore.messages.push(...list);
+    }
+
+  },
+  {
+    immediate: true
+  }
+);
+
+
+
+
 
 const sendMessage = async () => {
   const trimmedMessage = newMessage.value.trim()
@@ -84,30 +134,23 @@ const sendMessage = async () => {
   const initialMessage = trimmedMessage || '안녕하세요!'
 
   const chatRoomMemberIds = uiStore.chatRoomMemberIds
-  // memberIds 배열에서 첫 번째 멤버 객체를 탐색
-  const targetMember = uiStore.chatRoomMemberIds.find(() => true)
 
   console.log("uistore is chat room create : ", uiStore.isChatRoomCreate)
-  if (uiStore.isChatRoomCreate) {
+  if (conversationId.value == null) {
     
     // 💡 방 이름 구성 (상대방 이름이 있으면 "~님과의 대화방", 없으면 "새 대화방")
-    const roomName = targetMember?.name 
-      ? `${targetMember.name}_님과의_대화방` 
-      : '새_대화방'
 
     // 💡 입력한 메시지(trimmedMessage)를 전달하되, 빈 값이면 기본값('안녕하세요!') 설정
-    
+
 
     conversationId.value = await chatRoomStore.createChat({
       memberIds: chatRoomMemberIds,
       chatType: 'DIRECT',
-      name: roomName,
-      message: initialMessage // ✨ 사용자 입력 메시지가 들어가는 부분!
+      name: null,
+      message: "" // ✨ 사용자 입력 메시지가 들어가는 부분!
     }
     )
     
-    // 생성 후 상태 초기화
-    uiStore.isChatRoomCreate = false
   } else {
     
    await chatRoomStore.createMessage(
@@ -127,10 +170,10 @@ const sendMessage = async () => {
 </script>
 
 <template>
-  <div
-    v-if="uiStore.currentTab === 'chatRoom'"
-    class="flex h-full flex-col bg-[#dfdad1]"
-  >
+    <div
+      v-if="uiStore.currentTab === 'chatRoom'"
+      class="flex h-screen min-h-0 flex-col bg-[#dfdad1]"
+    >
     <!-- 헤더 -->
     <div
       class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
@@ -143,7 +186,7 @@ const sendMessage = async () => {
       </button>
 
       <span class="text-xs font-bold tracking-wider">
-        // 현재_채팅방.sh
+        {{uiStore.roomName}}
       </span>
 
       <button class="text-xs font-bold hover:text-white transition-colors">
@@ -152,37 +195,17 @@ const sendMessage = async () => {
     </div>
 
     <!-- 채팅 메시지 목록 영역 -->
-    <div class="flex-1 overflow-y-auto p-4 space-y-4 flex flex-col">
-
+    <div
+      class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
+    >
+    
       <ChatRoomMessage
            v-for="message in chatRoomStore.messages"
       :key="message.id"
       :message="message"
       :own-id="ownId"
       />
-      <!-- 상대방 메시지
-      <div class="flex gap-3 max-w-[85%] self-start">
-        <div class="w-8 h-8 shrink-0 bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-sm">
-          A
-        </div>
-        <div class="flex flex-col gap-1">
-          <span class="text-[10px] font-bold text-[#2d2b28]">상대방 이름</span>
-          <div class="p-2 text-xs bg-[#f4f1eb] text-[#2d2b28] border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28]">
-            안녕하세요! 이전에 말씀하신 내용 확인했습니다.
-          </div>
-          <span class="text-[9px] text-[#726e67]">오전 10:30</span>
-        </div>
-      </div> -->
-
-      <!-- 내 메시지 -->
-      <!-- <div class="flex gap-3 max-w-[85%] self-end flex-row-reverse">
-        <div class="flex flex-col gap-1 items-end">
-          <div class="p-2 text-xs bg-[#2d2b28] text-[#fbf9f5] border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28]">
-            네, 확인 감사합니다. 오늘 중으로 반영해두겠습니다!
-          </div>
-          <span class="text-[9px] text-[#726e67]">오전 10:32</span>
-        </div>
-      </div> -->
+ 
 
       <!-- 날짜 구분선 -->
       <div class="flex justify-center my-2">
@@ -193,7 +216,7 @@ const sendMessage = async () => {
     </div>
 
     <!-- 하단 입력창 영역 -->
-    <div class="bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28] relative">
+    <div  class="shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
       
       <!-- 기능 아이콘 모달창 -->
       <div 

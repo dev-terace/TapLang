@@ -27,7 +27,7 @@ const requireApiAuth = requireAuth();
 
 app.use("/api/users", requireApiAuth, userRouter);
 app.use("/api/friends", requireApiAuth, friendsRouter);
-app.use("/api/chatRoom", requireApiAuth, chatRoomRouter)
+app.use("/api/chat-room", requireApiAuth, chatRoomRouter)
 app.use("/api/chat", requireApiAuth, chatRouter)
 
 

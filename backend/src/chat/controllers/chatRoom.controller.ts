@@ -6,6 +6,30 @@ import {joinConversationMembers, emitNewMessage} from "../socket/chat.handler"
 
 
 
+export const getMessages = async (req: Request, res: Response) => {
+  try {
+    const { conversationId } = req.params;
+    const { createdAt } = req.query;
+
+    const messages = await chatRoomService.getMessages(
+      conversationId,
+      createdAt as string | undefined
+    );
+
+    return res.status(200).json({
+      success: true,
+      data: messages,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return res.status(500).json({
+      success: false,
+      message: "메시지를 불러오는데 실패했습니다.",
+    });
+  }
+};
+
 export const createChat = async (
   req: Request,
   res: Response
@@ -25,11 +49,26 @@ console.log("message: ", req.body.message)
 
     // 로그인 유저
     const ownId =  await userService.findUserIdByAuthToken(req); 
+    const userInfo  = await userService.findUserById(ownId);
+    
+    let directName = null
+    if(name == null)
+    {
+      const receiver = await userService.findUserById(memberIds[0]);
 
+      if (!receiver) {
+      return res.status(400).json({
+        message: "잘못된 요청입니다!"
+      });
+    }
+
+      directName = receiver.name + "|"+userInfo?.name
+    }
+    
 
     if (!Array.isArray(memberIds)) {
       return res.status(400).json({
-        message: "memberIds가 필요합니다."
+        message: "잘못된 요청입니다!"
       });
     }
 
@@ -43,28 +82,23 @@ console.log("message: ", req.body.message)
     }
 
 
+
+
+    
     const conversation = await chatRoomService.createChatInfo(
       memberIds,
       ownId,
       chatType,
-      name
+      name == null ? directName: name
     );
     
 
     
-    const createdMessage = await chatRoomService.createMessage(conversation.id, ownId, message)
-    
 
     joinConversationMembers(conversation.id, memberIds, ownId);
 
-    const userInfo = await userService.findUserById(ownId)
 
 
-    if (!userInfo) {
-    throw new Error("유저 없음");
-    }
-
-    emitNewMessage(conversation.id, createdMessage, userInfo);
     
 
 

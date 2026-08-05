@@ -127,7 +127,7 @@ console.log("friendList.vue : ", reqFriends);
       <div 
         v-for="friend in onlineList" 
         :key="friend.id" 
-        @dblclick="!friend.isMe && friend.id && uiStore.changeChatRoomTab(true, [friend.id])"
+        @dblclick="!friend.isMe && friend.id && uiStore.changeChatRoomTab(true, [friend.id], friend.name)"
 
         class="group flex items-center gap-3 p-2 bg-[#f4f1eb] hover:bg-[#5c5851] hover:text-[#fbf9f5] border-2 border-[#2d2b28] shadow-[3px_3px_0px_0px_#2d2b28] cursor-pointer transition-all"
       >

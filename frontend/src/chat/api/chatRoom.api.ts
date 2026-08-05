@@ -24,6 +24,22 @@ export namespace ChatRoomApi{
       attachments?: unknown | null;
 }
 
+
+
+export const getChatMessages = async (
+  conversationId: string,
+  createdAt?: string
+) => {
+  const response = await api.get(
+    `/api/chat-room/message/${conversationId}/${createdAt}`,
+  );
+
+
+   console.log("getChatMessages: ", response.data)
+
+  return response.data;
+};
+
     
 export async function createMessage(request: createMessageRequest)
 {

@@ -7,7 +7,7 @@ export const getMyConversations = async(req: Request, res: Response) => {
     const ownId = await userService.findUserIdByAuthToken(req);
 
     const result = await chatService.getMyConversations(ownId);
-
+    
     
     console.log(JSON.stringify(result, null, 2))
 

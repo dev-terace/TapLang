@@ -6,9 +6,11 @@ import { ChatRoomApi } from '../api/chatRoom.api'
 
 export interface Message {
   id: string;
+  conversationId: string;
   senderId: number;
   senderName?: string;
   content: string;
+  attachments?: unknown | null;
   createdAt: string;
 }
 
@@ -22,24 +24,15 @@ export const useChatRoomStore = defineStore('chatRoom', () => {
   
   const createChat = ChatRoomApi.createChat
   const createMessage = ChatRoomApi.createMessage
+  const getChatMessages = ChatRoomApi.getChatMessages
 
 
-
-  // const directRooms = computed(() =>
-  //   rooms.value.filter(room => room.type === 'dm')
-  // )
-
-  // const groupRooms = computed(() =>
-  //   rooms.value.filter(room => room.type === 'group')
-  // )
 
   return {
-    // rooms,
-    // directRooms,
-    // groupRooms,
     createChat,
     createMessage, 
     messages,
-    addMessage
+    addMessage,
+    getChatMessages
   }
 })

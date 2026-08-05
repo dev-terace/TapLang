@@ -1,13 +1,16 @@
 <script setup lang="ts">
-import { Message } from '../store/ChatRoom';
-
+import { computed } from 'vue'
+import type { Message } from '../store/ChatRoom'
 
 const props = defineProps<{
   message: Message;
-  ownId: number;
-}>();
+  ownId?: number;
+}>()
 
-const isMine = props.message.senderId === props.ownId;
+
+const isMine = computed(() =>
+  props.message.senderId === props.ownId
+)
 
 </script>
 

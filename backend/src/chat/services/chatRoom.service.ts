@@ -9,6 +9,25 @@ const prisma = new PrismaClient();
 //memberIds 값의 ownId가 포함 됨
 
 
+export const getMessages = async (
+  conversationId: string,
+  createdAt?: Date | string
+) => {
+  const cursorDate = createdAt ? new Date(createdAt) : new Date();
+
+  return prisma.message.findMany({
+    where: {
+      conversationId,
+      createdAt: {
+        lt: cursorDate,
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: 30,
+  });
+};
 
 
 export const existsConversationMember = async (
@@ -86,7 +105,7 @@ export const createChatInfo = async (
     memberIds: number[], 
     ownId: number, 
     chatType: "DIRECT" | "GROUP",
-    name?: string //채팅방 이름
+    name: string //채팅방 이름
 ) => {
 
     let conversation;
@@ -110,7 +129,7 @@ export const createChatInfo = async (
         if (receiverId === undefined) {
         throw new Error("상대방이 없습니다.");}
 
-        conversation = await getOrCreateDirect(ownId, receiverId);
+        conversation = await getOrCreateDirect(ownId, receiverId, name);
         return conversation;
     } else { //그룹
         if(name == null)
@@ -149,7 +168,8 @@ async function createGroup(
 
 async function getOrCreateDirect(
   ownId: number,
-  receiverId: number
+  receiverId: number,
+  name: string
 ) {
 
   if (ownId === receiverId) {
@@ -178,6 +198,7 @@ async function getOrCreateDirect(
       id: uuidv7(),
       type: "DIRECT",
       directKey,
+      name: name,
 
       members: {
         create: [
@@ -197,6 +218,7 @@ async function getOrCreateDirect(
 export const chatRoomService = {
   createChatInfo,
   createMessage,
-  existsConversationMember
+  existsConversationMember,
+  getMessages
 
 };

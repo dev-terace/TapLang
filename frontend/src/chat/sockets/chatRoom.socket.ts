@@ -1,12 +1,14 @@
 import type { Socket } from "socket.io-client";
 import { useChatRoomStore } from "../store/ChatRoom";
-
+import { useChatStore } from "../store/Chat";
 
 
 export function registerChatRoomSocket(
   socket: Socket,
 ) {
   const chatRoomStore = useChatRoomStore()
+  const chatStore = useChatStore()
+
   socket.off("message:new");
 
   socket.on("message:new", (message) => {
@@ -18,5 +20,7 @@ export function registerChatRoomSocket(
       content: message.message.content,
       createdAt: message.message.createdAt
     });
-  });
+    chatStore.getMyConversations()
+  }
+);
 }
