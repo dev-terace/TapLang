@@ -29,10 +29,13 @@ export const emitNewMessage = (
   conversationId: string,
   message: {
     id: string;
+    conversationId: string;
     senderId: number;
+    senderName?: string;
     content: string;
     attachments?: unknown | null;
-    createdAt: Date;
+    createdAt: string;
+    flag: string;
   },
   userInfo: {
     id: number,

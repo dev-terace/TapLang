@@ -27,7 +27,11 @@ const isMine = computed(() =>
       v-if="!isMine"
       class="w-8 h-8 shrink-0 bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-sm"
     >
-      {{ message.senderName?.charAt(0) }}
+                  <img 
+            :src="`https://flagcdn.com/w40/${message.flag}.png`"
+            alt=""
+            class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"
+          /> 
     </div>
 
 

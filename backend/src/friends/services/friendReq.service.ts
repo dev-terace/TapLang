@@ -7,28 +7,46 @@ const requests = await prisma.friendRequest.findMany({
   where: {
     OR: [
       { senderId: userId },
+      { receiverId: userId },
     ],
   },
   include: {
-    sender: true,
-    receiver: {
-        select: {
-          id: true,
-          name: true,
-          flag: true,
-        },
+    sender: {
+      select: {
+        id: true,
+        name: true,
+        flag: true,
       },
+    },
+    receiver: {
+      select: {
+        id: true,
+        name: true,
+        flag: true,
+      },
+    },
   },
 });
 
-const result = requests.map((request) =>
-  request.senderId === userId
-    ? request.receiver
-    : request.sender
-);
+return requests.map((request) => {
+  if (request.senderId === userId) {
+    // 내가 보낸 요청
+    return {
+      id: request.receiver.id,
+      name: request.receiver.name,
+      flag: request.receiver.flag,
+      status: "SENT" as const,
+    };
+  }
 
-
-  return result;
+  // 내가 받은 요청
+  return {
+    id: request.sender.id,
+    name: request.sender.name,
+    flag: request.sender.flag,
+    status: "RECEIVED" as const,
+  };
+});
 };
 
 
@@ -91,7 +109,47 @@ const sendFriendRequest = async (
   });
 };
 
+
+const addFriend = async (ownId: number, friendId: number) => {
+  const userAId = Math.max(ownId, friendId);
+  const userBId = Math.min(ownId, friendId);
+
+  return await prisma.$transaction([
+    // 친구 관계 생성
+    prisma.friends.create({
+      data: {
+        userAId,
+        userBId,
+      },
+    }),
+
+    // 친구 요청 삭제
+    prisma.friendRequest.deleteMany({
+      where: {
+        senderId: friendId,
+        receiverId: ownId,
+      },
+    }),
+  ]);
+};
+
+
+export const deleteFriendRequest = async (
+  ownId: number,
+  friendId: number
+) => {
+  return await prisma.friendRequest.deleteMany({
+    where: {
+      senderId: ownId,
+      receiverId: friendId,
+    },
+  });
+};
+
+
 export const friendReqService = {
   sendFriendRequest,
-  findRequestFriends
+  findRequestFriends,
+  addFriend,
+  deleteFriendRequest
 };

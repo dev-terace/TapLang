@@ -101,18 +101,41 @@ console.log("friendList.vue : ", reqFriends);
             {{ friend.name }}
           </span>
         </div>
-        <div class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate mt-0.5">
-          친구 요청 대기중
-        </div>
+          <div class="text-[10px] text-neutral-500 group-hover:text-neutral-300 truncate mt-0.5">
+            {{
+              friend.status == "SENT"
+                ? "친구 요청 대기중"
+                : "친구 요청이 도착했습니다"
+            }}
+          </div>
       </div>
 
       <div class="flex gap-1">
+        <!-- 내가 보낸 요청 -->
         <button
+          v-if="friend.status == 'SENT'"
+          @click="friendStore.declinedFriendRequest(friend.id, true)"
           class="bg-amber-500 text-white border-2 border-[#2d2b28] text-[10px] px-2 py-0.5 font-bold hover:bg-amber-600 transition-colors"
-          
         >
           요청 취소
         </button>
+
+        <!-- 내가 받은 요청 -->
+        <template v-else-if="friend.status == 'RECEIVED'">
+          <button
+            @click="friendStore.acceptFriendRequest(friend.id)"
+            class="bg-green-500 text-white border-2 border-[#2d2b28] text-[10px] px-2 py-0.5 font-bold hover:bg-green-600 transition-colors"
+          >
+            수락
+          </button>
+
+          <button
+            @click="friendStore.declinedFriendRequest(friend.id, false)"
+            class="bg-red-500 text-white border-2 border-[#2d2b28] text-[10px] px-2 py-0.5 font-bold hover:bg-red-600 transition-colors"
+          >
+            거절
+          </button>
+        </template>
       </div>
     </div>
 

@@ -12,6 +12,7 @@ export interface Message {
   content: string;
   attachments?: unknown | null;
   createdAt: string;
+  flag: string;
 }
 
 export const useChatRoomStore = defineStore('chatRoom', () => {

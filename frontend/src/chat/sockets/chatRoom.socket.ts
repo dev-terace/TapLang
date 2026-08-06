@@ -15,12 +15,15 @@ export function registerChatRoomSocket(
     console.log("메시지 받기", message);
     chatRoomStore.addMessage({
       id: message.message.id,
+      conversationId: message.message.conversationId,
       senderId: message.message.senderId,
-      senderName: message.userInfo.name,
+      senderName: message.message.senderName,
       content: message.message.content,
-      createdAt: message.message.createdAt
+      attachments: message.message.attachments,
+      createdAt: message.message.createdAt,
+      flag: message.message.flag,
     });
     chatStore.getMyConversations()
   }
-);
+  );
 }

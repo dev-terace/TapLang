@@ -2,8 +2,22 @@
 import { Socket, Server } from "socket.io";
 import { friendsService } from "../services/friends.service";
 import { friendsRedisService } from "../services/friends.redis.service";
+import { getSocketIO, userSockets } from "../../socket/socket";
 
+export const emitReloadFriendsInfo = (senderId: number, receiverId: number) => {
+    const io = getSocketIO()
 
+    io.to(`user:${senderId}`)
+    .emit("friend:reload", {
+      reload: true,
+    });
+
+    io.to(`user:${receiverId}`)
+    .emit("friend:reload", {
+      reload: true,
+    });
+
+}
 
 export const registerHeartBeatEvents = (socket: Socket) => {
   socket.on("friend:heartbeat", async (callback) => {

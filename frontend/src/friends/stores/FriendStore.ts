@@ -12,10 +12,11 @@ interface Friend {
   statusMsg?: string
   online: boolean
 }
-interface ReqFriends{
-  id: number,
-  name: String   
-  flag: String  
+interface ReqFriends {
+  id: number;
+  name: string;
+  flag: string;
+  status: "SENT" | "RECEIVED";
 }
 
 export const useFriendStore = defineStore('friend', () => {
@@ -26,7 +27,7 @@ export const useFriendStore = defineStore('friend', () => {
   const friends = ref<Friend[]>([])
   const reqFriends = ref<ReqFriends[]>([])
 
-  const fetchFriends = async (ownId: number) => {
+  const fetchFriends = async () => {
   const response = await FriendApi.getFriends();
 
   console.log("fetchFriends : ", response);
@@ -44,7 +45,7 @@ export const useFriendStore = defineStore('friend', () => {
         return;
       }
 
-        fetchFriends(user.id);
+        fetchFriends();
         findReqFriends();
       
     },
@@ -80,7 +81,9 @@ const findReqFriends = async () => {
 }
   const addFriendRequest = FriendApi.addFriendRequest
 
+  const acceptFriendRequest = FriendApi.acceptFriendRequest
 
+  const declinedFriendRequest = FriendApi.declinedFriendRequest
 
   
 
@@ -90,7 +93,11 @@ const findReqFriends = async () => {
     onlineFriends,
     offlineFriends,
     reqFriends,
-    addFriendRequest
+    addFriendRequest,
+    acceptFriendRequest,
+    fetchFriends,
+    findReqFriends,
+    declinedFriendRequest
   
   }
 })

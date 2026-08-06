@@ -54,19 +54,8 @@ const getFriends = async (ownId: number) => {
 
 
 
-const addFriend = async (ownId: number, friendId: number) => {
-  const userAId = Math.max(ownId, friendId);
-  const userBId = Math.min(ownId, friendId);
 
-  return await prisma.$transaction([
-    prisma.friends.create({
-      data: {
-        userAId,
-        userBId,
-      },
-    }),
-  ]);
-};
+
 
 const searchFriend = async (name: string) => {
   const friend = await prisma.myProfile.findUnique({
@@ -87,6 +76,6 @@ const searchFriend = async (name: string) => {
 
 export const friendsService = {
   getFriends,
-  addFriend,
-  searchFriend
+  searchFriend,
+
 };

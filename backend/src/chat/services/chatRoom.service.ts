@@ -1,8 +1,8 @@
-import { PrismaClient} from "../../../generated/mongo";
+import { mongoPrisma, postgresPrisma} from "../../lib/prisma";
 import { v7 as uuidv7 } from "uuid";
 import { ConversationMemberRole } from "../../../generated/mongo";
 
-const prisma = new PrismaClient();
+
 
 
 
@@ -11,21 +11,54 @@ const prisma = new PrismaClient();
 
 export const getMessages = async (
   conversationId: string,
-  createdAt?: Date | string
+  cursor?: string
 ) => {
-  const cursorDate = createdAt ? new Date(createdAt) : new Date();
-
-  return prisma.message.findMany({
+  const messages = await mongoPrisma.message.findMany({
     where: {
       conversationId,
-      createdAt: {
-        lt: cursorDate,
-      },
     },
     orderBy: {
       createdAt: "desc",
     },
     take: 30,
+    ...(cursor && {
+      cursor: { id: cursor },
+      skip: 1,
+    }),
+  });
+
+  const userIds = [...new Set(messages.map((m) => m.senderId))];
+
+  const profiles = await postgresPrisma.myProfile.findMany({
+    where: {
+      id: {
+        in: userIds,
+      },
+    },
+    select: {
+      id: true,
+      name: true,
+      flag: true,
+    },
+  });
+
+  const profileMap = new Map(
+    profiles.map((profile) => [profile.id, profile])
+  );
+
+  return messages.map((message) => {
+    const profile = profileMap.get(message.senderId);
+
+    return {
+      id: message.id,
+      conversationId: message.conversationId,
+      senderId: message.senderId,
+      senderName: profile?.name ?? "",
+      flag: profile?.flag ?? "",
+      content: message.content,
+      attachments: message.attachments,
+      createdAt: message.createdAt.toISOString(),
+    };
   });
 };
 
@@ -34,7 +67,7 @@ export const existsConversationMember = async (
   conversationId: string,
   userId: number
 ) => {
-  const member = await prisma.conversationMember.findFirst({
+  const member = await mongoPrisma.conversationMember.findFirst({
     where: {
       conversationId,
       userId,
@@ -54,9 +87,7 @@ export const createMessage = async (
   content: string,
   attachments?: unknown | null
 ) => {
-
-  return prisma.$transaction(async (tx) => {
-
+  const message = await mongoPrisma.$transaction(async (tx) => {
     // 1. 메시지 생성
     const message = await tx.message.create({
       data: {
@@ -66,7 +97,6 @@ export const createMessage = async (
         attachments: attachments ?? null,
       },
     });
-
 
     // 2. 마지막 메시지 갱신
     await tx.conversation.update({
@@ -78,7 +108,6 @@ export const createMessage = async (
         lastMessageAt: message.createdAt,
       },
     });
-
 
     // 3. 나를 제외한 멤버 unread 증가
     await tx.conversationMember.updateMany({
@@ -95,10 +124,30 @@ export const createMessage = async (
       },
     });
 
-
     return message;
-
   });
+
+  // 작성자 정보 조회 (PostgreSQL)
+  const profile = await postgresPrisma.myProfile.findUnique({
+    where: {
+      id: senderId,
+    },
+    select: {
+      name: true,
+      flag: true,
+    },
+  });
+
+  return {
+    id: message.id,
+    conversationId: message.conversationId,
+    senderId: message.senderId,
+    senderName: profile?.name ?? "",
+    flag: profile?.flag ?? "",
+    content: message.content,
+    attachments: message.attachments,
+    createdAt: message.createdAt.toISOString(),
+  };
 };
 
 export const createChatInfo = async (
@@ -111,7 +160,7 @@ export const createChatInfo = async (
     let conversation;
     memberIds.push(ownId);
     
-    console.log("prisma : ", Object.keys(prisma));
+  
 
 
     if((memberIds.length !== 2) && chatType === "DIRECT")
@@ -149,7 +198,7 @@ async function createGroup(
   ownId: number,
   name: string
 ) {
-  return prisma.conversation.create({
+  return mongoPrisma.conversation.create({
     data: {
       id: uuidv7(),
       type: "GROUP",
@@ -186,7 +235,7 @@ async function getOrCreateDirect(
     .join(":");
 
 
-  return prisma.conversation.upsert({
+  return mongoPrisma.conversation.upsert({
     where: {
       directKey
     },

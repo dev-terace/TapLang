@@ -32,6 +32,7 @@ export namespace FriendApi {
         id: number;
         name: string;
         flag: string;
+        
     }
 
     interface FindReqFriendsResponse{
@@ -80,5 +81,16 @@ export namespace FriendApi {
             throw error;
         }
     }
+
+    export const acceptFriendRequest = async (friendId: number) => {
+        return await api.post(`/api/friends/request/${friendId}`);
+    };
+
+    export const declinedFriendRequest = async (friendId: number, self: boolean) => {
+        console.log("declined friend req : ", friendId)
+        return await api.delete(`/api/friends/request/${friendId}/${self}`);
+    };
+
+    
 
 }

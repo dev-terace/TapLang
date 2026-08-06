@@ -30,7 +30,17 @@ socket.on("connect", () => {
   socket.emit("friend:own:init");
 });
 
-  
+
+socket.on("friend:reload", async (data) => {
+    console.log("friend reload", data);
+
+    if (data.reload) {
+      await friendStore.fetchFriends();
+      await friendStore.findReqFriends();
+      socket.emit("friend:own:init");
+    }
+  });
+
 
 socket.on(
   "friend:online",
