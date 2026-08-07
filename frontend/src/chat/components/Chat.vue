@@ -6,10 +6,12 @@ import { formatTime } from '@/shared/utils/DateUtils'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
 import { Conversation } from '@/chat/store/Chat'
+import { useChatRoomStore } from '../store/ChatRoom'
 
 const uiStore = useUIStore()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
+const chatRoomStore = useChatRoomStore()
 const { userInfo } = storeToRefs(authStore) 
 
 const conversations = computed(() => {
@@ -26,7 +28,8 @@ const openConversation = (conversation: Conversation) => {
     const otherMember = conversation.members.find(
       member => member.userId !== userInfo.value.id
     );
-
+    
+    
     uiStore.changeChatRoomTab(
       false,
       otherMember ? [otherMember.userId] : [],

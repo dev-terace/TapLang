@@ -5,7 +5,7 @@ const router = Router();
 router.post("/", createChat);
 router.post("/message", createMessage)
 router.get(
-  "/message/:messageId/:createdAt?",
+  "/message/:conversationId/:createdAt?",
   getMessages
 );
 export default router;

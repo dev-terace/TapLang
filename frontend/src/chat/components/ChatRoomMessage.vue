@@ -1,43 +1,48 @@
 <script setup lang="ts">
+
 import { computed } from 'vue'
-import type { Message } from '../store/ChatRoom'
+
 
 const props = defineProps<{
-  message: Message;
-  ownId?: number;
+  message: {
+    id: string | number
+    senderId: string | number
+    senderName: string
+    flag: string
+    content: string
+    createdAt: string
+  },
+  ownId: string | number
 }>()
 
 
-const isMine = computed(() =>
-  props.message.senderId === props.ownId
-)
+const isMine = computed(() => {
+  return props.message.senderId === props.ownId
+})
 
 </script>
 
 
 <template>
-  <!-- 메시지 하나 -->
-  <div
-    class="flex gap-3 max-w-[85%]"
-    :class="isMine ? 'self-end flex-row-reverse' : 'self-start'"
-  >
+  <div class="flex gap-2 items-start">
 
     <!-- 상대방 아바타 -->
     <div
       v-if="!isMine"
       class="w-8 h-8 shrink-0 bg-[#2d2b28] text-white flex items-center justify-center border-2 border-[#2d2b28] font-pixel text-sm"
     >
-                  <img 
-            :src="`https://flagcdn.com/w40/${message.flag}.png`"
-            alt=""
-            class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"
-          /> 
+      <img
+        :src="`https://flagcdn.com/w40/${message.flag}.png`"
+        alt=""
+        class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"
+      />
     </div>
 
 
+    <!-- 메시지 영역 -->
     <div
       class="flex flex-col gap-1"
-      :class="isMine ? 'items-end' : ''"
+      :class="isMine ? 'items-end ml-auto' : ''"
     >
 
       <!-- 상대 이름 -->
@@ -49,13 +54,13 @@ const isMine = computed(() =>
       </span>
 
 
-      <!-- 내용 -->
+      <!-- 메시지 내용 -->
       <div
         class="p-2 text-xs border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28]"
         :class="
           isMine
-          ? 'bg-[#2d2b28] text-[#fbf9f5]'
-          : 'bg-[#f4f1eb] text-[#2d2b28]'
+            ? 'bg-[#2d2b28] text-[#fbf9f5]'
+            : 'bg-[#f4f1eb] text-[#2d2b28]'
         "
       >
         {{ message.content }}

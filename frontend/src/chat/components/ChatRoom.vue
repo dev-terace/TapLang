@@ -4,6 +4,7 @@ import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
 import { useAuthStore } from '@/shared/auth/AuthStore'
+import ChatFeatureModal from './ChatFeatureModel.vue'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -16,85 +17,37 @@ const ownId = computed(() => authStore.userInfo?.id);
 // 메시지 입력 상태
 const newMessage = ref('')
 
-// 기능 모달창 상태
-const showFeatureModal = ref(false)
-
-// 최근 사용한 기능 아이콘 상태 (기본값: ✨)
-const recentIcon = ref('✨')
-
-// 제공할 기능 목록 정의
-const features = [
-  { id: 'AI', name: 'AI 번역', icon: '✨' },
-  { id: 'Translate', name: '번역 태그', subName: '검색', icon: '🏷️' },
-  { id: 'Image', name: '사진 삽입', icon: '📷' }
-]
-
-
-
-// 기능 선택 로직
-const selectFeature = (feature: typeof features[number]) => {
-  console.log(`${feature.id} 기능 선택됨`)
-  
-  // 선택한 기능의 아이콘으로 최근 아이콘 업데이트
-  recentIcon.value = feature.icon
-  
-  // 모달 닫기
-  showFeatureModal.value = false
-}
-
-// 최근 사용 기능 실행 (선택 사항)
-const useRecentFeature = () => {
-  console.log(`최근 기능(${recentIcon.value}) 실행`)
-}
-
-const isRecentFeaturePressed = ref(false)
-// --- 추가된 단축키 로직 ---
-const handleKeydown = (e: KeyboardEvent) => {
-  if (uiStore.currentTab !== 'chatRoom') return;
-
-  if (e.ctrlKey && e.key.toLowerCase() === 'e') {
-    e.preventDefault();
-    useRecentFeature(); 
-
-    // 단축키 입력 시 클릭 모션 시각 효과 트리거 (0.15초 동안)
-    isRecentFeaturePressed.value = true;
-    setTimeout(() => {
-      isRecentFeaturePressed.value = false;
-    }, 150);
-  }
-}
-
-const conversationId = ref<string | null>(null);
-
-
-
-onMounted(async () => {
-  window.addEventListener('keydown', handleKeydown)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('keydown', handleKeydown)
-})
-
 
 
 watch(
   () => uiStore.chatRoomMemberIds,
   async (memberIds) => {
-    if (memberIds.length === 1 && !conversationId.value) {
+    if (memberIds.length !== 1) return;
 
-     
+    // 이미 방이 있으면 생성하지 않음
+    
 
-      const responseId = await chatRoomStore.createChat({
-        memberIds,
-        chatType: 'DIRECT',
-        name: null,
-        message: ""
-      });
+    const conversationId = await chatRoomStore.createChat({
+      memberIds,
+      chatType: 'DIRECT',
+      name: null,
+      message: ""
+    });
 
-       console.log("============================ convId", conversationId)
-      conversationId.value = responseId;
-    }
+
+      if(chatRoomStore.conversationId == conversationId)
+      {
+        return
+      }
+
+    chatRoomStore.conversationId = conversationId;
+
+    if(!chatRoomStore.hasMessageCache(chatRoomStore.conversationId))
+    {
+        await loadMessages(conversationId);
+        console.log("메시지 로드")
+    }  
+    
   },
   {
     deep: true,
@@ -102,24 +55,22 @@ watch(
   }
 );
 
-watch(
-  () => conversationId.value,
-  async (id) => {
-    if (!id) return;
+const loadMessages = async (id: string) => {
+  if (!id) return;
 
-    const messages = await chatRoomStore.getChatMessages(id);
+  try {
+    const { data } = await chatRoomStore.getChatMessages(id);
+    
+    data.reverse().forEach((message) => {
+      chatRoomStore.addMessage(message);
+      
+    });
 
-    const list = messages.data.reverse();
-
-    if (list.length > 0) {
-      chatRoomStore.messages.push(...list);
-    }
-
-  },
-  {
-    immediate: true
+  } catch (error) {
+    console.error("메시지 조회 실패", error);
+    chatRoomStore.messages = [];
   }
-);
+};
 
 
 
@@ -136,14 +87,14 @@ const sendMessage = async () => {
   const chatRoomMemberIds = uiStore.chatRoomMemberIds
 
   console.log("uistore is chat room create : ", uiStore.isChatRoomCreate)
-  if (conversationId.value == null) {
+  if (chatRoomStore.conversationId == null) {
     
     // 💡 방 이름 구성 (상대방 이름이 있으면 "~님과의 대화방", 없으면 "새 대화방")
 
     // 💡 입력한 메시지(trimmedMessage)를 전달하되, 빈 값이면 기본값('안녕하세요!') 설정
 
 
-    conversationId.value = await chatRoomStore.createChat({
+    chatRoomStore.conversationId = await chatRoomStore.createChat({
       memberIds: chatRoomMemberIds,
       chatType: 'DIRECT',
       name: null,
@@ -155,7 +106,7 @@ const sendMessage = async () => {
     
    await chatRoomStore.createMessage(
     {
-      conversationId: conversationId.value,
+      conversationId: chatRoomStore.conversationId,
       
       content: initialMessage
       // content: string;
@@ -167,6 +118,14 @@ const sendMessage = async () => {
   // 입력창 초기화
   newMessage.value = ''
 }
+
+const filteredMessages = computed(() =>
+  chatRoomStore.messages.filter(
+    message => message.conversationId === chatRoomStore.conversationId
+  )
+);
+
+
 </script>
 
 <template>
@@ -199,13 +158,13 @@ const sendMessage = async () => {
       class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
     >
     
-      <ChatRoomMessage
-           v-for="message in chatRoomStore.messages"
+    <ChatRoomMessage
+      v-for="message in filteredMessages"
       :key="message.id"
       :message="message"
       :own-id="ownId"
-      />
- 
+    />
+    
 
       <!-- 날짜 구분선 -->
       <div class="flex justify-center my-2">
@@ -216,67 +175,22 @@ const sendMessage = async () => {
     </div>
 
     <!-- 하단 입력창 영역 -->
-    <div  class="shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
-      
-      <!-- 기능 아이콘 모달창 -->
-      <div 
-        v-if="showFeatureModal" 
-        class="absolute bottom-full left-3 mb-3 bg-[#f4f1eb] border-2 border-[#2d2b28] shadow-[3px_3px_0px_0px_#2d2b28] p-2 flex gap-2 z-10"
-      >
-        <!-- 기능 목록 반복 출력 -->
-        <button 
-          v-for="feature in features"
-          :key="feature.id"
-          @click="selectFeature(feature)"
-          class="flex flex-col items-center gap-1 p-2 hover:bg-[#c5bfb6] border-2 border-transparent hover:border-[#2d2b28] transition-colors"
-        >
-          <span class="text-lg">{{ feature.icon }}</span>
-          <span class="text-[10px] font-bold text-[#2d2b28] text-center leading-tight">
-            {{ feature.name }}
-            <template v-if="feature.subName">
-              <br>{{ feature.subName }}
-            </template>
-          </span>
-        </button>
-      </div>
+    <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
 
       <!-- 폼 영역 -->
       <div class="flex gap-2 items-center">
         
-        <!-- 이전에 썼던 기능 아이콘 (최근 사용 기록) -->
-        <button
-        type="button"
-        @click="useRecentFeature"
-        title="최근 사용한 기능"
-        class="w-9 h-9 shrink-0 bg-[#f4f1eb] text-xs flex items-center justify-center
-                border-2 border-[#2d2b28] transition-all"
-        :class="isRecentFeaturePressed 
-            ? 'shadow-none translate-x-[2px] translate-y-[2px]' 
-            : 'shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]'"
-        >
-        {{ recentIcon }}
-        </button>
-
-        <!-- 기능(모달 열기) 아이콘 -->
-        <button
-          type="button"
-          @click="showFeatureModal = !showFeatureModal"
-          title="기능 더보기"
-          class="w-9 h-9 shrink-0 bg-[#2d2b28] text-white text-lg font-bold flex items-center justify-center
-                 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] 
-                 active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
-        >
-          +
-        </button>
-
+        <ChatFeatureModal @select="selectFeature"/>
+    
         <!-- 텍스트 인풋 -->
         <input
           v-model="newMessage"
           type="text"
           placeholder="메시지를 입력하세요..."
+          @keyup.enter="sendMessage"
           class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] 
-                 placeholder-[#726e67] focus:outline-none focus:ring-0
-                 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
+                placeholder-[#726e67] focus:outline-none focus:ring-0
+                shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
         />
         
         <!-- 전송 버튼 -->

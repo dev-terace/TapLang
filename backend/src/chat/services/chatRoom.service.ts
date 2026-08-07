@@ -1,4 +1,4 @@
-import { mongoPrisma, postgresPrisma} from "../../lib/prisma";
+import { mongoPrisma, postgresPrisma } from "../../lib/prisma";
 import { v7 as uuidv7 } from "uuid";
 import { ConversationMemberRole } from "../../../generated/mongo";
 
@@ -13,19 +13,36 @@ export const getMessages = async (
   conversationId: string,
   cursor?: string
 ) => {
+
+
+  if (!conversationId) {
+    throw new Error("conversationId가 없습니다.");
+  }
+
+
+  const cursorDate =
+    cursor && cursor !== "undefined"
+      ? new Date(cursor)
+      : new Date();
+
   const messages = await mongoPrisma.message.findMany({
     where: {
       conversationId,
+      createdAt: {
+        lt: cursorDate,
+      },
     },
     orderBy: {
       createdAt: "desc",
     },
     take: 30,
-    ...(cursor && {
-      cursor: { id: cursor },
-      skip: 1,
-    }),
+    // ...(cursor && {
+    //   cursor: { id: cursor },
+    //   skip: 1,
+    // }),
   });
+  console.log("[chatRoom services] messages: ", messages)
+
 
   const userIds = [...new Set(messages.map((m) => m.senderId))];
 
@@ -151,46 +168,47 @@ export const createMessage = async (
 };
 
 export const createChatInfo = async (
-    memberIds: number[], 
-    ownId: number, 
-    chatType: "DIRECT" | "GROUP",
-    name: string //채팅방 이름
+  memberIds: number[],
+  ownId: number,
+  chatType: "DIRECT" | "GROUP",
+  name: string //채팅방 이름
 ) => {
 
-    let conversation;
-    memberIds.push(ownId);
-    
-  
+  let conversation;
+
+  const newMemberIds = [...memberIds];
+  newMemberIds.push(ownId);
 
 
-    if((memberIds.length !== 2) && chatType === "DIRECT")
-    {
-         throw new Error("잘못된 요청입니다!");
+
+
+  if ((newMemberIds.length !== 2) && chatType === "DIRECT") {
+    throw new Error("잘못된 요청입니다!");
+  }
+
+  if (chatType === "DIRECT") {
+
+
+    const receiverId = memberIds.find(
+      (id) => id !== ownId
+    );
+
+    if (receiverId === undefined) {
+      throw new Error("상대방이 없습니다.");
     }
 
-    if (chatType === "DIRECT") {
-        
-
-        const receiverId = memberIds.find(
-             (id) => id !== ownId
-        );
-
-        if (receiverId === undefined) {
-        throw new Error("상대방이 없습니다.");}
-
-        conversation = await getOrCreateDirect(ownId, receiverId, name);
-        return conversation;
-    } else { //그룹
-        if(name == null)
-        {
-            throw new Error("제목을 입력하세요.");
-        }
-        conversation =  await createGroup(memberIds, ownId, name);
-
-        return conversation
+    conversation = await getOrCreateDirect(ownId, receiverId, name);
+    return conversation;
+  } else { //그룹
+    if (name == null) {
+      throw new Error("제목을 입력하세요.");
     }
+    conversation = await createGroup(newMemberIds, ownId, name);
+
+    return conversation
+  }
 }
-   
+
 
 
 async function createGroup(
@@ -202,12 +220,12 @@ async function createGroup(
     data: {
       id: uuidv7(),
       type: "GROUP",
-      name: name,  
+      name: name,
       members: {
         create: memberIds.map(id => ({
           userId: id,
           role: id === ownId
-          ? ConversationMemberRole.OWNER : 
+            ? ConversationMemberRole.OWNER :
             ConversationMemberRole.MEMBER
         }))
       }

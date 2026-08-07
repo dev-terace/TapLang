@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-
+import { useChatRoomStore } from '@/chat/store/ChatRoom'
 
 export const useUIStore = defineStore('ui', () => {
   const currentTab = ref('memo')
@@ -8,6 +8,7 @@ export const useUIStore = defineStore('ui', () => {
   const chatRoomMemberIds = ref<number[]>([])
   const roomName = ref<string>('');
   const conversationId = ref<String>('');
+  const chatRoomStore = useChatRoomStore()
 
   const changeTab = (tab: string) => {
     currentTab.value = tab
@@ -18,6 +19,7 @@ export const useUIStore = defineStore('ui', () => {
     isChatRoomCreate.value = isCreate
     chatRoomMemberIds.value = memberIds
     roomName.value = name
+    // chatRoomStore.conversationId = ''
   }
 
   return {

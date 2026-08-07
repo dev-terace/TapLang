@@ -23,7 +23,6 @@ export const registerHeartBeatEvents = (socket: Socket) => {
   socket.on("friend:heartbeat", async (callback) => {
     const ownId = socket.data.userId;
 
-    console.log("heartbeat 실행 : ", ownId)
     await friendsRedisService.heartbeat(ownId, socket.id)
 
     callback();
@@ -38,7 +37,6 @@ export const registerFriendEvents = (io: Server, socket: Socket) => {
 
     const ownId = socket.data.userId;
 
-    console.log("registerFriendEvent : ownId:", ownId);
 
     // 반드시 먼저 등록
     await friendsRedisService.addOnlineUser(
@@ -64,11 +62,6 @@ export const registerFriendEvents = (io: Server, socket: Socket) => {
 
       if (!friendId) continue;
 
-      console.log(
-        "친구 온라인 알림",
-        friendId,
-        ownId
-      );
 
       io.to(`user:${friendId}`)
         .emit(

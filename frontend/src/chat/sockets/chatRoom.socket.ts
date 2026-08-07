@@ -13,6 +13,10 @@ export function registerChatRoomSocket(
 
   socket.on("message:new", (message) => {
     console.log("메시지 받기", message);
+
+      console.log("incoming", message);
+      console.log("current room", chatRoomStore.conversationId);
+
     chatRoomStore.addMessage({
       id: message.message.id,
       conversationId: message.message.conversationId,

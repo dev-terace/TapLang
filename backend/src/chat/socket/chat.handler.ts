@@ -10,8 +10,10 @@ export const joinConversationMembers = (
 
 
   console.log("chatHandler: memberIds", memberIds);
-  memberIds.push(ownId)
-  memberIds.forEach((memberId) => {
+
+  const newMemberIds = [...memberIds];
+  newMemberIds.push(ownId)
+  newMemberIds.forEach((memberId) => {
     const socketId = userSockets.get(memberId);
 
     if (!socketId) return;

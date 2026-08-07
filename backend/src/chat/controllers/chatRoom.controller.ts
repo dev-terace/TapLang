@@ -8,13 +8,17 @@ import {joinConversationMembers, emitNewMessage} from "../socket/chat.handler"
 
 export const getMessages = async (req: Request, res: Response) => {
   try {
-    const { conversationId } = req.params;
-    const { createdAt } = req.query;
+    const { conversationId, createdAt } = req.params;
 
+
+    
     const messages = await chatRoomService.getMessages(
       conversationId,
       createdAt as string | undefined
     );
+
+
+    console.log("controller createdAt, ", createdAt)
 
     return res.status(200).json({
       success: true,
@@ -97,7 +101,8 @@ console.log("message: ", req.body.message)
 
     joinConversationMembers(conversation.id, memberIds, ownId);
 
-
+    console.log("[createChat] convId", conversation.id)
+    console.log("[createChat] convId", memberIds)
 
     
 
