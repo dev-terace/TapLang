@@ -19,4 +19,11 @@ export async function getMyConversations(){
    return response.data;
 }
 
+export async function readConversation(conversationId: string)
+{
+   const response = await api.patch(`/api/chat/unread-count/${conversationId}`)
+
+   console.log("readConversation : response", response)
+}
+
 }

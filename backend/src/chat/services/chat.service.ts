@@ -1,6 +1,28 @@
 import { connectMongoDB } from "../../lib/mongo";
 import { postgresPrisma  } from "../../lib/prisma";
+import { mongoPrisma  } from "../../lib/prisma";
 
+
+
+export const  readConversation = async(
+  conversationId: string,
+  ownId: number
+) => {
+
+  console.log("read conversationId: ", conversationId)
+  console.log("read conversation ownId: ", ownId)
+
+  return mongoPrisma.conversationMember.updateMany({
+    where: {
+      conversationId,
+      userId: ownId,
+    },
+    data: {
+      unreadCount: 0,
+      lastReadAt: new Date(),
+    },
+  });
+}
 
 export const getMyConversations = async (
   userId: number,
@@ -388,5 +410,6 @@ export const getConversationUnreadCounts = async (
 
 export const chatService = {
   getConversationUnreadCounts,
-  getMyConversations
+  getMyConversations,
+  readConversation
 }

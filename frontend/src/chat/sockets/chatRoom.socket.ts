@@ -11,7 +11,7 @@ export function registerChatRoomSocket(
 
   socket.off("message:new");
 
-  socket.on("message:new", (message) => {
+  socket.on("message:new", async (message) => {
     console.log("메시지 받기", message);
 
       console.log("incoming", message);
@@ -27,7 +27,7 @@ export function registerChatRoomSocket(
       createdAt: message.message.createdAt,
       flag: message.message.flag,
     });
-    chatStore.getMyConversations()
+    await chatStore.readConversation(message.message.conversationId)
   }
   );
 }

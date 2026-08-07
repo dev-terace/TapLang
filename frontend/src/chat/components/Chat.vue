@@ -132,13 +132,13 @@ const openConversation = (conversation: Conversation) => {
           <div class="flex justify-between items-center">
 
             <span class="text-xs font-bold truncate">
-{{
-  conversation?.name
-    ?.split('|')
-    .find(v => v !== userInfo?.name)
-  ?? '1:1 채팅'
+            {{
+              conversation?.name
+                ?.split('|')
+                .find(v => v !== userInfo?.name)
+              ?? '1:1 채팅'
 
-}}
+            }}
              <!-- {{ userInfo?.name?.split('|').map(v => v.split('#')[0]).find(v => v !== conversation?.name) ?? '1:1 채팅' }} -->
             </span>
 

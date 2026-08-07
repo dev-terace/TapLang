@@ -5,19 +5,63 @@ import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import ChatFeatureModal from './ChatFeatureModel.vue'
+import { useChatStore } from '../store/Chat.js'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
-
+const chatStore = useChatStore()
 const authStore = useAuthStore();
 
 const ownId = computed(() => authStore.userInfo?.id);
 
-
 // 메시지 입력 상태
 const newMessage = ref('')
 
+// ✨ 스크롤 제어를 위한 DOM Ref 추가
+const messageContainer = ref<HTMLElement | null>(null)
 
+
+// ✨ 더 견고한 스크롤 함수 (이중 nextTick + rAF)
+const scrollToBottom = () => {
+  nextTick(() => {
+    requestAnimationFrame(() => {
+      if (messageContainer.value) {
+        messageContainer.value.scrollTop = messageContainer.value.scrollHeight
+      }
+    })
+  })
+}
+
+// ✨ 탭 진입 시에도 스크롤 (마운트 시점)
+onMounted(() => {
+  scrollToBottom()
+})
+
+// ✨ 이미지 등 늦게 로드되는 컨텐츠 대응: ResizeObserver로 높이 변화 감지
+let resizeObserver: ResizeObserver | null = null
+
+onMounted(() => {
+  if (messageContainer.value) {
+    resizeObserver = new ResizeObserver(() => {
+      scrollToBottom()
+    })
+    resizeObserver.observe(messageContainer.value)
+  }
+})
+
+onUnmounted(() => {
+  resizeObserver?.disconnect()
+})
+
+// ✨ 탭이 chatRoom으로 전환될 때도 스크롤
+watch(
+  () => uiStore.currentTab,
+  (tab) => {
+    if (tab === 'chatRoom') {
+      scrollToBottom()
+    }
+  }
+)
 
 watch(
   () => uiStore.chatRoomMemberIds,
@@ -25,8 +69,6 @@ watch(
     if (memberIds.length !== 1) return;
 
     // 이미 방이 있으면 생성하지 않음
-    
-
     const conversationId = await chatRoomStore.createChat({
       memberIds,
       chatType: 'DIRECT',
@@ -34,20 +76,18 @@ watch(
       message: ""
     });
 
+    await chatStore.readConversation(conversationId)
 
-      if(chatRoomStore.conversationId == conversationId)
-      {
-        return
-      }
+    if (chatRoomStore.conversationId == conversationId) {
+      return
+    }
 
     chatRoomStore.conversationId = conversationId;
 
-    if(!chatRoomStore.hasMessageCache(chatRoomStore.conversationId))
-    {
-        await loadMessages(conversationId);
-        console.log("메시지 로드")
+    if (!chatRoomStore.hasMessageCache(chatRoomStore.conversationId)) {
+      await loadMessages(conversationId);
+      console.log("메시지 로드")
     }  
-    
   },
   {
     deep: true,
@@ -63,7 +103,6 @@ const loadMessages = async (id: string) => {
     
     data.reverse().forEach((message) => {
       chatRoomStore.addMessage(message);
-      
     });
 
   } catch (error) {
@@ -72,13 +111,8 @@ const loadMessages = async (id: string) => {
   }
 };
 
-
-
-
-
 const sendMessage = async () => {
   const trimmedMessage = newMessage.value.trim()
-
   
   // 메시지가 없는 상태면 return
   if (!trimmedMessage) return
@@ -88,35 +122,24 @@ const sendMessage = async () => {
 
   console.log("uistore is chat room create : ", uiStore.isChatRoomCreate)
   if (chatRoomStore.conversationId == null) {
-    
-    // 💡 방 이름 구성 (상대방 이름이 있으면 "~님과의 대화방", 없으면 "새 대화방")
-
-    // 💡 입력한 메시지(trimmedMessage)를 전달하되, 빈 값이면 기본값('안녕하세요!') 설정
-
-
     chatRoomStore.conversationId = await chatRoomStore.createChat({
       memberIds: chatRoomMemberIds,
       chatType: 'DIRECT',
       name: null,
-      message: "" // ✨ 사용자 입력 메시지가 들어가는 부분!
-    }
-    )
-    
+      message: "" 
+    })
   } else {
-    
-   await chatRoomStore.createMessage(
-    {
+    await chatRoomStore.createMessage({
       conversationId: chatRoomStore.conversationId,
-      
       content: initialMessage
-      // content: string;
-      // attachments?: unknown | null;
-    }
-   )
+    })
   }
 
   // 입력창 초기화
   newMessage.value = ''
+  
+  // ✨ 메시지 전송 후 최하단 스크롤
+  scrollToBottom()
 }
 
 const filteredMessages = computed(() =>
@@ -125,14 +148,22 @@ const filteredMessages = computed(() =>
   )
 );
 
+// ✨ 메시지 목록이 갱신(추가/로드)될 때마다 최하단 스크롤
+watch(
+  () => filteredMessages.value,
+  () => {
+    scrollToBottom()
+  },
+  { deep: true }
+)
 
 </script>
 
 <template>
-    <div
-      v-if="uiStore.currentTab === 'chatRoom'"
-      class="flex h-screen min-h-0 flex-col bg-[#dfdad1]"
-    >
+  <div
+    v-if="uiStore.currentTab === 'chatRoom'"
+    class="flex h-screen min-h-0 flex-col bg-[#dfdad1]"
+  >
     <!-- 헤더 -->
     <div
       class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
@@ -153,18 +184,17 @@ const filteredMessages = computed(() =>
       </button>
     </div>
 
-    <!-- 채팅 메시지 목록 영역 -->
+    <!-- 채팅 메시지 목록 영역 (✨ ref="messageContainer" 추가) -->
     <div
+      ref="messageContainer"
       class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
     >
-    
-    <ChatRoomMessage
-      v-for="message in filteredMessages"
-      :key="message.id"
-      :message="message"
-      :own-id="ownId"
-    />
-    
+      <ChatRoomMessage
+        v-for="message in filteredMessages"
+        :key="message.id"
+        :message="message"
+        :own-id="ownId"
+      />
 
       <!-- 날짜 구분선 -->
       <div class="flex justify-center my-2">
@@ -176,7 +206,6 @@ const filteredMessages = computed(() =>
 
     <!-- 하단 입력창 영역 -->
     <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
-
       <!-- 폼 영역 -->
       <div class="flex gap-2 items-center">
         
@@ -189,8 +218,8 @@ const filteredMessages = computed(() =>
           placeholder="메시지를 입력하세요..."
           @keyup.enter="sendMessage"
           class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] 
-                placeholder-[#726e67] focus:outline-none focus:ring-0
-                shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
+                 placeholder-[#726e67] focus:outline-none focus:ring-0
+                 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
         />
         
         <!-- 전송 버튼 -->

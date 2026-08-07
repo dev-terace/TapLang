@@ -40,22 +40,29 @@ export interface NextCursor {
 export const useChatStore = defineStore('chat', () => {
     const conversations = ref<Conversation[]>([])
 
-    
+
     const getMyConversations = async (): Promise<ConversationResponse> => {
-    const result = await ChatApi.getMyConversations()
+        const result = await ChatApi.getMyConversations()
 
-    conversations.value = result
+        conversations.value = result
 
-    console.log("getMyConversations : ", conversations.value)
-    return result; 
+        console.log("getMyConversations : ", conversations.value)
+        return result;
 
     }
-    
+
     const getConvUnreadCounts = ChatApi.getConversationUnreadCounts
+    const readConversation = async (conversationId: string) => {
+        // 읽음 처리
+        await ChatApi.readConversation(conversationId);
+        // 최신 대화 목록 다시 조회
+        await getMyConversations()
+    };
 
     return {
         conversations,
         getConvUnreadCounts,
-        getMyConversations
+        getMyConversations,
+        readConversation
     }
 })
