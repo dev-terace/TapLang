@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatStore } from '@/chat/store/Chat'
-import { onMounted, computed } from 'vue'
+import { watch, computed } from 'vue'
 import { formatTime } from '@/shared/utils/DateUtils'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
@@ -19,9 +19,15 @@ const conversations = computed(() => {
 })
 
 
-onMounted(async () => {
-  await chatStore.getMyConversations()
-})
+watch(
+  () => authStore.userInfo,
+  async (userInfo) => {
+    if (!userInfo) return
+
+    await chatStore.getMyConversations()
+  },
+  { immediate: true }
+)
 
 const openConversation = (conversation: Conversation) => {
   if (conversation.type === "DIRECT") {

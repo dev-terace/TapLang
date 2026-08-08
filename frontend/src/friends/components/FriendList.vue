@@ -5,14 +5,14 @@ import { useModalStore } from '@/shared/modal/ModalStore.js'
 import FriendModal from './FriendModal.vue'
 import CountryModal from './CountryModal.vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
-import { useChatRoomStore } from '@/chat/store/ChatRoom.js'
 import { useUIStore } from '@/shared/ui/UiStore.js'
+import EditBioModal from '../../profile/components/EditBioModal.vue'
+import ViewBioModal from '@/profile/components/ViewBioModal.vue'
 
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
-const chatRoomStore = useChatRoomStore()
 
 const alertFunc = (msg: string) => {
   alert(msg)
@@ -32,7 +32,9 @@ const closeMenu = () => {
 // 내 프로필 메뉴 핸들러
 const handleMyProfileMenu = (action: string) => {
   closeMenu()
-  if (action === 'editBio') alertFunc('소개 글 편집 기능 준비중입니다.')
+  if (action === 'editBio') {
+    modalStore.openModal('editBio')
+  }
   if (action === 'editStatus') alertFunc('상태 메시지 편집 기능 준비중입니다.')
   if (action === 'goOffline') alertFunc('오프라인 전환 기능 준비중입니다.')
 }
@@ -40,7 +42,11 @@ const handleMyProfileMenu = (action: string) => {
 // 다른 유저 메뉴 핸들러
 const handleOtherProfileMenu = (action: string, friendId: string) => {
   closeMenu()
-  if (action === 'viewBio') alertFunc('소개 글 보기 기능 준비중입니다.')
+  uiStore.profileMenuFriendId = friendId
+  if (action === 'viewBio') {
+    modalStore.openModal('viewBio')
+    
+  }
   if (action === 'block') alertFunc('차단하기 기능 준비중입니다.')
   if (action === 'delete') {
     if (confirm('정말 삭제하시겠습니까?')) {
@@ -352,6 +358,8 @@ const reqFriends = computed(() => friendStore.reqFriends)
       
     <FriendModal/>
     <CountryModal/>
+    <EditBioModal/>
+    <ViewBioModal/>
   </section>
 </template>
 

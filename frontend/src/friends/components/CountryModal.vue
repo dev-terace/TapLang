@@ -28,7 +28,8 @@ const filteredCountries = computed(() => {
   }
 
   return countries.filter(country =>
-    country.name.includes(keyword) ||
+    // country.name에도 toLowerCase() 적용
+    country.name.toLowerCase().includes(keyword) || 
     country.code.toLowerCase().includes(keyword)
   )
 })

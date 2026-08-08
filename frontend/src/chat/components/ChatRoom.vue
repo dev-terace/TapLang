@@ -148,6 +148,25 @@ const filteredMessages = computed(() =>
   )
 );
 
+
+const formatDate = (date: string | Date) => {
+  const d = new Date(date)
+
+  return `${d.getFullYear()}. ${String(d.getMonth() + 1).padStart(2, '0')}. ${String(d.getDate()).padStart(2, '0')}`
+}
+
+const isSameDate = (date1: string | Date, date2: string | Date) => {
+  const d1 = new Date(date1)
+  const d2 = new Date(date2)
+
+  return (
+    d1.getFullYear() === d2.getFullYear() &&
+    d1.getMonth() === d2.getMonth() &&
+    d1.getDate() === d2.getDate()
+  )
+}
+
+
 // ✨ 메시지 목록이 갱신(추가/로드)될 때마다 최하단 스크롤
 watch(
   () => filteredMessages.value,
@@ -189,19 +208,48 @@ watch(
       ref="messageContainer"
       class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
     >
-      <ChatRoomMessage
-        v-for="message in filteredMessages"
+<div
+  ref="messageContainer"
+  class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
+>
+      <div
+        v-for="(message, index) in filteredMessages"
         :key="message.id"
-        :message="message"
-        :own-id="ownId"
-      />
+      >
+        <!-- 날짜가 바뀌었으면 날짜 구분선 -->
+        <div
+          v-if="
+            index === 0 ||
+            !isSameDate(
+              filteredMessages[index - 1].createdAt,
+              message.createdAt
+            )
+          "
+          class="flex justify-center my-3"
+        >
+          <span
+            class="text-[10px] bg-[#c5bfb6] px-2 py-1
+                  border-2 border-[#2d2b28]
+                  font-bold text-[#2d2b28]"
+          >
+            {{ formatDate(message.createdAt) }}
+          </span>
+        </div>
+
+        <!-- 메시지 -->
+        <ChatRoomMessage
+          :message="message"
+          :own-id="ownId"
+        />
+      </div>
+    </div>
 
       <!-- 날짜 구분선 -->
-      <div class="flex justify-center my-2">
+      <!-- <div class="flex justify-center my-2">
         <span class="text-[10px] bg-[#c5bfb6] px-2 py-1 border-2 border-[#2d2b28] font-bold text-[#2d2b28]">
           2026. 08. 01
         </span>
-      </div>
+      </div> -->
     </div>
 
     <!-- 하단 입력창 영역 -->

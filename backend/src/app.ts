@@ -4,7 +4,7 @@ import userRouter from "./users/routes/user.route";
 import friendsRouter from "./friends/routes/friends.route";
 import chatRoomRouter from "./chat/routes/chatRoom.route"
 import chatRouter from "./chat/routes/chat.route"
-
+import profileRouter from "./profile/routes/profile.route"
 import { clerkMiddleware, requireAuth } from "@clerk/express";
 
 const app: Application = express();
@@ -29,6 +29,7 @@ app.use("/api/users", requireApiAuth, userRouter);
 app.use("/api/friends", requireApiAuth, friendsRouter);
 app.use("/api/chat-room", requireApiAuth, chatRoomRouter)
 app.use("/api/chat", requireApiAuth, chatRouter)
+app.use("/api/profile", requireApiAuth, profileRouter)
 
 
 app.get("/health", (req: Request, res: Response) => {

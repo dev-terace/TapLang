@@ -108,7 +108,17 @@ const existingUser = await prisma.myProfile.findUnique({
       email: true,
       statusMsg: true,
     },
-});
+})
+
+const newId = newUser.id
+await prisma.myProfileDetails.create({
+  data: {
+    profileId: newId,
+    bio: '',
+  },
+})
+
+;
 
 return {
   user: newUser,

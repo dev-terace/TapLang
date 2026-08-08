@@ -27,7 +27,7 @@ const loadUnreadCounts = async () => {
 }
 
 onMounted(() => {
-  loadUnreadCounts()
+  // loadUnreadCounts()
 })
 
 </script>

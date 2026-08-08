@@ -22,12 +22,64 @@ model MyProfile {
 
   allowGroupInvite Boolean @default(true)
 
+  
+  profileDetails     MyProfileDetails?
+
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 
   friendshipsA Friends[] @relation("FriendA")
   friendshipsB Friends[] @relation("FriendB")
 }
+
+
+model MyProfileDetails {
+  id                  Int       @id @default(autoincrement())
+  
+  profileId           Int       @unique
+  profile             MyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  attendanceDays      Int       @default(0)
+  aiTranslationCount  Int       @default(0)
+  translationTagCount Int       @default(0)
+
+  bio                 String?   @db.Text 
+
+  spokenLangs         SpokenLanguage[]
+  learningLangs       LearningLanguage[]
+  snsLinks            SnsLink[]
+}
+
+
+
+model SpokenLanguage {
+  id               Int              @id @default(autoincrement())
+  language         String          
+  
+  profileDetailsId Int
+  profileDetails   MyProfileDetails @relation(fields: [profileDetailsId], references: [id], onDelete: Cascade)
+}
+
+
+model LearningLanguage {
+  id               Int              @id @default(autoincrement())
+  language         String           
+  
+  profileDetailsId Int
+  profileDetails   MyProfileDetails @relation(fields: [profileDetailsId], references: [id], onDelete: Cascade)
+}
+
+
+model SnsLink {
+  id               Int              @id @default(autoincrement())
+  platform         String          
+  value            String           
+  
+  profileDetailsId Int
+  profileDetails   MyProfileDetails @relation(fields: [profileDetailsId], references: [id], onDelete: Cascade)
+}
+
+
 
 
 model Friends {

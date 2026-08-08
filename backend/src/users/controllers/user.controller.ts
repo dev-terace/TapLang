@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { userService } from '../services/user.service';
 import { getAuth } from "@clerk/express";
+import { profileService } from '../../profile/service/profile.details.service';
+
 
 export const loginOrRegister = async (req: Request, res: Response) => {
   try {

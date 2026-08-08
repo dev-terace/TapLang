@@ -8,7 +8,7 @@ export const useUIStore = defineStore('ui', () => {
   const chatRoomMemberIds = ref<number[]>([])
   const roomName = ref<string>('');
   const conversationId = ref<String>('');
-  const chatRoomStore = useChatRoomStore()
+  const profileMenuFriendId = ref<number | null>(null)
 
   const changeTab = (tab: string) => {
     currentTab.value = tab
@@ -29,6 +29,7 @@ export const useUIStore = defineStore('ui', () => {
     chatRoomMemberIds,
     isChatRoomCreate,
     roomName,
-    conversationId
+    conversationId,
+    profileMenuFriendId
   }
 })
