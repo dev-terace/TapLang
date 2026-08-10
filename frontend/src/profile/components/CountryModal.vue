@@ -2,12 +2,11 @@
 import { ref, computed } from 'vue'
 import type { Country } from '@/types'
 import { useModalStore } from '@/shared/modal/ModalStore'
-import { useCountryStore } from '@/friends/stores/CountryStore'
+import { useCountryStore } from '@/profile/store/CountryStore'
+import { useFriendStore } from '@/friends/stores/FriendStore'
+import { useAuthStore } from '@/shared/auth/AuthStore'
 
-const emit = defineEmits<{
-  (e: 'select', country: Country): void
-}>()
-
+const authStore = useAuthStore()
 const modalStore = useModalStore()
 
 const countryStore = useCountryStore()
@@ -37,7 +36,13 @@ const filteredCountries = computed(() => {
 
 // 국가 선택
 const selectCountry = (country: Country) => {
-  emit('select', country)
+
+  const updateInfo = countryStore.updateCountryFlag(country.flag)
+
+  if(updateInfo)
+  {
+    authStore.userInfo.flag = country.flag
+  }
   modalStore.closeModal()
 }
 

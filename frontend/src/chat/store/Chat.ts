@@ -52,12 +52,7 @@ export const useChatStore = defineStore('chat', () => {
     }
 
     const getConvUnreadCounts = ChatApi.getConversationUnreadCounts
-    const readConversation = async (conversationId: string) => {
-        // 읽음 처리
-        await ChatApi.readConversation(conversationId);
-        // 최신 대화 목록 다시 조회
-        await getMyConversations()
-    };
+    const readConversation = ChatApi.readConversation
 
     return {
         conversations,

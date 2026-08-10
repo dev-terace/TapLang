@@ -3,8 +3,141 @@ import { chatRoomService } from "../services/chatRoom.service";
 import { userService } from "../../users/services/user.service";
 import {joinConversationMembers, emitNewMessage} from "../socket/chat.handler"
 
+export const joinConversation = async (
+  req: Request,
+  res: Response
+) => {
+  try {
 
+    console.log("[joinConversation] body:", req.body);
+    const {
+      conversationId,
+      memberIds,
+    } = req.body;
 
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message: "conversationId가 없습니다.",
+      });
+    }
+
+    if (!Array.isArray(memberIds) || memberIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "memberIds가 없습니다.",
+      });
+    }
+
+    // 로그인 유저
+    const ownId = await userService.findUserIdByAuthToken(req);
+
+    // 본인도 멤버 목록에 포함
+    const targetMemberIds = [
+      ...new Set([
+        ...memberIds.map(Number),
+        ownId,
+      ]),
+    ];
+
+    // 채팅방 존재 여부
+    const exists = await chatRoomService.existsConversation(
+      conversationId
+    );
+
+    if (!exists) {
+      return res.status(404).json({
+        success: false,
+        message: "존재하지 않는 채팅방입니다.",
+      });
+    }
+
+    // 실제 채팅방 멤버인지 하나씩 확인
+    const validMemberIds: number[] = [];
+
+    for (const userId of targetMemberIds) {
+      const isMember =
+        await chatRoomService.existsConversationMember(
+          conversationId,
+          userId
+        );
+
+      if (isMember) {
+        validMemberIds.push(userId);
+      }
+    }
+
+    // 아무도 해당 방의 멤버가 아니라면 잘못된 요청
+    if (validMemberIds.length === 0) {
+      return res.status(403).json({
+        success: false,
+        message: "채팅방 멤버가 없습니다.",
+      });
+    }
+
+    console.log(
+      "[joinConversation] conversationId:",
+      conversationId
+    );
+
+    console.log(
+      "[joinConversation] memberIds:",
+      validMemberIds
+    );
+
+    // 실제 해당 방의 멤버들만 Socket Room에 join
+    joinConversationMembers(
+      conversationId,
+      validMemberIds,
+      ownId
+    );
+
+    return res.status(200).json({
+      success: true,
+      conversationId,
+      memberIds: validMemberIds,
+    });
+  } catch (error) {
+    console.error("[joinConversation]", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "채팅방 입장에 실패했습니다.",
+    });
+  }
+};
+
+export const existsConversation = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { conversationId } = req.params;
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message: "conversationId가 없습니다.",
+      });
+    }
+
+    const exists = await chatRoomService.existsConversation(
+      conversationId
+    );
+
+    return res.status(200).json({
+      success: true,
+      exists,
+    });
+  } catch (error) {
+    console.error("[existsConversation]", error);
+
+    return res.status(500).json({
+      success: false,
+      message: "채팅방 존재 여부 확인에 실패했습니다.",
+    });
+  }
+};
 
 export const getMessages = async (req: Request, res: Response) => {
   try {
@@ -48,15 +181,16 @@ console.log("message: ", req.body.message)
       memberIds,
       chatType,
       name,
-      message
     } = req.body;
 
+
+    
     // 로그인 유저
     const ownId =  await userService.findUserIdByAuthToken(req); 
     const userInfo  = await userService.findUserById(ownId);
     
     let directName = null
-    if(name == null)
+    if(name == null && memberIds.length == 1 && chatType == "DIRECT")
     {
       const receiver = await userService.findUserById(memberIds[0]);
 
@@ -66,8 +200,10 @@ console.log("message: ", req.body.message)
       });
     }
 
+      console.log("create chat direct name", directName)
       directName = receiver.name + "|"+userInfo?.name
     }
+    
     
 
     if (!Array.isArray(memberIds)) {

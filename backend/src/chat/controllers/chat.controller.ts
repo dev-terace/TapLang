@@ -6,6 +6,7 @@ import { chatService } from "../services/chat.service";
 
 
 
+
 export const readConversation = async (
   req: Request,
   res: Response
@@ -14,7 +15,7 @@ export const readConversation = async (
 
     const { conversationId } = req.params;
 
-    // JWT 미들웨어에서 넣어준 사용자
+   
     const ownId = await userService.findUserIdByAuthToken(req)
 
 
@@ -48,6 +49,7 @@ export const getMyConversations = async(req: Request, res: Response) => {
     const ownId = await userService.findUserIdByAuthToken(req);
 
     const result = await chatService.getMyConversations(ownId);
+    
     
     
     console.log(JSON.stringify(result, null, 2))

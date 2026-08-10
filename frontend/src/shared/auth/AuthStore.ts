@@ -53,14 +53,12 @@ export const useAuthStore = defineStore('auth', () => {
     
 
     try {
-      console.log("api 요청 전");
       const { data } = await api.post('/api/users', {
         provider,
         email: email.value, // 👈 1. .value 추가 (순환참조 에러 방지)
         name: name.value,   // 👈 1. .value 추가 (순환참조 에러 방지)
       }
      )
-      console.log("api 요청 후");
       userInfo.value = data.user
       const socketStore = useSocketRegister();
       socketStore.connect()

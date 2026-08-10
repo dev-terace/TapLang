@@ -32,7 +32,7 @@
     
     <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
       
-      <FriendList />
+      <FriendSidebar />
       <section class="flex-1 bg-[#fbf9f5] flex flex-col overflow-hidden relative">
         <div class="flex-1 flex flex-col overflow-hidden">
           <ViewPort />
@@ -40,7 +40,8 @@
           <FindPeople />
           <Notice />
           <Chat />
-          <ChatRoom />
+           <ChatRoom />
+          <!-- <InviteChatRoom /> -->
           <GroupChat />
           <TransTag />
          
@@ -85,7 +86,8 @@ import ChatRoom from './chat/components/ChatRoom.vue'
 import GroupChat from './group_chat/components/GroupChat.vue'
 import TransTag from './trans_tag/components/TransTag.vue'
 import ViewPort from './shared/ui/components/ViewPort.vue'
-
+import FriendSidebar from './friends/components/FriendSidebar.vue'
+import InviteChatRoom from './chat/components/InviteChatRoom.vue'
 import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'

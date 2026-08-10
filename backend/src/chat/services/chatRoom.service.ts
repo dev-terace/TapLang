@@ -9,6 +9,22 @@ import { ConversationMemberRole } from "../../../generated/mongo";
 //memberIds 값의 ownId가 포함 됨
 
 
+
+export const existsConversation = async (
+  conversationId: string
+) => {
+  const conversation = await mongoPrisma.conversation.findUnique({
+    where: {
+      id: conversationId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  return !!conversation;
+};
+
 export const getMessages = async (
   conversationId: string,
   cursor?: string
@@ -24,6 +40,12 @@ export const getMessages = async (
     cursor && cursor !== "undefined"
       ? new Date(cursor)
       : new Date();
+
+//019fe984-f0ad-778b-af68-4f1a2660c757
+  console.log("conversationId:", conversationId);
+  console.log("cursor:", cursor);
+  console.log("cursorDate:", cursorDate);
+  console.log("now:", new Date());
 
   const messages = await mongoPrisma.message.findMany({
     where: {
@@ -286,6 +308,7 @@ export const chatRoomService = {
   createChatInfo,
   createMessage,
   existsConversationMember,
-  getMessages
+  getMessages,
+  existsConversation
 
 };

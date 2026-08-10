@@ -25,6 +25,39 @@ export namespace ChatRoomApi{
 }
 
 
+export async function joinConversation(
+  conversationId: string,
+  memberIds: number[]
+) {
+  try {
+    const response = await api.post(
+      "/api/chat-room/join",
+      {
+         memberIds
+        ,
+        conversationId
+      }
+    );
+
+    return response.data;
+  } catch (error: any) {
+    console.error(
+      "[joinConversation] error:",
+      error.response?.data ?? error
+    );
+
+    throw error;
+  }
+}
+
+export async function existsConversation(conversationId: string){
+   const response = await api.get(`/api/chat-room/${conversationId}`);
+
+   console.log("getConvUnreadCount  response : ", response.data);
+
+   return response.data;
+}
+
 
 export const getChatMessages = async (
   conversationId: string,

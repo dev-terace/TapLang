@@ -1,37 +1,48 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useFriendStore } from '@/friends/stores/FriendStore'
-import { useModalStore } from '@/shared/modal/ModalStore'
+import { ref, watch } from 'vue'
+import { useUIStore } from '@/shared/ui/UiStore'
 
-const friendStore = useFriendStore()
-const modalStore = useModalStore()
+const props = defineProps<{
+  isOpen: boolean
+  friendNames: string[]
+}>()
 
-const friendFormData = ref({
-  name: ''
+const emit = defineEmits<{
+  (e: 'close'): void
+  (e: 'confirm', roomName: string): void
+}>()
+
+const uiStore = useUIStore()
+const roomNameInput = ref('')
+
+// 모달이 열릴 때마다 기본 채팅방 이름 설정 (최대 4명)
+watch(() => props.isOpen, (newVal) => {
+  if (newVal) {
+    if (props.friendNames.length <= 4) {
+      roomNameInput.value = props.friendNames.join(', ')
+    } else {
+      roomNameInput.value = props.friendNames.slice(0, 4).join(', ') + ' ...'
+    }
+  }
 })
 
-
-const handleReqFriend = async () => {
-  try {
-    await friendStore.addFriendRequest({
-      searchName: friendFormData.value.name
-    })
-
-    modalStore.closeModal()
-  } catch (error) {
-    
+const handleConfirm = () => {
+  if (!roomNameInput.value.trim()) {
+    alert('채팅방 이름을 입력해주세요.')
+    return
   }
-}
-
-const closeModal = () => {
-  modalStore.closeModal()
+  
+  // 입력된 채팅방 이름을 uiStore에 저장
+  uiStore.roomName = roomNameInput.value
+  
+  emit('confirm', roomNameInput.value)
 }
 </script>
 
 <template>
   <div
-    v-if="modalStore.activeModal === 'addFriend'"
-    class="absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-50"
+    v-if="isOpen"
+    class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-[60]"
   >
     <div
       class="w-full max-w-sm bg-[#e6e2db]
@@ -39,7 +50,6 @@ const closeModal = () => {
              shadow-[8px_8px_0px_0px_#121315]
              overflow-hidden"
     >
-
       <!-- 헤더 -->
       <div
         class="bg-[#2d2b28] text-[#fbf9f5]
@@ -47,48 +57,45 @@ const closeModal = () => {
                flex justify-between items-center
                text-xs font-bold"
       >
-        <span>// 친구_요청_프로토콜.cfg</span>
+        <span>// 새_채팅방_생성_프로토콜.cfg</span>
 
         <button
           class="hover:text-red-400 font-pixel text-lg leading-none"
-          @click="closeModal"
+          @click="emit('close')"
         >
           ×
         </button>
       </div>
 
-
+      <!-- 본문 영역 -->
       <div class="p-5 space-y-4">
-
         <p class="text-xs font-bold uppercase text-neutral-500">
-          // 신규 인맥 검색
+          // 신규 세션 설정
         </p>
 
-
-        <!-- 친구 검색 -->
+        <!-- 채팅방 이름 입력 -->
         <div>
           <label class="block text-xs font-bold mb-1">
-            식별 성명 :
+            채팅방 명칭 :
           </label>
 
           <input
             type="text"
-            v-model="friendFormData.name"
-            placeholder="예: human#0"
+            v-model="roomNameInput"
+            placeholder="채팅방 이름을 입력하세요"
             class="w-full bg-white
                    border-2 border-[#2d2b28]
                    p-2 text-xs
                    outline-none
                    shadow-inner"
+            @keyup.enter="handleConfirm"
           />
         </div>
 
-
         <!-- 버튼 -->
         <div class="mt-6 flex justify-end gap-3 text-xs">
-
           <button
-            @click="closeModal"
+            @click="emit('close')"
             class="bg-[#c5bfb6]
                    text-[#2d2b28]
                    border-2 border-[#2d2b28]
@@ -97,12 +104,11 @@ const closeModal = () => {
                    hover:bg-neutral-300
                    transition-all"
           >
-            닫기
+            취소
           </button>
 
-
           <button
-            @click="handleReqFriend"
+            @click="handleConfirm"
             class="bg-[#2d2b28]
                    text-[#fbf9f5]
                    border-2 border-[#2d2b28]
@@ -112,13 +118,10 @@ const closeModal = () => {
                    transition-all
                    shadow-[2px_2px_0px_0px_#a39b90]"
           >
-            친구 요청
+            확인
           </button>
-
         </div>
-
       </div>
     </div>
-
   </div>
 </template>

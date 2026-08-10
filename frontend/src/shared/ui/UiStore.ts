@@ -14,13 +14,21 @@ export const useUIStore = defineStore('ui', () => {
     currentTab.value = tab
   }
 
-  const changeChatRoomTab = (isCreate: boolean, memberIds: number[], name: string) => {
-    currentTab.value = "chatRoom"
+  const changeChatRoomTab = (isCreate: boolean, memberIds: number[], name: string, currentTabVal: string) => {
+    
+    if(!currentTabVal)
+    {
+      currentTab.value = "chatRoom"
+    }else{
+      currentTab.value = currentTabVal
+    }
     isChatRoomCreate.value = isCreate
     chatRoomMemberIds.value = memberIds
     roomName.value = name
-    // chatRoomStore.conversationId = ''
+   
   }
+
+  
 
   return {
     currentTab,

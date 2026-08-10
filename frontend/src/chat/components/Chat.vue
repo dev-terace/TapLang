@@ -32,28 +32,48 @@ watch(
 const openConversation = (conversation: Conversation) => {
   if (conversation.type === "DIRECT") {
     const otherMember = conversation.members.find(
-      member => member.userId !== userInfo.value.id
+      member => String(member.userId) !== String(userInfo.value?.id)
     );
     
+    // 1. FriendSidebar와 동일하게 ID를 null로 초기화하여 ChatRoom이 소켓을 새로 연결하도록 유도합니다.
+    uiStore.conversationId = null;
     
+    const roomName = conversation?.name?.split('|').find(v => v !== userInfo.value?.name) ?? '1:1 채팅';
+
     uiStore.changeChatRoomTab(
-      false,
-      otherMember ? [otherMember.userId] : [],
-      otherMember?.name ?? ""
+      true, // 2. 매우 중요: 1:1 채팅이므로 반드시 true로 넘겨야 합니다! (기존 false였음)
+      otherMember ? [Number(otherMember.userId)] : [], // 안전하게 Number로 변환
+      roomName,
+      'chatRoom' 
     );
     return;
   }
 
-  // GROUP
+  // GROUP 로직
+  uiStore.conversationId = conversation.conversationId;
+
   uiStore.changeChatRoomTab(
-    false,
+    false, // 그룹 채팅은 false
     conversation.members
-      .filter(member => member.userId !== userInfo.value.id)
+      .filter(member => String(member.userId) !== String(userInfo.value?.id))
       .map(member => member.userId),
-    conversation.name ?? ""
+    conversation.name ?? "",
+    "inviteChatRoom"
   );
 };
 
+
+watch(
+  () => conversations.value,
+  (newVal) => {
+    console.log('채팅방 목록 데이터:', newVal)
+    // 첫 번째 채팅방의 안 읽은 메시지 속성 확인
+    if (newVal.length > 0) {
+      console.log('첫번째 방 unreadCount 값:', newVal[0].unreadCount)
+    }
+  },
+  { deep: true }
+)
 
 
 </script>

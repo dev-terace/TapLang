@@ -28,6 +28,7 @@ export const joinConversationMembers = (
 
 
 export const emitNewMessage = (
+  
   conversationId: string,
   message: {
     id: string;
@@ -48,7 +49,7 @@ export const emitNewMessage = (
   }
 ) => {
   const io = getSocketIO();
-
+  console.log("emitNewMEssage conv Id", conversationId);
   io.to(`conversation:${conversationId}`)
     .emit("message:new", {
       message: message,

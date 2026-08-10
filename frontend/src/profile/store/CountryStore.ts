@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import type { Country } from '@/types'
+import { CountryApi } from '../api/country.api'
 
 export const useCountryStore = defineStore('country', () => {
 const countries = ref<Country[]>([
@@ -170,9 +171,10 @@ const countries = ref<Country[]>([
   { code: 'MG', name: 'Madagascar', flag: 'mg' },
   { code: 'MU', name: 'Mauritius', flag: 'mu' },
 
-  { code: 'UNKNOWN', name: 'Other', flag: 'xx' }
+  { code: 'UNKNOWN', name: 'Other', flag: 'un' }
 ])
- 
+  
+  const updateCountryFlag = CountryApi.updateCountryFlag
 
   const getByCode = computed(() => {
     return (code: string) =>
@@ -181,6 +183,7 @@ const countries = ref<Country[]>([
 
   return {
     countries,
-    getByCode
+    getByCode,
+    updateCountryFlag
   }
 })

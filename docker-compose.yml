@@ -23,6 +23,21 @@
 # })
 # rs.status()
 
+#MongoDB Conversation Index 재생성 - group채팅을 위함
+# db.Conversation.dropIndex("Conversation_directKey_key")
+
+# db.Conversation.createIndex(
+#   { directKey: 1 },
+#   {
+#     unique: true,
+#     partialFilterExpression: {
+#       directKey: { $type: "string" }
+#     },
+#     name: "Conversation_directKey_key"
+#   }
+# )
+
+
 services:
   # 1. PostgreSQL 데이터베이스
   postgres:
