@@ -6,29 +6,29 @@ import { useChatStore } from '@/chat/store/Chat'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
 import ChatFeatureModal from './ChatFeatureModel.vue'
+import GroupChatMembersModal from './GroupChatMemberModal.vue' // ✅ 분리한 모달 import
 import { useChatScroll } from '@/chat/composables/useChatScroll'
 import { formatDate, isSameDate } from '@/chat/composables/chatDate'
+import { useModalStore } from '@/shared/modal/ModalStore.js'
+import { useFriendStore } from '@/friends/stores/FriendStore.js'
+import { useBlockStore } from '@/block/store/BlockStore.js'
+import { type GroupChatMember } from './GroupChatMemberModal.vue'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
+const modalStore = useModalStore()
+const friendStore = useFriendStore()
+const blockStore = useBlockStore()
 
 const ownId = computed(() => authStore.userInfo?.id)
 const newMessage = ref('')
 
-// [수정됨] 1:1 채팅과 그룹 채팅을 더 정확하게 구분하는 로직
+// 1:1 채팅과 그룹 채팅을 정확하게 구분하는 로직
 const isGroupChat = computed(() => {
-  // 1. 탭이 명시적으로 그룹 초대 탭인 경우
   if (uiStore.currentTab === 'inviteChatRoom') return true
-  
-  // 2. 선택된 멤버(나 제외)가 2명 이상이면 그룹 채팅으로 간주
   if (uiStore.chatRoomMemberIds && uiStore.chatRoomMemberIds.length > 1) return true
-  
-  // 3. 이미 생성된 방이라면 스토어의 chatType 등으로 구분 (스토어 구조에 맞춰 주석 해제)
-  // const currentRoom = chatRoomStore.conversations?.find(c => c.id === chatRoomStore.conversationId)
-  // if (currentRoom?.chatType === 'GROUP') return true
-  
   return false
 })
 
@@ -43,14 +43,14 @@ const { scrollToBottom } = useChatScroll(messageContainer, () => filteredMessage
 
 // 대화 상대 모달 상태 (그룹 채팅 전용)
 const isMembersModalOpen = ref(false)
-const expandedMemberIndex = ref<number | null>(null)
-const mockMembers = computed(() => [
-  { name: authStore.userInfo?.name || '내 닉네임#123', status: '상태 메시지가 없습니다.', icon: '🇰🇷' },
-  { name: 'j21813378#0', status: '상태 메시지가 없습니다.', icon: '🇰🇷' }
-])
 
-const toggleMember = (index: number) => {
-  expandedMemberIndex.value = expandedMemberIndex.value === index ? null : index
+
+// 초대 버튼 클릭 핸들러
+const handleInvite = () => {
+  console.log('초대하기 버튼 클릭됨')
+  // 여기에 실제 초대 탭 이동 혹은 초대 로직을 구현합니다.
+  // 예: uiStore.currentTab = 'inviteFriends' 
+  // isMembersModalOpen.value = false
 }
 
 // 통합 채팅방 생성 및 메시지 로드 워처
@@ -65,7 +65,6 @@ watch(
 
     try {
       isCreating.value = true
-
       let conversationId = uiStore.conversationId
 
       if (conversationId) {
@@ -129,6 +128,40 @@ const sendMessage = async () => {
 }
 
 const selectFeature = (feature: string) => console.log('선택된 기능:', feature)
+
+
+const handleMemberAction = async (action: string, member: GroupChatMember ) => {
+  
+  const friendId = member.id
+  console.log('선택된 멤버 액션:', action, '멤버 ID:', friendId)
+
+  if (action === 'addFriend') {
+    
+
+      await friendStore.addFriendRequest({searchName: member.name})
+      await friendStore.fetchFriends();
+
+  } else {
+    // 질문자님이 작성해주신 로직 적용
+    uiStore.profileMenuFriendId = friendId
+    
+    if (action === 'viewBio') {
+       modalStore.openModal('viewBio') 
+       console.log('소개글 보기 모달 오픈')
+    }
+    else if (action === 'block') {
+      await blockStore.requestBlockUser(friendId)
+      await friendStore.fetchFriends()
+      await blockStore.getBlockedUsers()
+    }
+    else if (action === 'delete') {
+      if (confirm('정말 삭제하시겠습니까?')) {
+        alert('삭제 기능 준비중입니다.')
+      }
+    }
+  }
+}
+
 </script>
 
 <template>
@@ -150,10 +183,10 @@ const selectFeature = (feature: string) => console.log('선택된 기능:', feat
       </span>
 
       <div class="flex items-center gap-3">
-        <!-- [수정됨] 그룹 채팅일 때만 대화 상대 목록 버튼 노출 -->
+        <!-- 그룹 채팅일 때만 대화 상대 목록 버튼 노출 -->
         <button 
           v-if="isGroupChat"
-          @click="isMembersModalOpen = true; expandedMemberIndex = null"
+          @click="isMembersModalOpen = true"
           class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center"
           title="대화 상대 목록"
         >
@@ -207,58 +240,13 @@ const selectFeature = (feature: string) => console.log('선택된 기능:', feat
       </div>
     </div>
 
-    <!-- [수정됨] 대화 상대 및 초대 모달창 (그룹 채팅 전용) -->
-    <div 
-      v-if="isGroupChat && isMembersModalOpen" 
-      class="absolute inset-0 z-50 flex items-center justify-center bg-black/40"
-      @click.self="isMembersModalOpen = false"
-    >
-      <div class="bg-[#dfdad1] w-80 border-2 border-[#2d2b28] shadow-[4px_4px_0px_0px_#2d2b28] flex flex-col">
-        <div class="bg-[#c5bfb6] px-4 py-3 border-b-2 border-[#2d2b28] flex justify-between items-center">
-          <span class="text-sm font-bold text-[#2d2b28]">대화 상대</span>
-          <button @click="isMembersModalOpen = false" class="text-sm font-bold hover:text-white transition-colors">
-            ✕
-          </button>
-        </div>
-
-        <div class="p-3 flex-1 overflow-y-auto max-h-72 space-y-2 bg-[#2a2825]">
-          <div 
-            v-for="(member, index) in mockMembers" 
-            :key="index"
-            class="bg-[#423d38] border border-[#1e1c1a] flex flex-col cursor-pointer select-none"
-          >
-            <div @click="toggleMember(index)" class="flex items-center justify-between p-2 hover:bg-[#4d4742] transition-colors">
-              <div class="flex items-center gap-3">
-                <div class="w-10 h-8 bg-black flex items-center justify-center border border-[#1e1c1a]">
-                  <span class="text-xl">{{ member.icon }}</span>
-                </div>
-                <div class="flex flex-col">
-                  <span class="text-sm font-bold text-[#e4decb]">{{ member.name }}</span>
-                  <span class="text-[11px] text-[#a49f91] mt-0.5">{{ member.status }}</span>
-                </div>
-              </div>
-              <div class="text-[#a49f91] text-xs px-2">
-                {{ expandedMemberIndex === index ? '▲' : '▼' }}
-              </div>
-            </div>
-
-            <div v-show="expandedMemberIndex === index" class="flex bg-[#272522] border-t border-[#1e1c1a]">
-              <button class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-[#d8d2c0] hover:bg-[#423d38] hover:text-white transition-colors border-r border-[#1e1c1a]">
-                소개글
-              </button>
-              <button class="flex-1 flex items-center justify-center gap-1.5 py-2.5 text-xs font-bold text-[#ff5252] hover:bg-[#423d38] hover:text-[#ff7575] transition-colors">
-                차단
-              </button>
-            </div>
-          </div>
-        </div>
-
-        <div class="p-4 border-t-2 border-[#2d2b28] bg-[#c5bfb6]">
-          <button class="w-full bg-[#2d2b28] text-white text-sm font-bold px-4 py-2.5 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all flex items-center justify-center gap-2">
-            친구 초대하기
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- ✅ 분리된 그룹 채팅 전용 모달 컴포넌트 적용 -->
+    <GroupChatMembersModal
+      v-if="isGroupChat"
+      :is-open="isMembersModalOpen"
+      @close="isMembersModalOpen = false"
+      @invite="handleInvite"
+      @member-action="handleMemberAction"
+    />
   </div>
 </template>

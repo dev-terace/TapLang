@@ -70,7 +70,7 @@ export namespace FriendApi {
             const response  = await api.get<FindReqFriendsResponse>("/api/friends/request");
             
             console.log("find req friends func : ", response);
-            return response;
+            return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
                 alert(error.response?.data?.message ?? "친구 요청 중 오류가 발생했습니다.");

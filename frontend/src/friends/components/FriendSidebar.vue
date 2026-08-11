@@ -1,16 +1,17 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue' // onMounted 추가
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { useUIStore } from '@/shared/ui/UiStore.js'
+import { useBlockStore } from '@/block/store/BlockStore.js'
 
 // Modals
 import FriendModal from './FriendModal.vue'
 import CountryModal from '@/profile/components/CountryModal.vue'
 import EditBioModal from '@/profile/components/EditBioModal.vue'
 import ViewBioModal from '@/profile/components/ViewBioModal.vue'
-import CreateRoomModal from './CreateRoomModal.vue' // 새로 만든 모달 추가
+import CreateRoomModal from './CreateRoomModal.vue'
 
 // Components
 import FriendSidebarHeader from './FriendSidebarHeader.vue'
@@ -21,8 +22,14 @@ const friendStore = useFriendStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
+const blockStore = useBlockStore()
 
 const alertFunc = (msg: string) => alert(msg)
+
+// 컴포넌트 마운트 시 차단 목록 불러오기 (초기 데이터 세팅)
+onMounted(() => {
+  blockStore.getBlockedUsers()
+})
 
 // 드롭다운 메뉴 상태
 const activeMenuId = ref<string | null>(null)
@@ -30,7 +37,7 @@ const toggleMenu = (id: string) => activeMenuId.value = activeMenuId.value === i
 const closeMenu = () => activeMenuId.value = null
 
 // 메뉴 핸들러 통합
-const handleMenuAction = (action: string, friendId: string) => {
+const handleMenuAction = async (action: string, friendId: string) => {
   closeMenu()
   if (['editBio', 'editStatus', 'goOffline'].includes(action)) {
     if (action === 'editBio') modalStore.openModal('editBio')
@@ -39,24 +46,31 @@ const handleMenuAction = (action: string, friendId: string) => {
   } else {
     uiStore.profileMenuFriendId = friendId
     if (action === 'viewBio') modalStore.openModal('viewBio')
-    if (action === 'block') alertFunc('차단하기 기능 준비중입니다.')
+    if (action === 'block') {
+        // 비동기 처리(await)와 오타 수정(getBlockedUsers) 적용
+        await blockStore.requestBlockUser(Number(friendId)) // string -> number 타입 캐스팅 필요 시 적용
+        await friendStore.fetchFriends() // 친구 목록 최신화
+        await blockStore.getBlockedUsers() // 차단 목록 최신화
+    }
+    if(action === 'unblock')
+    {
+        await blockStore.unBlockedUser(Number(friendId))
+        await blockStore.getBlockedUsers() 
+    }
     if (action === 'delete' && confirm('정말 삭제하시겠습니까?')) alertFunc('삭제 기능 준비중입니다.')
   }
 }
 
 // 더블클릭 채팅 진입 핸들러
 const handleDoubleClick = (friend: any) => {
-  // 1. 기존 방 ID 초기화 (매우 중요! 누락 시 이전 방에 진입함)
   uiStore.conversationId = null
-  
-  // 2. 4번째 인자로 'chatRoom' 탭을 명시
   uiStore.changeChatRoomTab(true, [friend.id], friend.name, 'chatRoom')
 }
 
 // 검색 및 초대 모드 관련 상태
 const searchQuery = ref('')
 const isInviteMode = ref(false)
-const selectedFriends = ref<string[]>([]) // id 타입을 고려해 string[]으로 수정
+const selectedFriends = ref<string[]>([])
 
 const startInviteMode = () => {
   isInviteMode.value = true
@@ -96,10 +110,17 @@ const filteredOfflineFriends = computed(() =>
 
 const reqFriends = computed(() => friendStore.reqFriends)
 
-// ====== 채팅방 이름 모달 관련 로직 추가 ======
+// ====== 💡 새로 추가: 차단된 유저 목록 ======
+const filteredBlockedUsers = computed(() => {
+  const users = blockStore.blockedUsers || [] // undefined 방어
+  return searchQuery.value 
+    ? users.filter(f => f.name.toLowerCase().includes(searchQuery.value.toLowerCase())) 
+    : users
+})
+
+// ====== 채팅방 이름 모달 관련 로직 ======
 const isCreateRoomModalOpen = ref(false)
 
-// 선택된 친구들의 이름만 추출하는 computed (모달에 전달하기 위함)
 const selectedFriendNames = computed(() => {
   const allFriends = [...onlineList.value, ...friendStore.offlineFriends]
   return allFriends
@@ -107,20 +128,15 @@ const selectedFriendNames = computed(() => {
     .map(f => f.name)
 })
 
-// 초대 완료 버튼 클릭 시 -> 바로 방을 만들지 않고 모달을 띄움
 const completeInvite = () => {
   if (selectedFriends.value.length === 0) return alertFunc('초대할 친구를 선택해주세요.')
   isCreateRoomModalOpen.value = true
 }
 
-// 모달에서 '확인' 버튼을 눌렀을 때 실행되는 실제 채팅방 생성 로직
 const handleCreateChatRoom = (roomName: string) => {
   if (!authStore.userInfo?.id) return alertFunc('사용자 정보를 찾을 수 없습니다.')
 
-  // 1. 기존 conversationId 초기화 (새 방 생성을 위함)
   uiStore.conversationId = null
-
-  // 2. 본인 ID를 포함시키고, 배열 복사본([...])을 전달
   const allMemberIds = [...selectedFriends.value]
   
   uiStore.currentTab = 'inviteChatRoom'
@@ -146,9 +162,9 @@ const handleCreateChatRoom = (roomName: string) => {
     <div v-if="activeMenuId" @click="closeMenu" class="fixed inset-0 z-40"></div>
 
     <div class="flex-1 overflow-y-auto p-3 space-y-3 z-50 relative custom-scrollbar">
-      <!-- (중략) 기존과 동일한 친구 목록 렌더링 영역 -->
       
-      <div v-if="reqFriends.length > 0 && !searchQuery && !isInviteMode">
+      <!-- 친구 요청 -->
+      <div v-if="reqFriends?.length > 0 && !searchQuery && !isInviteMode">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mb-2">
           ● 친구 요청
         </div>
@@ -163,6 +179,7 @@ const handleCreateChatRoom = (roomName: string) => {
         </div>
       </div>
 
+      <!-- 온라인 인맥 -->
       <div v-if="filteredOnlineList.length > 0">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mt-4 mb-2">
           ● 온라인 인맥
@@ -175,6 +192,7 @@ const handleCreateChatRoom = (roomName: string) => {
             :isInviteMode="isInviteMode"
             :isSelected="selectedFriends.includes(friend.id)"
             :isActiveMenu="activeMenuId === friend.id"
+
             @toggle-menu="toggleMenu"
             @toggle-select="toggleSelection"
             @double-click="handleDoubleClick"
@@ -184,6 +202,7 @@ const handleCreateChatRoom = (roomName: string) => {
         </div>
       </div>
 
+      <!-- 오프라인 인맥 -->
       <div v-if="filteredOfflineFriends.length > 0">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mt-5 mb-2">
           ○ 오프라인 인맥
@@ -203,6 +222,27 @@ const handleCreateChatRoom = (roomName: string) => {
           />
         </div>
       </div>
+
+      <!-- 💡 새로 추가: 차단된 인맥 (초대 모드가 아닐 때만 렌더링) -->
+      <div v-if="filteredBlockedUsers.length > 0 && !isInviteMode">
+        <div class="text-[10px] font-bold text-red-700/70 tracking-widest border-b border-red-700/30 pb-1 mt-5 mb-2">
+          ■ 차단된 인맥
+        </div>
+        <div class="space-y-2 opacity-50 grayscale"> <!-- 차단된 유저 시각적 효과 부여 -->
+          <FriendListItem
+            v-for="friend in filteredBlockedUsers"
+            :key="'block-' + friend.id"
+            :friend="friend"
+            :isOffline="true"
+            :isInviteMode="false"
+            :isBlocked="true"
+            :isActiveMenu="activeMenuId === friend.id"
+            @toggle-menu="toggleMenu"
+            @menu-action="handleMenuAction"
+          />
+        </div>
+      </div>
+
     </div>
       
     <!-- 모달 컴포넌트들 -->
@@ -211,7 +251,6 @@ const handleCreateChatRoom = (roomName: string) => {
     <EditBioModal/>
     <ViewBioModal/>
     
-    <!-- 추가된 채팅방 이름 모달 -->
     <CreateRoomModal
       :is-open="isCreateRoomModalOpen"
       :friend-names="selectedFriendNames"

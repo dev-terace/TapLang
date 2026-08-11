@@ -7,6 +7,7 @@ const props = defineProps<{
   isInviteMode: boolean
   isSelected: boolean
   isActiveMenu: boolean
+  isBlocked?: boolean // 차단 여부 prop 추가
 }>()
 
 const emit = defineEmits<{
@@ -48,11 +49,10 @@ const containerClass = computed(() => {
       class="group flex items-center gap-2.5 p-2 cursor-pointer transition-colors relative"
       :class="isActiveMenu ? 'bg-[#3d3a36] text-[#fbf9f5]' : (isOffline ? 'hover:bg-[#e8e3d8] text-[#5c5851]' : 'hover:bg-[#e8e3d8] text-[#2d2b28]')"
     >
-      <!-- 초대용 동그라미 체크박스 -->
+      <!-- 초대용 레트로 커스텀 라디오 버튼 -->
       <div v-if="isInviteMode && !friend.isMe" 
-           class="w-4 h-4 rounded-full border-2 border-[#2d2b28] shrink-0 flex items-center justify-center transition-colors"
-           :class="isSelected ? (isOffline ? 'bg-emerald-500' : 'bg-green-500') : 'bg-white'">
-        <div v-if="isSelected" class="w-2 h-2 bg-white rounded-full"></div>
+           class="w-4 h-4 rounded-full border-2 border-[#2d2b28] flex items-center justify-center bg-[#fbf9f5] shrink-0">
+        <div v-if="isSelected" class="w-2 h-2 rounded-full bg-[#2d2b28]"></div>
       </div>
 
       <!-- 아바타 -->
@@ -124,10 +124,16 @@ const containerClass = computed(() => {
           <button @click.stop="emit('menu-action', 'viewBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
             <span>📄</span> 소개글
           </button>
-          <button @click.stop="emit('menu-action', 'block', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
+
+          <!-- 차단 상태에 따른 분기 처리 -->
+          <button v-if="isBlocked" @click.stop="emit('menu-action', 'unblock', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
+            <span>⭕</span> 차단 해제
+          </button>
+          <button v-else @click.stop="emit('menu-action', 'block', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
             <span>🚫</span> 차단
           </button>
-          <button @click.stop="emit('menu-action', 'delete', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors flex items-center justify-center gap-1">
+
+          <button v-if="!isBlocked" @click.stop="emit('menu-action', 'delete', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors flex items-center justify-center gap-1">
             <span>✕</span> 삭제
           </button>
         </template>

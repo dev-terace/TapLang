@@ -24,6 +24,28 @@ export namespace ChatRoomApi{
       attachments?: unknown | null;
 }
 
+  interface getGroupChatMembersResponse{
+        id: number,
+        name: string,
+        flag: string,
+        statusMsg?: string,
+  }
+
+
+export async function getGroupChatMembers(conversationId: string) {
+  try {
+    const response = await api.get<getGroupChatMembersResponse[]>(`/api/chat-room/group/${conversationId}`);
+
+    console.log("getGroupChatMembers response : ", response.data);
+
+    return response.data;
+  } catch (error) {
+    console.error(`[getGroupChatMembers Error] conversationId: ${conversationId}`, error);
+    throw error;
+  }
+}
+
+
 
 export async function joinConversation(
   conversationId: string,

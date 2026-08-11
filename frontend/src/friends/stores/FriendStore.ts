@@ -75,8 +75,8 @@ const findReqFriends = async () => {
   
     if(response != null)
     {
-      console.log("response.data.friends:  ", response.data.friends)
-      reqFriends.value = response.data.friends;
+      console.log("response.data.friends:  ", response)
+      reqFriends.value = response;
     }  
 }
   const addFriendRequest = FriendApi.addFriendRequest

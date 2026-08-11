@@ -2,51 +2,53 @@ import { postgresPrisma as prisma } from "../../lib/prisma";
 
 
 export const findRequestFriends = async (userId: number) => {
-  
-const requests = await prisma.friendRequest.findMany({
-  where: {
-    OR: [
-      { senderId: userId },
-      { receiverId: userId },
-    ],
-  },
-  include: {
-    sender: {
-      select: {
-        id: true,
-        name: true,
-        flag: true,
-      },
-    },
-    receiver: {
-      select: {
-        id: true,
-        name: true,
-        flag: true,
-      },
-    },
-  },
-});
+  const targetId = Number(userId); // 💡 string -> number 안전 변환
 
-return requests.map((request) => {
-  if (request.senderId === userId) {
-    // 내가 보낸 요청
+  const requests = await prisma.friendRequest.findMany({
+    where: {
+      OR: [
+        { senderId: targetId },
+        { receiverId: targetId },
+      ],
+    },
+    include: {
+      sender: {
+        select: {
+          id: true,
+          name: true,
+          flag: true,
+        },
+      },
+      receiver: {
+        select: {
+          id: true,
+          name: true,
+          flag: true,
+        },
+      },
+    },
+  });
+
+  return requests.map((request) => {
+    // 💡 targetId와 비교하여 삼항/조건문 타입 비교 오작동 방지
+    if (request.senderId === targetId) {
+      // 내가 보낸 요청
+      return {
+        id: request.receiver.id,
+        name: request.receiver.name,
+        flag: request.receiver.flag,
+        status: "SENT" as const,
+      };
+    }
+
+    // 내가 받은 요청
     return {
-      id: request.receiver.id,
-      name: request.receiver.name,
-      flag: request.receiver.flag,
-      status: "SENT" as const,
+      id: request.sender.id,
+      name: request.sender.name,
+      flag: request.sender.flag,
+      status: "RECEIVED" as const,
     };
-  }
-
-  // 내가 받은 요청
-  return {
-    id: request.sender.id,
-    name: request.sender.name,
-    flag: request.sender.flag,
-    status: "RECEIVED" as const,
-  };
-});
+  });
 };
 
 

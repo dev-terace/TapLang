@@ -10,6 +10,23 @@ datasource db {
 }
 
 
+model Block {
+  id Int @id @default(autoincrement())
+
+  // 차단한 사람 (주체)
+  blockerId Int
+  blocker   MyProfile @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+
+  // 차단당한 사람 (대상)
+  blockedId Int
+  blocked   MyProfile @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  // 동일한 유저를 중복해서 차단할 수 없도록 고유 인덱스 설정
+  @@unique([blockerId, blockedId])
+}
+
 model MyProfile {
   id         Int      @id @default(autoincrement())
   provider   String
@@ -30,6 +47,9 @@ model MyProfile {
 
   friendshipsA Friends[] @relation("FriendA")
   friendshipsB Friends[] @relation("FriendB")
+
+  blockedUsers Block[] @relation("Blocker") // 내가 차단한 유저 목록
+  blockedBy    Block[] @relation("Blocked") // 나를 차단한 유저 목록
 }
 
 

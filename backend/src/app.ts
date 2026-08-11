@@ -6,6 +6,7 @@ import chatRoomRouter from "./chat/routes/chatRoom.route"
 import chatRouter from "./chat/routes/chat.route"
 import profileRouter from "./profile/routes/profile.route"
 import countryRouter from "./profile/routes/country.route"
+import blockRouter from "./block/routes/block.route"
 import { clerkMiddleware, requireAuth } from "@clerk/express"
 
 const app: Application = express();
@@ -32,7 +33,7 @@ app.use("/api/chat-room", requireApiAuth, chatRoomRouter)
 app.use("/api/chat", requireApiAuth, chatRouter)
 app.use("/api/profile", requireApiAuth, profileRouter)
 app.use("/api/profile/country", requireApiAuth, countryRouter)
-
+app.use("/api/block", requireApiAuth, blockRouter)
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

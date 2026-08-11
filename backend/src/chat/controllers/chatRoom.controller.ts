@@ -3,6 +3,26 @@ import { chatRoomService } from "../services/chatRoom.service";
 import { userService } from "../../users/services/user.service";
 import {joinConversationMembers, emitNewMessage} from "../socket/chat.handler"
 
+
+
+export const  getGroupChatMembers = async (req: Request, res: Response) => {
+    try {
+      const { conversationId } = req.params;
+      
+     
+      if (!conversationId) {
+        return res.status(400).json({ message: '대화방 ID(conversationId)가 필요합니다.' });
+      }
+       console.log("==================================================")
+      const members = await chatRoomService.getGroupChatMembers(conversationId);
+
+      return res.status(200).json(members);
+    } catch (error) {
+      console.error('대화방 멤버 조회 컨트롤러 에러:', error);
+      return res.status(500).json({ message: '멤버 목록을 불러오는 중 오류가 발생했습니다.' });
+    }
+  }
+
 export const joinConversation = async (
   req: Request,
   res: Response

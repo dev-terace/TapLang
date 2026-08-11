@@ -8,6 +8,32 @@ import { ConversationMemberRole } from "../../../generated/mongo";
 
 //memberIds 값의 ownId가 포함 됨
 
+  export const getGroupChatMembers = async(conversationId: string) => {
+    // 1. MongoDB에서 대화방 멤버들의 userId 추출 (Int[])
+    const members = await mongoPrisma.conversationMember.findMany({
+      where: { conversationId },
+      select: { userId: true },
+    });
+
+    if (members.length === 0) return [];
+
+    const userIds = members.map((m) => m.userId);
+
+    // 2. PostgreSQL MyProfile 테이블에서 해당 유저들의 프로필 정보 조회
+    const profiles = await postgresPrisma.myProfile.findMany({
+      where: {
+        id: { in: userIds },
+      },
+      select: {
+        id: true,
+        name: true,
+        flag: true,
+        statusMsg: true,
+      },
+    });
+
+    return profiles;
+  }
 
 
 export const existsConversation = async (
@@ -309,6 +335,7 @@ export const chatRoomService = {
   createMessage,
   existsConversationMember,
   getMessages,
-  existsConversation
+  existsConversation,
+  getGroupChatMembers
 
 };

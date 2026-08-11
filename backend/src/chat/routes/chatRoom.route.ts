@@ -1,11 +1,14 @@
 import { Router } from 'express';
-import { createChat, createMessage, getMessages, existsConversation, joinConversation } from '../controllers/chatRoom.controller';
+import { createChat, createMessage, getMessages, 
+        existsConversation, joinConversation, getGroupChatMembers } from '../controllers/chatRoom.controller';
 const router = Router();
 
 router.post("/", createChat);
 router.post("/message", createMessage)
 
 router.post("/join", joinConversation)
+
+router.get("/group/:conversationId", getGroupChatMembers)
 
 router.get(
   "/message/:conversationId/:createdAt?",
