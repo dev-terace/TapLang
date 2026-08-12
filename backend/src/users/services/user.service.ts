@@ -10,6 +10,8 @@ interface FindOrCreateInput {
 }
 
 
+
+
 const findUserById = async (
   id: number
 ) => {
@@ -22,6 +24,7 @@ const findUserById = async (
       name: true,
       flag: true,
       statusMsg: true,
+      showOnlineStatus: true,
     },
   });
 
@@ -76,7 +79,8 @@ const existingUser = await prisma.myProfile.findUnique({
       name: true,
       flag: true,
       email: true,
-      statusMsg: true
+      statusMsg: true,
+      showOnlineStatus: true
   },
 });
 
@@ -107,6 +111,7 @@ const existingUser = await prisma.myProfile.findUnique({
       flag: true,
       email: true,
       statusMsg: true,
+      showOnlineStatus: true
     },
 })
 

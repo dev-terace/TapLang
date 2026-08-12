@@ -46,27 +46,21 @@ const heartbeat = async (
 
 };
 
-const removeOnlineUser = async (
-  userId:number,
-  socketId:string
-)=> {
+const expireOnlineUser = async (
+  userId: number,
+  socketId: string
+) => {
+  const key = `${PREFIX}${userId}`;
 
-  const key =
-    `${PREFIX}${userId}`;
+  const current = await redis.get(key);
 
-
-  const current =
-    await redis.get(key);
-
-
-  // 다른 세션이면 삭제하면 안됨
-  if(current !== socketId){
+  // 다른 세션이면 만료시키면 안 됨
+  if (current !== socketId) {
     return;
   }
 
-
-  await redis.del(key);
-
+  // 60초 후 자동 삭제
+  await redis.expire(key, 1);
 };
 
 const isOnline = async (
@@ -98,7 +92,7 @@ const getOnlineUsers = async (): Promise<number[]> => {
 export const friendsRedisService = {
   addOnlineUser,
   heartbeat,
-  removeOnlineUser,
+  expireOnlineUser,
   isOnline,
   getOnlineUsers,
 };

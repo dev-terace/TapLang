@@ -151,8 +151,6 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
     }
     else if (action === 'block') {
       await blockStore.requestBlockUser(friendId)
-      await friendStore.fetchFriends()
-      await blockStore.getBlockedUsers()
     }
     else if (action === 'delete') {
       if (confirm('정말 삭제하시겠습니까?')) {

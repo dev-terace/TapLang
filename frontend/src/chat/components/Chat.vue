@@ -81,35 +81,34 @@ watch(
 <template>
   <div
     v-if="uiStore.currentTab === 'chat'"
-    class="flex h-full flex-col bg-[#dfdad1]"
+    class="flex h-full min-h-0 flex-col bg-[#dfdad1]"
   >
     <!-- 헤더 -->
-    <div
-      class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
-    >
-      <span class="text-xs font-bold tracking-wider">
-        // 채팅방_목록.sh
-      </span>
+  <div
+    class="shrink-0 bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
+  >
+    <span class="text-xs font-bold tracking-wider">
+      // 채팅방_목록.sh
+    </span>
 
-      <span class="text-[10px] text-[#726e67]">
-        {{ conversations.length }}개
-      </span>
-    </div>
+    <span class="text-[10px] text-[#726e67]">
+      {{ conversations.length }}개
+    </span>
+  </div>
 
 
     <!-- 채팅방 목록 --> 
-    <div class="flex-1 overflow-y-auto p-4 space-y-3">
-
-      <div
-        v-for="conversation in conversations"
-        :key="conversation.conversationId"
-        class="group flex items-center gap-3 p-2 bg-[#f4f1eb]
-               hover:bg-[#2d2b28] hover:text-[#fbf9f5]
-               border-2 border-[#2d2b28]
-               shadow-[3px_3px_0px_0px_#2d2b28]
-               cursor-pointer transition-all"
-        @dblclick="openConversation(conversation)"       
-      >
+  <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+    <div
+      v-for="conversation in conversations"
+      :key="conversation.conversationId"
+      class="group flex items-center gap-3 p-2 bg-[#f4f1eb]
+             hover:bg-[#2d2b28] hover:text-[#fbf9f5]
+             border-2 border-[#2d2b28]
+             shadow-[3px_3px_0px_0px_#2d2b28]
+             cursor-pointer transition-all"
+      @dblclick="openConversation(conversation)"
+    >
 
         <!-- 프로필 -->
         <div class="w-10 h-10 shrink-0">

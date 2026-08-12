@@ -17,6 +17,8 @@ export const useProfileStore = defineStore('profile', () => {
 
 
 
+
+    const updateOnlineStatusVisibility = ProfileApi.updateOnlineStatusVisibility
     const fetchUserProfileDetails = async (userId: number) => {
         isLoading.value = true
         try {
@@ -79,5 +81,6 @@ export const useProfileStore = defineStore('profile', () => {
         profileDetails,
         userProfileDetails,
         updateProfileDetails,
+        updateOnlineStatusVisibility
     }
 })

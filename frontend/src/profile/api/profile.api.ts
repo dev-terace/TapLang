@@ -46,6 +46,23 @@ export namespace ProfileApi {
     snsLinks: SnsLinkPayload[]
 }
 
+
+export async function updateOnlineStatusVisibility(showOnlineStatus: boolean) {
+  try {
+    const response = await api.post('/api/profile/online', {showOnlineStatus, })
+    return response.data
+  } catch (error: unknown) {
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.error ??
+        error.response?.data?.message ??
+        '유저 프로필 정보를 불러오는데 실패했습니다.'
+      )
+    }
+    throw new Error('알 수 없는 오류가 발생했습니다.')
+  }
+}
+
 export async function getUserProfileDetails(userId: number): Promise<GetUserProfileDetailsResponse> {
   try {
     const response = await api.get<GetUserProfileDetailsResponse>(`/api/profile/details/${userId}`)

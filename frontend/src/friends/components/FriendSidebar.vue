@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue' // onMounted 추가
+import { ref, computed, onMounted, watch } from 'vue' // onMounted 추가
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { useUIStore } from '@/shared/ui/UiStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
+import { useProfileStore } from '@/profile/store/ProfileStore.js'
+import { useSocketRegister } from '@/shared/socket/socket.register.js'
 
 // Modals
 import FriendModal from './FriendModal.vue'
@@ -18,15 +20,29 @@ import FriendSidebarHeader from './FriendSidebarHeader.vue'
 import FriendRequestItem from './FriendRequestItem.vue'
 import FriendListItem from './FriendListItem.vue'
 
+
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 const blockStore = useBlockStore()
+const profileStore = useProfileStore()
+const isMyOnlineStatus = ref<boolean | null>(null)
 
+const socket = useSocketRegister()
 const alertFunc = (msg: string) => alert(msg)
 
 // 컴포넌트 마운트 시 차단 목록 불러오기 (초기 데이터 세팅)
+watch(
+  () => authStore.userInfo,
+  (userInfo) => {
+    if (!userInfo) return
+
+    isMyOnlineStatus.value = userInfo.showOnlineStatus
+  },
+  { immediate: true }
+)
+
 onMounted(() => {
   blockStore.getBlockedUsers()
 })
@@ -38,26 +54,39 @@ const closeMenu = () => activeMenuId.value = null
 
 // 메뉴 핸들러 통합
 const handleMenuAction = async (action: string, friendId: string) => {
+  
   closeMenu()
-  if (['editBio', 'editStatus', 'goOffline'].includes(action)) {
+  if (['editBio', 'editStatus', 'goOffline', 'goOnline'].includes(action)) {
     if (action === 'editBio') modalStore.openModal('editBio')
     if (action === 'editStatus') alertFunc('상태 메시지 편집 기능 준비중입니다.')
-    if (action === 'goOffline') alertFunc('오프라인 전환 기능 준비중입니다.')
+    if (action === 'goOffline') {
+        await profileStore.updateOnlineStatusVisibility(false)
+        isMyOnlineStatus.value = false 
+        socket.socket.emit("friend:own:init");
+    }
+    if (action === 'goOnline')
+    {
+      await profileStore.updateOnlineStatusVisibility(true)
+      isMyOnlineStatus.value = true
+       socket.socket.emit("friend:own:init");
+    }
   } else {
     uiStore.profileMenuFriendId = friendId
     if (action === 'viewBio') modalStore.openModal('viewBio')
     if (action === 'block') {
         // 비동기 처리(await)와 오타 수정(getBlockedUsers) 적용
         await blockStore.requestBlockUser(Number(friendId)) // string -> number 타입 캐스팅 필요 시 적용
-        await friendStore.fetchFriends() // 친구 목록 최신화
-        await blockStore.getBlockedUsers() // 차단 목록 최신화
+        // await friendStore.fetchFriends() // 친구 목록 최신화
+        // await blockStore.getBlockedUsers() // 차단 목록 최신화
     }
     if(action === 'unblock')
     {
         await blockStore.unBlockedUser(Number(friendId))
-        await blockStore.getBlockedUsers() 
+        // await blockStore.getBlockedUsers() 
     }
-    if (action === 'delete' && confirm('정말 삭제하시겠습니까?')) alertFunc('삭제 기능 준비중입니다.')
+    if (action === 'delete' && confirm('정말 삭제하시겠습니까?')) {
+      friendStore.deleteFriend(Number(friendId))
+    }
   }
 }
 
@@ -71,6 +100,7 @@ const handleDoubleClick = (friend: any) => {
 const searchQuery = ref('')
 const isInviteMode = ref(false)
 const selectedFriends = ref<string[]>([])
+
 
 const startInviteMode = () => {
   isInviteMode.value = true
@@ -192,6 +222,7 @@ const handleCreateChatRoom = (roomName: string) => {
             :isInviteMode="isInviteMode"
             :isSelected="selectedFriends.includes(friend.id)"
             :isActiveMenu="activeMenuId === friend.id"
+            :isMyOnlineStatus="isMyOnlineStatus"
 
             @toggle-menu="toggleMenu"
             @toggle-select="toggleSelection"

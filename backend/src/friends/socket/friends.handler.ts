@@ -2,20 +2,31 @@
 import { Socket, Server } from "socket.io";
 import { friendsService } from "../services/friends.service";
 import { friendsRedisService } from "../services/friends.redis.service";
+import { userService } from "../../users/services/user.service";
 import { getSocketIO, userSockets } from "../../socket/socket";
 
 export const emitReloadFriendsInfo = (senderId: number, receiverId: number) => {
-    const io = getSocketIO()
+  const io = getSocketIO()
 
-    io.to(`user:${senderId}`)
+  io.to(`user:${senderId}`)
     .emit("friend:reload", {
       reload: true,
     });
 
-    io.to(`user:${receiverId}`)
+  io.to(`user:${receiverId}`)
     .emit("friend:reload", {
       reload: true,
     });
+
+}
+export const emitReloadReceiverInfo = (receiverId: number) => {
+  const io = getSocketIO()
+
+  io.to(`user:${receiverId}`)
+    .emit("friend:reload", {
+      reload: true,
+    });
+
 
 }
 
@@ -24,7 +35,7 @@ export const registerHeartBeatEvents = (socket: Socket) => {
     const ownId = socket.data.userId;
 
     await friendsRedisService.heartbeat(ownId, socket.id)
-
+     
     callback();
   });
 };
@@ -39,10 +50,17 @@ export const registerFriendEvents = (io: Server, socket: Socket) => {
 
 
     // 반드시 먼저 등록
-    await friendsRedisService.addOnlineUser(
-      ownId,
-      socket.id
-    );
+    const ownUser = await userService.findUserById(ownId)
+
+
+    if (ownUser?.showOnlineStatus) {
+      await friendsRedisService.addOnlineUser(
+        ownId,
+        socket.id
+      );
+    } else {
+      friendsRedisService.expireOnlineUser(ownId, socket.id)
+    }
 
     const friends = await friendsService.getFriends(ownId);
 
@@ -63,11 +81,13 @@ export const registerFriendEvents = (io: Server, socket: Socket) => {
       if (!friendId) continue;
 
 
-      io.to(`user:${friendId}`)
-        .emit(
-          "friend:online",
-          ownId
-        );
+      if (ownUser?.showOnlineStatus) {
+        io.to(`user:${friendId}`)
+          .emit(
+            "friend:online",
+            ownId
+          );
+      }
 
       io.to(`user:${ownId}`)
         .emit(

@@ -85,6 +85,7 @@ const findReqFriends = async () => {
 
   const declinedFriendRequest = FriendApi.declinedFriendRequest
 
+  const deleteFriend = FriendApi.deleteFriend
   
 
 
@@ -97,7 +98,8 @@ const findReqFriends = async () => {
     acceptFriendRequest,
     fetchFriends,
     findReqFriends,
-    declinedFriendRequest
+    declinedFriendRequest,
+    deleteFriend
   
   }
 })

@@ -2,11 +2,13 @@ import type { Socket } from "socket.io-client";
 import { useChatRoomStore } from "../store/ChatRoom";
 import { useChatStore } from "../store/Chat";
 import { useUIStore } from "@/shared/ui/UiStore";
+import { useBlockStore } from "@/block/store/BlockStore";
 
 export function registerChatRoomSocket(socket: Socket) {
   const chatRoomStore = useChatRoomStore();
   const chatStore = useChatStore();
   const uiStore = useUIStore();
+  const blockStore = useBlockStore();
 
   socket.off("message:new");
 
@@ -16,12 +18,17 @@ export function registerChatRoomSocket(socket: Socket) {
 
     // 1. 현재 열려있는 채팅방과 메시지가 온 채팅방이 일치하는지 확인
     const isMatchingRoom = chatRoomStore.conversationId === msg.conversationId;
-    
+
     // 2. 현재 화면이 채팅방 화면인지 확인 (1:1 채팅 & 그룹 채팅 모두 포함)
     const isViewingChatTab = uiStore.currentTab === "chatRoom" || uiStore.currentTab === "inviteChatRoom";
 
+    const isBlocked = blockStore.blockedUsers?.some(
+      (user) => user.id === msg.senderId
+    ) ?? false;
+
+
     // 3. 현재 이 방을 보고 있다면 메시지를 목록에 즉시 추가
-    if (isMatchingRoom) {
+    if (isMatchingRoom && !isBlocked) {
       chatRoomStore.addMessage({
         id: msg.id,
         conversationId: msg.conversationId,

@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { blockUserService } from '../service/block.service';
 import { userService } from '../../users/services/user.service';
+import { emitReloadFriendsInfo } from '../../friends/socket/friends.handler';
 
 export const requestBlockUser = async (req: Request, res: Response) => {
   try {
@@ -22,6 +23,8 @@ export const requestBlockUser = async (req: Request, res: Response) => {
 
     // 서비스 로직 호출
     const result = await blockUserService.requestBlockUser(Number(blockerId), Number(blockedId));
+    emitReloadFriendsInfo(blockerId, blockedId)
+
 
     return res.status(200).json(result);
   } catch (error: any) {
@@ -79,6 +82,7 @@ export const unblockedUser = async (req: Request, res: Response) => {
     }
 
     const result = await blockUserService.unblockUser(Number(blockerId), Number(blockedId));
+    emitReloadFriendsInfo(Number(blockerId), Number(blockedId))
 
     return res.status(200).json(result);
   } catch (error: any) {

@@ -4,6 +4,10 @@ import { friendReqService } from "../services/friendReq.service";
 import { userService } from "../../users/services/user.service";
 import { emitReloadFriendsInfo } from "../socket/friends.handler";
 import { blockUserService } from "../../block/service/block.service";
+
+
+
+
 export const findFriends = async (req: Request, res: Response) => {
   try {
 
@@ -180,6 +184,55 @@ export const deleteFriendRequest = async (
 
     return res.status(500).json({
       message: "친구 요청 취소에 실패했습니다.",
+    });
+  }
+};
+
+
+export const deleteFriend = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const ownId = await userService.findUserIdByAuthToken(req);
+    const friendId = Number(req.params.friendId);
+
+    if (!friendId || isNaN(friendId)) {
+      return res.status(400).json({
+        message: "유효하지 않은 친구 ID입니다.",
+      });
+    }
+
+    if (ownId === friendId) {
+      return res.status(400).json({
+        message: "자기 자신을 친구 삭제할 수 없습니다.",
+      });
+    }
+
+    console.log(
+      `deleteFriend ownId: ${ownId}, friendId: ${friendId}`
+    );
+
+    await friendsService.deleteFriend(ownId, friendId);
+
+    emitReloadFriendsInfo(ownId, friendId);
+
+    return res.status(200).json({
+      message: "친구 삭제 성공",
+    });
+  } catch (error) {
+    console.error(error);
+
+    if (error instanceof Error) {
+      if (error.message === "FRIEND_NOT_FOUND") {
+        return res.status(404).json({
+          message: "친구 관계를 찾을 수 없습니다.",
+        });
+      }
+    }
+
+    return res.status(500).json({
+      message: "친구 삭제 실패",
     });
   }
 };

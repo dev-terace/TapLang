@@ -91,6 +91,25 @@ export namespace FriendApi {
         return await api.delete(`/api/friends/request/${friendId}/${self}`);
     };
 
+
+    export async function deleteFriend(friendId: number) {
+        try {
+            const response = await api.delete(
+                `/api/friends/${friendId}`
+            );
+
+            return response;
+        } catch (error) {
+            if (axios.isAxiosError(error)) {
+                alert(error.response?.data?.message ?? "친구 삭제 요청 중 오류가 발생했습니다.");
+            } else {
+                alert("알 수 없는 오류가 발생했습니다.");
+            }
+
+            throw error;
+        }
+    }
+
     
 
 }

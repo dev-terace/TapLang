@@ -8,6 +8,7 @@ const props = defineProps<{
   isSelected: boolean
   isActiveMenu: boolean
   isBlocked?: boolean // 차단 여부 prop 추가
+  isMyOnlineStatus: boolean
 }>()
 
 const emit = defineEmits<{
@@ -116,9 +117,21 @@ const containerClass = computed(() => {
           <button @click.stop="emit('menu-action', 'editStatus', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
             <span>💬</span> 상태메시지
           </button>
-          <button @click.stop="emit('menu-action', 'goOffline', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
+          <button
+            v-if="isMyOnlineStatus"
+            @click.stop="emit('menu-action', 'goOffline', friend.id)"
+            class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
+          >
             <span>🌙</span> 오프라인
           </button>
+          <button
+            v-else
+            @click.stop="emit('menu-action', 'goOnline', friend.id)"
+            class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
+          >
+            <span>☀️</span> 온라인
+          </button>
+
         </template>
         <template v-else>
           <button @click.stop="emit('menu-action', 'viewBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">

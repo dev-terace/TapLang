@@ -156,7 +156,7 @@ export async function upsertMyProfileDetails(
   return formatProfileDetails(result);
 }
 
-export const profileService = {
+export const profileDetailService = {
   getUserProfileDetails,
   getMyProfileDetails,
   upsertMyProfileDetails,

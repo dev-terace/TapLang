@@ -1,8 +1,55 @@
 import { Request, Response } from "express";
-import { profileService } from "../service/profile.details.service";
+import { profileDetailService } from "../service/profile.details.service";
+import { profileService } from "../service/profile.service";
 import { userService } from "../../users/services/user.service";
 
 
+
+
+export const updateOnlineStatusVisibility = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    // 로그인한 사용자 ID
+    const userId = await userService.findUserIdByAuthToken(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        message: "로그인이 필요합니다.",
+      });
+    }
+
+    const { showOnlineStatus } = req.body;
+
+    // boolean 검증
+    if (typeof showOnlineStatus !== "boolean") {
+      return res.status(400).json({
+        message: "showOnlineStatus는 boolean이어야 합니다.",
+      });
+    }
+
+    const result =
+      await profileService.updateOnlineStatusVisibility(
+        Number(userId),
+        showOnlineStatus
+      );
+
+    return res.status(200).json({
+      message: "온라인 상태 공개 설정이 변경되었습니다.",
+      data: result,
+    });
+  } catch (error) {
+    console.error(
+      "updateOnlineStatusVisibility error:",
+      error
+    );
+
+    return res.status(500).json({
+      message: "온라인 상태 공개 설정 변경에 실패했습니다.",
+    });
+  }
+};
 
 
 export const getUserProfileDetails = async (req: Request, res: Response) => {
@@ -17,7 +64,7 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
       return res.status(401).json({ message: '인증되지 않은 사용자입니다.' });
     }
 
-    const profile = await profileService.getUserProfileDetails(userId);
+    const profile = await profileDetailService.getUserProfileDetails(userId);
     return res.status(200).json(profile);
   } catch (error: any) {
     console.error('[getUserProfileSummary Error]:', error);
@@ -35,7 +82,7 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
     }
 
     // 2. 서비스 레이어 호출
-    const profileDetails = await profileService.getMyProfileDetails(ownId);
+    const profileDetails = await profileDetailService.getMyProfileDetails(ownId);
 
     // 3. 성공 응답
     return res.status(200).json(profileDetails);
@@ -63,7 +110,7 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
       }
 
       // 4. 서비스 레이어(Prisma 로직) 호출
-      const updatedProfile = await profileService.upsertMyProfileDetails(ownId, {
+      const updatedProfile = await profileDetailService.upsertMyProfileDetails(ownId, {
         bio,
         spokenLangs,
         learningLangs,
