@@ -7,6 +7,8 @@ import chatRouter from "./chat/routes/chat.route"
 import profileRouter from "./profile/routes/profile.route"
 import countryRouter from "./profile/routes/country.route"
 import blockRouter from "./block/routes/block.route"
+import translateRouter from "./ai_translator/router/translator.router"
+import chatSettingsRouter from "./chat_settings/router/chatSettings.router"
 import { clerkMiddleware, requireAuth } from "@clerk/express"
 
 const app: Application = express();
@@ -34,6 +36,8 @@ app.use("/api/chat", requireApiAuth, chatRouter)
 app.use("/api/profile", requireApiAuth, profileRouter)
 app.use("/api/profile/country", requireApiAuth, countryRouter)
 app.use("/api/block", requireApiAuth, blockRouter)
+app.use("/api/translate", requireApiAuth, translateRouter)
+app.use("/api/chat-settings", requireApiAuth, chatSettingsRouter)
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

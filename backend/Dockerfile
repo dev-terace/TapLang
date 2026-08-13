@@ -1,12 +1,12 @@
 # ---- Build stage ----
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 RUN apk add --no-cache openssl
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm install
+COPY package.json package-lock.json ./
+RUN npm ci
 
 COPY prisma ./prisma
 
@@ -17,18 +17,18 @@ RUN npx prisma generate --schema=prisma/mongodb/schema.prisma
 COPY tsconfig.json ./
 COPY src ./src
 
-
 RUN npm run build
 
+
 # ---- Run stage ----
-FROM node:20-alpine
+FROM node:22-alpine
 
 RUN apk add --no-cache openssl
 
 WORKDIR /usr/src/app
 
-COPY package*.json ./
-RUN npm install --omit=dev
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma

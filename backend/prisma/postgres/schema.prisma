@@ -42,6 +42,8 @@ model MyProfile {
   
   profileDetails     MyProfileDetails?
 
+  chatSettings ChatSettings?
+
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 
@@ -128,4 +130,29 @@ model FriendRequest {
   createdAt DateTime @default(now())
 
   @@unique([senderId, receiverId])
+}
+
+
+model ChatSettings {
+  id Int @id @default(autoincrement())
+
+  profileId Int @unique
+  profile   MyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // 채팅 번역
+  chatSourceLanguage String @default("ko")
+  chatTargetLanguage String @default("en")
+
+  // 메시지 번역
+  messageTranslateLanguage String @default("ko")
+
+  // 음성
+  originalVoiceLanguage   String @default("auto")
+  translatedVoiceLanguage String @default("ko")
+
+  // 알림
+  notificationEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

@@ -5,7 +5,7 @@ import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useChatStore } from '@/chat/store/Chat'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
-import ChatFeatureModal from './ChatFeatureModel.vue'
+import ChatFeatureModal, {type Feature} from './ChatFeatureModel.vue'
 import GroupChatMembersModal from './GroupChatMemberModal.vue' // ✅ 분리한 모달 import
 import { useChatScroll } from '@/chat/composables/useChatScroll'
 import { formatDate, isSameDate } from '@/chat/composables/chatDate'
@@ -13,6 +13,10 @@ import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
 import { type GroupChatMember } from './GroupChatMemberModal.vue'
+import { useTranslatorStore } from '../store/AiTransStore.js'
+import { Settings } from 'lucide-vue-next'
+import ChatSettingsModal from './ChatSettingsModal.vue'
+import { useChatSettingsStore } from '../store/ChatSettingsStore.js'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -21,6 +25,8 @@ const authStore = useAuthStore()
 const modalStore = useModalStore()
 const friendStore = useFriendStore()
 const blockStore = useBlockStore()
+const translatorStore = useTranslatorStore()
+const chatSettingsStore = useChatSettingsStore()
 
 const ownId = computed(() => authStore.userInfo?.id)
 const newMessage = ref('')
@@ -127,7 +133,50 @@ const sendMessage = async () => {
   scrollToBottom()
 }
 
-const selectFeature = (feature: string) => console.log('선택된 기능:', feature)
+const selectFeature = async (feature: Feature) => {
+  switch (feature.id) {
+    case "AI":
+      await translateWithAI();
+      break;
+
+    case "Translate":
+      console.log("번역 태그 기능");
+      break;
+
+    case "Image":
+      console.log("사진 업로드 기능");
+      break;
+  }
+};
+
+const translateWithAI = async () => {
+  const text = newMessage.value.trim();
+
+  if (!text) return;
+
+  try {
+    const chatSourceLanguage = chatSettingsStore.chatSourceLanguage
+    const chatTargetLanguage = chatSettingsStore.chatTargetLanguage
+
+    const result = await translatorStore.translateInput(
+      `${chatSourceLanguage}<->${chatTargetLanguage}`,
+      text
+    )
+
+    if (result === false) {
+      alert("번역할 수 없는 내용입니다.");
+      return;
+    }
+
+    if (result) {
+      newMessage.value = result.translatedText;
+    }
+  } catch (error) {
+    console.error(error);
+    alert("AI 번역에 실패했습니다.");
+  }
+};
+
 
 
 const handleMemberAction = async (action: string, member: GroupChatMember ) => {
@@ -193,9 +242,9 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
           </svg>
         </button>
 
-        <button class="text-xs font-bold hover:text-white transition-colors">
-          옵션
-        </button>
+      <button  @click= "modalStore.openModal('chatRoomSettings') " class="hover:text-white transition-colors">
+        <Settings class="w-5 h-5 stroke-[2.5]" />
+      </button>
       </div>
     </div>
 
@@ -213,13 +262,17 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
         </div>
 
         <ChatRoomMessage :message="message" :own-id="ownId" />
+        
       </div>
     </div>
 
     <!-- 하단 입력창 영역 -->
     <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
       <div class="flex gap-2 items-center">
-        <ChatFeatureModal @select="selectFeature" />
+      <ChatFeatureModal
+        :loading="translatorStore.isInputTranslating"
+        @select="selectFeature"
+      />
 
         <input
           v-model="newMessage"
@@ -246,5 +299,6 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
       @invite="handleInvite"
       @member-action="handleMemberAction"
     />
+    <ChatSettingsModal />
   </div>
 </template>
