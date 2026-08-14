@@ -171,7 +171,7 @@ const handleCreateChatRoom = (roomName: string) => {
   
   uiStore.currentTab = 'inviteChatRoom'
   uiStore.chatRoomMemberIds = allMemberIds
-
+  uiStore.isChatRoomCreate = true
   isCreateRoomModalOpen.value = false
   cancelInvite()
 }

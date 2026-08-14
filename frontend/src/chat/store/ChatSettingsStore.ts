@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 
 import { ChatSettingsApi } from '../api/chatSettings.api'
 
@@ -19,8 +19,6 @@ export interface ChatSettings {
 
   originalVoiceLanguage: string
   translatedVoiceLanguage: string
-
-  notificationEnabled: boolean
 }
 
 
@@ -110,7 +108,7 @@ export const useChatSettingsStore = defineStore(
 
     const translatedVoiceLanguage = ref('ko')
 
-    const notificationEnabled = ref(true)
+
 
 
     // =====================================================
@@ -126,6 +124,7 @@ export const useChatSettingsStore = defineStore(
         const settings =
           await ChatSettingsApi.getChatSettings()
 
+          
 
         chatSourceLanguage.value =
           settings.chatSourceLanguage
@@ -142,8 +141,6 @@ export const useChatSettingsStore = defineStore(
         translatedVoiceLanguage.value =
           settings.translatedVoiceLanguage
 
-        notificationEnabled.value =
-          settings.notificationEnabled
 
 
       } catch (error) {
@@ -184,8 +181,7 @@ export const useChatSettingsStore = defineStore(
             translatedVoiceLanguage:
               translatedVoiceLanguage.value,
 
-            notificationEnabled:
-              notificationEnabled.value
+          
 
           })
 
@@ -207,8 +203,6 @@ export const useChatSettingsStore = defineStore(
         translatedVoiceLanguage.value =
           settings.translatedVoiceLanguage
 
-        notificationEnabled.value =
-          settings.notificationEnabled
 
 
         return settings
@@ -244,7 +238,7 @@ export const useChatSettingsStore = defineStore(
       originalVoiceLanguage,
       translatedVoiceLanguage,
 
-      notificationEnabled,
+  
 
       loadChatSettings,
       saveChatSettings

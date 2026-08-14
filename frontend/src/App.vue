@@ -70,7 +70,11 @@
 
 
 </div>
+
+
+<ChatNotification />
 </div>
+
 </template> 
 
 
@@ -92,7 +96,7 @@ import { ref, computed, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useSocketRegister } from '@/shared/socket/socket.register.js';
-
+import ChatNotification from './shared/notification/components/chatNotification.vue'
 
 const socketRegister = useSocketRegister();
 

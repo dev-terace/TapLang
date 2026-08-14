@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { createChat, createMessage, getMessages, 
-        existsConversation, joinConversation, getGroupChatMembers } from '../controllers/chatRoom.controller';
+        existsConversation, joinConversation, getGroupChatMembers, getConversationInfo } from '../controllers/chatRoom.controller';
 const router = Router();
 
 router.post("/", createChat);
@@ -18,6 +18,10 @@ router.get(
 router.get(
   "/:conversationId",
   existsConversation
+);
+router.get(
+  "/info/:conversationId",
+  getConversationInfo
 );
 
 

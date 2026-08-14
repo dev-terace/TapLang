@@ -11,7 +11,6 @@ export interface ChatSettingsInput {
   originalVoiceLanguage?: string
   translatedVoiceLanguage?: string
 
-  notificationEnabled?: boolean
 }
 
 
@@ -80,8 +79,6 @@ export const updateChatSettings = async (
         translatedVoiceLanguage:
           data.translatedVoiceLanguage ?? 'ko',
 
-        notificationEnabled:
-          data.notificationEnabled ?? true
       },
 
       update: {
@@ -110,10 +107,7 @@ export const updateChatSettings = async (
             data.translatedVoiceLanguage
         }),
 
-        ...(data.notificationEnabled !== undefined && {
-          notificationEnabled:
-            data.notificationEnabled
-        })
+
       }
     })
 

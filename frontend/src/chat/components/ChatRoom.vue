@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useChatStore } from '@/chat/store/Chat'
@@ -17,6 +17,7 @@ import { useTranslatorStore } from '../store/AiTransStore.js'
 import { Settings } from 'lucide-vue-next'
 import ChatSettingsModal from './ChatSettingsModal.vue'
 import { useChatSettingsStore } from '../store/ChatSettingsStore.js'
+import StickerModal from './StickerModal.vue'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -60,53 +61,371 @@ const handleInvite = () => {
 }
 
 // 통합 채팅방 생성 및 메시지 로드 워처
-const isCreating = ref(false)
+
+
+const handleStickerSelect = (sticker: string) => {
+  newMessage.value += sticker
+}
+
+const isProcessing = ref(false)
+
+
 
 watch(
-  () => [uiStore.chatRoomMemberIds, uiStore.currentTab] as const,
-  async ([memberIds, currentTab]) => {
-    if (!memberIds || memberIds.length === 0) return
-    if (currentTab !== 'chatRoom' && currentTab !== 'inviteChatRoom') return
-    if (isCreating.value) return
+  () => ({
+    conversationId: uiStore.conversationId,
+    memberIds: [...uiStore.chatRoomMemberIds],
+    currentTab: uiStore.currentTab,
+    isChatRoomCreate: uiStore.isChatRoomCreate
+  }),
+
+  async (state) => {
+
+    const {
+      conversationId,
+      memberIds,
+      currentTab,
+      isChatRoomCreate
+    } = state
+
+
+    // ==================================================
+    // 1. 채팅방 화면이 아니면 종료
+    // ==================================================
+
+    if (
+      currentTab !== 'chatRoom' &&
+      currentTab !== 'inviteChatRoom'
+    ) {
+      return
+    }
+
+
+    // ==================================================
+    // 2. 이미 처리 중이면 무시
+    // ==================================================
+
+    if (isProcessing.value) {
+      return
+    }
+
+
+    // ==================================================
+    // 3. ⭐ 기존 방 진입
+    //
+    // conversationId가 있으면 무조건 기존 방
+    // isChatRoomCreate는 보지 않는다.
+    // ==================================================
+
+    if (conversationId) {
+
+      isProcessing.value = true
+
+      try {
+
+        console.log(
+          '🏠 기존 채팅방 진입:',
+          conversationId
+        )
+
+        // ----------------------------------------------
+        // Store ID 동기화
+        // ----------------------------------------------
+
+        chatRoomStore.conversationId =
+          conversationId
+
+
+        // ----------------------------------------------
+        // 방 존재 확인
+        // ----------------------------------------------
+
+        const exists =
+          await chatRoomStore.existsConversation(
+            conversationId
+          )
+
+        if (!exists) {
+
+          console.warn(
+            '❌ 존재하지 않는 채팅방:',
+            conversationId
+          )
+
+          return
+        }
+
+
+        // ----------------------------------------------
+        // 그룹 Socket Join
+        // ----------------------------------------------
+
+        if (
+          currentTab === 'inviteChatRoom'
+        ) {
+
+          console.log(
+            '🔌 그룹 Socket Join:',
+            conversationId,
+            memberIds
+          )
+
+          await chatRoomStore.joinConversation(
+            conversationId,
+            memberIds
+          )
+        }
+
+
+        // ----------------------------------------------
+        // 메시지 로드
+        // ----------------------------------------------
+
+        if (
+          !chatRoomStore.hasMessageCache(
+            conversationId
+          )
+        ) {
+
+          console.log(
+            '📥 메시지 로드:',
+            conversationId
+          )
+
+          await loadMessages(
+            conversationId
+          )
+        }
+
+
+        // ----------------------------------------------
+        // 읽음 처리
+        // ----------------------------------------------
+
+        await chatStore.readConversation(
+          conversationId
+        )
+
+
+        // ----------------------------------------------
+        // 채팅방 목록 갱신
+        // ----------------------------------------------
+
+        await chatStore.getMyConversations()
+
+
+        // ----------------------------------------------
+        // 스크롤
+        // ----------------------------------------------
+
+        await nextTick()
+
+        requestAnimationFrame(() => {
+          scrollToBottom()
+        })
+
+
+        console.log(
+          '✅ 기존 채팅방 진입 완료:',
+          conversationId
+        )
+
+      } catch (error) {
+
+        console.error(
+          '❌ 기존 채팅방 진입 실패:',
+          error
+        )
+
+      } finally {
+
+        isProcessing.value = false
+
+      }
+
+      return
+    }
+
+
+    // ==================================================
+    // 4. ⭐ 여기부터는 conversationId가 없는 경우
+    // ==================================================
+
+    if (!isChatRoomCreate) {
+
+      console.log(
+        '⏸️ 중간 상태 무시:',
+        state
+      )
+
+      return
+    }
+
+
+    // ==================================================
+    // 5. 새 방 멤버 확인
+    // ==================================================
+
+    if (
+      memberIds.length === 0
+    ) {
+
+      console.warn(
+        '❌ 새 채팅방 memberIds 없음'
+      )
+
+      return
+    }
+
+
+    // ==================================================
+    // 6. 새 방 생성
+    // ==================================================
+
+    isProcessing.value = true
 
     try {
-      isCreating.value = true
-      let conversationId = uiStore.conversationId
 
-      if (conversationId) {
-        const exists = await chatRoomStore.existsConversation(conversationId)
-        if (!exists) conversationId = null
-      }
+      const chatType =
+        currentTab === 'inviteChatRoom'
+          ? 'GROUP'
+          : memberIds.length > 1
+            ? 'GROUP'
+            : 'DIRECT'
 
-      if (!conversationId) {
-        conversationId = await chatRoomStore.createChat({
+
+      console.log(
+        '🆕 새 채팅방 생성 시작:',
+        {
+          chatType,
+          memberIds
+        }
+      )
+
+
+      // ----------------------------------------------
+      // 방 생성
+      // ----------------------------------------------
+
+      const newConversationId =
+        await chatRoomStore.createChat({
+
           memberIds,
-          chatType: isGroupChat.value ? 'GROUP' : 'DIRECT',
-          name: isGroupChat.value ? uiStore.roomName : null,
+
+          chatType,
+
+          name:
+            chatType === 'GROUP'
+              ? uiStore.roomName
+              : null,
+
           message: ''
         })
-        uiStore.conversationId = conversationId
+
+
+      console.log(
+        '🆕 새 conversationId:',
+        newConversationId
+      )
+
+
+      // ----------------------------------------------
+      // ⭐ 생성 완료 후 ID 먼저 저장
+      // ----------------------------------------------
+
+      chatRoomStore.conversationId =
+        newConversationId
+
+      uiStore.conversationId =
+        newConversationId
+
+
+      // ----------------------------------------------
+      // ⭐ 새 방 생성 상태 종료
+      // ----------------------------------------------
+
+      uiStore.isChatRoomCreate = false
+
+
+      // ----------------------------------------------
+      // 그룹 Socket Join
+      // ----------------------------------------------
+
+      if (
+        chatType === 'GROUP'
+      ) {
+
+        console.log(
+          '🔌 새 그룹방 Socket Join:',
+          newConversationId
+        )
+
+        await chatRoomStore.joinConversation(
+          newConversationId,
+          memberIds
+        )
       }
 
-      await chatStore.readConversation(conversationId)
+
+      // ----------------------------------------------
+      // 메시지 로드
+      // ----------------------------------------------
+
+      await loadMessages(
+        newConversationId
+      )
+
+
+      // ----------------------------------------------
+      // 읽음 처리
+      // ----------------------------------------------
+
+      await chatStore.readConversation(
+        newConversationId
+      )
+
+
+      // ----------------------------------------------
+      // 목록 갱신
+      // ----------------------------------------------
+
       await chatStore.getMyConversations()
-      chatRoomStore.conversationId = conversationId
 
-      // 그룹 채팅일 경우에만 멤버 조인 로직 실행
-      if (isGroupChat.value) {
-        await chatRoomStore.joinConversation(conversationId, memberIds)
-      }
 
-      if (!chatRoomStore.hasMessageCache(conversationId)) {
-        await loadMessages(conversationId)
-      }
+      // ----------------------------------------------
+      // 스크롤
+      // ----------------------------------------------
+
+      await nextTick()
+
+      requestAnimationFrame(() => {
+        scrollToBottom()
+      })
+
+
+      console.log(
+        '✅ 새 채팅방 생성 완료:',
+        newConversationId
+      )
+
     } catch (error) {
-      console.error('채팅방 진입 실패:', error)
+
+      console.error(
+        '❌ 새 채팅방 생성 실패:',
+        error
+      )
+
     } finally {
-      isCreating.value = false
+
+      isProcessing.value = false
+
     }
+
   },
-  { deep: true, immediate: true }
+
+  {
+    immediate: true
+  }
 )
 
 const loadMessages = async (id: string) => {
@@ -139,8 +458,8 @@ const selectFeature = async (feature: Feature) => {
       await translateWithAI();
       break;
 
-    case "Translate":
-      console.log("번역 태그 기능");
+    case "Sticker":
+      modalStore.openModal('sticker')
       break;
 
     case "Image":
@@ -300,5 +619,7 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
       @member-action="handleMemberAction"
     />
     <ChatSettingsModal />
+    <StickerModal @select="handleStickerSelect" />
+
   </div>
 </template>

@@ -72,13 +72,33 @@ export async function joinConversation(
   }
 }
 
-export async function existsConversation(conversationId: string){
-   const response = await api.get(`/api/chat-room/${conversationId}`);
+  export async function existsConversation(
+    conversationId: string
+  ) {
 
-   console.log("getConvUnreadCount  response : ", response.data);
+    try {
 
-   return response.data;
-}
+      const response = await api.get(
+        `/api/chat-room/${conversationId}`
+      );
+
+      console.log(
+        "getConversation response:",
+        response.data
+      );
+
+      return response.data;
+
+    } catch (error) {
+
+      console.error(
+        `[getConversation Error] conversationId: ${conversationId}`,
+        error
+      );
+
+      throw error;
+    }
+  }
 
 
 export const getChatMessages = async (
@@ -125,6 +145,36 @@ export async function createChat(request: CreateChatRequest) {
   console.log("createChat response data", response.data)
   return response.data.conversationId;
 }
+
+
+  export async function getConversationInfo(
+    conversationId: string
+  ) {
+
+    try {
+
+      const response =
+        await api.get(
+          `/api/chat-room/info/${conversationId}`
+        );
+
+      console.log(
+        "getConversationInfo response:",
+        response.data
+      );
+
+      return response.data;
+
+    } catch (error) {
+
+      console.error(
+        `[getConversationInfo Error] conversationId: ${conversationId}`,
+        error
+      );
+
+      throw error;
+    }
+  }
 
 
 }

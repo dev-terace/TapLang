@@ -10,7 +10,7 @@ import blockRouter from "./block/routes/block.route"
 import translateRouter from "./ai_translator/router/translator.router"
 import chatSettingsRouter from "./chat_settings/router/chatSettings.router"
 import { clerkMiddleware, requireAuth } from "@clerk/express"
-
+import chatNotificationRouter from "./chat/routes/chatRoomNotification.router"
 const app: Application = express();
 
 app.use(cors({
@@ -38,6 +38,7 @@ app.use("/api/profile/country", requireApiAuth, countryRouter)
 app.use("/api/block", requireApiAuth, blockRouter)
 app.use("/api/translate", requireApiAuth, translateRouter)
 app.use("/api/chat-settings", requireApiAuth, chatSettingsRouter)
+app.use("/api/chat-room-notification", requireApiAuth, chatNotificationRouter)
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

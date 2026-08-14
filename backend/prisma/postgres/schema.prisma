@@ -44,6 +44,8 @@ model MyProfile {
 
   chatSettings ChatSettings?
 
+  chatRoomNotifications ChatRoomNotification[]
+
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 
@@ -151,8 +153,29 @@ model ChatSettings {
   translatedVoiceLanguage String @default("ko")
 
   // 알림
+
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+
+model ChatRoomNotification {
+  id Int @id @default(autoincrement())
+
+  // 알림 설정을 소유한 프로필
+  profileId Int
+  profile   MyProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  // 대상 채팅방 ID (UUID인 경우 String, 숫자 PK인 경우 Int로 수정하세요)
+  conversationId String
+
+  // 이 채팅방의 알림 켜짐/꺼짐 상태
   notificationEnabled Boolean @default(true)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // 한 유저가 동일한 채팅방에 대해 중복 레코드를 갖지 않도록 설정
+  @@unique([profileId, conversationId])
 }

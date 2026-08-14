@@ -8,6 +8,41 @@ import { ConversationMemberRole } from "../../../generated/mongo";
 
 //memberIds 값의 ownId가 포함 됨
 
+
+export const getConversationInfo = async (
+  conversationId: string,
+  userId: number
+) => {
+
+  const conversation =
+    await mongoPrisma.conversation.findUnique({
+      where: {
+        id: conversationId,
+      },
+
+      include: {
+        members: true,
+      },
+    });
+
+  if (!conversation) {
+    return null;
+  }
+
+  // 현재 사용자가 이 채팅방의 멤버인지 확인
+  const isMember =
+    conversation.members.some(
+      member => member.userId === userId
+    );
+
+  if (!isMember) {
+    return null;
+  }
+
+  return conversation;
+};
+
+
   export const getGroupChatMembers = async(conversationId: string) => {
     // 1. MongoDB에서 대화방 멤버들의 userId 추출 (Int[])
     const members = await mongoPrisma.conversationMember.findMany({
@@ -336,6 +371,7 @@ export const chatRoomService = {
   existsConversationMember,
   getMessages,
   existsConversation,
-  getGroupChatMembers
+  getGroupChatMembers,
+  getConversationInfo
 
 };

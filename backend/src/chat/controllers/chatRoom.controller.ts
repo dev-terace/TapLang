@@ -5,6 +5,54 @@ import { joinConversationMembers, emitNewMessage } from "../socket/chat.handler"
 import { blockUserService } from "../../block/service/block.service";
 
 
+export const getConversationInfo = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { conversationId } = req.params;
+
+    if (!conversationId) {
+      return res.status(400).json({
+        success: false,
+        message: "conversationId가 없습니다.",
+      });
+    }
+
+    // 로그인 사용자
+    const userId = await userService.findUserIdByAuthToken(req)
+
+    const conversation =
+      await chatRoomService.getConversationInfo(
+        conversationId,
+        userId
+      );
+
+    if (!conversation) {
+      return res.status(404).json({
+        success: false,
+        message: "채팅방을 찾을 수 없습니다.",
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      conversation,
+    });
+
+  } catch (error) {
+    console.error(
+      "[getConversationInfo]",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "채팅방 정보를 가져오는데 실패했습니다.",
+    });
+  }
+};
+
 export const getGroupChatMembers = async (req: Request, res: Response) => {
   try {
     const { conversationId } = req.params;
@@ -329,12 +377,14 @@ export const createMessage = async (
 
     const userInfo = await userService.findUserById(ownId)
 
+    const conversationInfo = await chatRoomService.getConversationInfo(conversationId, ownId);
+
 
     if (!userInfo) {
       throw new Error("유저 없음");
     }
 
-    emitNewMessage(conversationId, createdMessage, userInfo);
+    emitNewMessage(conversationId, createdMessage, userInfo, conversationInfo.name);
 
 
     return res.status(201).json({

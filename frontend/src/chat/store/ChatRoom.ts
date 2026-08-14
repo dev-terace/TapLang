@@ -90,7 +90,7 @@ export const useChatRoomStore = defineStore('chatRoom', () => {
   const existsConversation = ChatRoomApi.existsConversation
   const joinConversation = ChatRoomApi.joinConversation
   const getGroupChatMembers = ChatRoomApi.getGroupChatMembers
-
+  const getConversationInfo = ChatRoomApi.getConversationInfo
   return {
     createChat,
     createMessage,
@@ -103,6 +103,7 @@ export const useChatRoomStore = defineStore('chatRoom', () => {
     conversationId,
     existsConversation,
     joinConversation,
-    getGroupChatMembers
+    getGroupChatMembers,
+    getConversationInfo
   }
 })

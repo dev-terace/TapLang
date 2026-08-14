@@ -3,12 +3,16 @@ import { useChatRoomStore } from "../store/ChatRoom";
 import { useChatStore } from "../store/Chat";
 import { useUIStore } from "@/shared/ui/UiStore";
 import { useBlockStore } from "@/block/store/BlockStore";
-
+import { useNotificationStore } from '@/shared/notification/store/NotificationStore'
+import { useChatSettingsStore } from "../store/ChatSettingsStore";
+import { useChatRoomNotificationStore } from "../store/ChatRoomNotificationStore";
 export function registerChatRoomSocket(socket: Socket) {
   const chatRoomStore = useChatRoomStore();
   const chatStore = useChatStore();
   const uiStore = useUIStore();
   const blockStore = useBlockStore();
+  const notificationStore = useNotificationStore();
+  const chatRoomNotificationStore = useChatRoomNotificationStore()
 
   socket.off("message:new");
 
@@ -49,6 +53,24 @@ export function registerChatRoomSocket(socket: Socket) {
     } else {
       // 유저가 다른 탭이나 다른 채팅방에 있다면 안 읽음 카운트만 올라가도록 목록 갱신
       await chatStore.getMyConversations();
+
+      const notificationEnabled =
+        chatRoomNotificationStore.isNotificationEnabled(
+          msg.conversationId
+        )
+
+
+      console.log()
+      if (notificationEnabled) {
+        notificationStore.addNotification({
+          id: msg.id,
+          conversationName: data.conversationName,
+          conversationId: msg.conversationId,
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          content: msg.content
+        })
+      }
     }
   });
 }

@@ -46,13 +46,15 @@ export const emitNewMessage = (
     flag: string,
     statusMsg: string | null,
 
-  }
+  },
+  conversationName : string
 ) => {
   const io = getSocketIO();
   console.log("emitNewMEssage conv Id", conversationId);
   io.to(`conversation:${conversationId}`)
     .emit("message:new", {
       message: message,
-      userInfo: userInfo
+      userInfo: userInfo,
+      conversationName
     });
 };
