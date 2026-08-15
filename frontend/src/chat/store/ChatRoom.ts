@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+
 import { ChatRoomApi } from '../api/chatRoom.api'
+
 
 
 
@@ -10,7 +12,7 @@ export interface Message {
   senderId: number;
   senderName?: string;
   content: string;
-  attachments?: unknown | null;
+  attachments?: ChatRoomApi.Attachment[] | null;
   createdAt: string;
   flag: string;
 }

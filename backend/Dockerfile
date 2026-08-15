@@ -6,7 +6,7 @@ RUN apk add --no-cache openssl
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install
 
 COPY prisma ./prisma
 
@@ -28,7 +28,7 @@ RUN apk add --no-cache openssl
 WORKDIR /usr/src/app
 
 COPY package.json package-lock.json ./
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 COPY --from=builder /usr/src/app/dist ./dist
 COPY --from=builder /usr/src/app/prisma ./prisma

@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useChatStore } from '@/chat/store/Chat'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
-import ChatFeatureModal, {type Feature} from './ChatFeatureModel.vue'
-import GroupChatMembersModal from './GroupChatMemberModal.vue' // ✅ 분리한 모달 import
+import ChatFeatureModal, { type Feature } from './ChatFeatureModel.vue'
+import GroupChatMembersModal, { type GroupChatMember } from './GroupChatMemberModal.vue'
 import { useChatScroll } from '@/chat/composables/useChatScroll'
 import { formatDate, isSameDate } from '@/chat/composables/chatDate'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
-import { type GroupChatMember } from './GroupChatMemberModal.vue'
 import { useTranslatorStore } from '../store/AiTransStore.js'
-import { Settings } from 'lucide-vue-next'
+import { Settings, X } from 'lucide-vue-next'
 import ChatSettingsModal from './ChatSettingsModal.vue'
 import { useChatSettingsStore } from '../store/ChatSettingsStore.js'
 import StickerModal from './StickerModal.vue'
+import axios from 'axios' // 이미지 업로드용 (프로젝트의 axios 인스턴스로 대체 가능)
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -31,6 +31,16 @@ const chatSettingsStore = useChatSettingsStore()
 
 const ownId = computed(() => authStore.userInfo?.id)
 const newMessage = ref('')
+
+// ----------------------------------------------------
+// 📷 이미지 업로드 & 미리보기 관련 State
+// ----------------------------------------------------
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
+const imagePreviewUrl = ref<string | null>(null)
+const imageCaption = ref('') // 이미지 설명
+const isImageModalOpen = ref(false)
+const isUploadingImage = ref(false)
 
 // 1:1 채팅과 그룹 채팅을 정확하게 구분하는 로직
 const isGroupChat = computed(() => {
@@ -51,17 +61,10 @@ const { scrollToBottom } = useChatScroll(messageContainer, () => filteredMessage
 // 대화 상대 모달 상태 (그룹 채팅 전용)
 const isMembersModalOpen = ref(false)
 
-
 // 초대 버튼 클릭 핸들러
 const handleInvite = () => {
   console.log('초대하기 버튼 클릭됨')
-  // 여기에 실제 초대 탭 이동 혹은 초대 로직을 구현합니다.
-  // 예: uiStore.currentTab = 'inviteFriends' 
-  // isMembersModalOpen.value = false
 }
-
-// 통합 채팅방 생성 및 메시지 로드 워처
-
 
 const handleStickerSelect = (sticker: string) => {
   newMessage.value += sticker
@@ -69,8 +72,123 @@ const handleStickerSelect = (sticker: string) => {
 
 const isProcessing = ref(false)
 
+// ----------------------------------------------------
+// 🖼️ 이미지 처리 로직 (파일 선택 / Paste / 업로드)
+// ----------------------------------------------------
+
+// 1. 파일이 선택되었을 때 (파일 탐색기 또는 Ctrl+V)
+const processFile = (file: File) => {
+  if (!file.type.startsWith('image/')) {
+    alert('이미지 파일만 업로드할 수 있습니다.')
+    return
+  }
+
+  selectedFile.value = file
+  
+  // 기존 프리뷰 URL 메모리 해제 및 새로 생성
+  if (imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+  }
+  imagePreviewUrl.value = URL.createObjectURL(file)
+  imageCaption.value = ''
+  isImageModalOpen.value = true
+}
+
+// 2. 파일 탐색기 인풋 변경 감지
+const handleFileChange = (e: Event) => {
+  const target = e.target as HTMLInputElement
+  if (target.files && target.files[0]) {
+    processFile(target.files[0])
+  }
+  // input value 초기화 (동일 파일 재선택 가능하게)
+  target.value = ''
+}
+
+// 3. Ctrl + V 붙여넣기 이벤트 핸들러
+const handlePaste = (e: ClipboardEvent) => {
+  if (uiStore.currentTab !== 'chatRoom' && uiStore.currentTab !== 'inviteChatRoom') return
+
+  const items = e.clipboardData?.items
+  if (!items) return
+
+  for (const item of items) {
+    if (item.type.indexOf('image') !== -1) {
+      e.preventDefault()
+      const file = item.getAsFile()
+      if (file) {
+        processFile(file)
+      }
+      break
+    }
+  }
+}
+
+// 4. 이미지 모달 닫기
+const closeImageModal = () => {
+  isImageModalOpen.value = false
+  selectedFile.value = null
+  imageCaption.value = ''
+  if (imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+    imagePreviewUrl.value = null
+  }
+}
+
+// 5. 이미지 업로드 및 채팅 메시지 전송
+const sendImageMessage = async () => {
+  if (!selectedFile.value || !chatRoomStore.conversationId) return
+
+  try {
+    isUploadingImage.value = true
+
+    // A. 이미지 파일 백엔드 업로드
+    const formData = new FormData()
+    formData.append('image', selectedFile.value)
+
+    const { data } = await axios.post('/api/image/upload', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
 
 
+    console.log("sendImageMessage data", data);
+    // B. 업로드 후 발급받은 URL을 attachments로 메시지 전송
+    await chatRoomStore.createMessage({
+      conversationId: chatRoomStore.conversationId,
+      content: imageCaption.value.trim(), // 사진 설명이 메시지 텍스트가 됨
+      attachments: [
+        {
+          url: data.url, // /api/image/guid...
+          guid: data.guid
+        }
+      ]
+    })
+
+    closeImageModal()
+    scrollToBottom()
+
+  } catch (error) {
+    console.error('이미지 전송 실패:', error)
+    alert('이미지 업로드 중 오류가 발생했습니다.')
+  } finally {
+    isUploadingImage.value = false
+  }
+}
+
+// 이벤트 리스너 등록
+onMounted(() => {
+  window.addEventListener('paste', handlePaste)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('paste', handlePaste)
+  if (imagePreviewUrl.value) {
+    URL.revokeObjectURL(imagePreviewUrl.value)
+  }
+})
+
+// ==================================================
+// 기존 대화방 진입 및 메시지 워처
+// ==================================================
 watch(
   () => ({
     conversationId: uiStore.conversationId,
@@ -78,354 +196,75 @@ watch(
     currentTab: uiStore.currentTab,
     isChatRoomCreate: uiStore.isChatRoomCreate
   }),
-
   async (state) => {
+    const { conversationId, memberIds, currentTab, isChatRoomCreate } = state
 
-    const {
-      conversationId,
-      memberIds,
-      currentTab,
-      isChatRoomCreate
-    } = state
-
-
-    // ==================================================
-    // 1. 채팅방 화면이 아니면 종료
-    // ==================================================
-
-    if (
-      currentTab !== 'chatRoom' &&
-      currentTab !== 'inviteChatRoom'
-    ) {
-      return
-    }
-
-
-    // ==================================================
-    // 2. 이미 처리 중이면 무시
-    // ==================================================
-
-    if (isProcessing.value) {
-      return
-    }
-
-
-    // ==================================================
-    // 3. ⭐ 기존 방 진입
-    //
-    // conversationId가 있으면 무조건 기존 방
-    // isChatRoomCreate는 보지 않는다.
-    // ==================================================
+    if (currentTab !== 'chatRoom' && currentTab !== 'inviteChatRoom') return
+    if (isProcessing.value) return
 
     if (conversationId) {
-
       isProcessing.value = true
-
       try {
+        chatRoomStore.conversationId = conversationId
+        const exists = await chatRoomStore.existsConversation(conversationId)
+        if (!exists) return
 
-        console.log(
-          '🏠 기존 채팅방 진입:',
-          conversationId
-        )
-
-        // ----------------------------------------------
-        // Store ID 동기화
-        // ----------------------------------------------
-
-        chatRoomStore.conversationId =
-          conversationId
-
-
-        // ----------------------------------------------
-        // 방 존재 확인
-        // ----------------------------------------------
-
-        const exists =
-          await chatRoomStore.existsConversation(
-            conversationId
-          )
-
-        if (!exists) {
-
-          console.warn(
-            '❌ 존재하지 않는 채팅방:',
-            conversationId
-          )
-
-          return
+        if (currentTab === 'inviteChatRoom') {
+          await chatRoomStore.joinConversation(conversationId, memberIds)
         }
 
-
-        // ----------------------------------------------
-        // 그룹 Socket Join
-        // ----------------------------------------------
-
-        if (
-          currentTab === 'inviteChatRoom'
-        ) {
-
-          console.log(
-            '🔌 그룹 Socket Join:',
-            conversationId,
-            memberIds
-          )
-
-          await chatRoomStore.joinConversation(
-            conversationId,
-            memberIds
-          )
+        if (!chatRoomStore.hasMessageCache(conversationId)) {
+          await loadMessages(conversationId)
         }
 
-
-        // ----------------------------------------------
-        // 메시지 로드
-        // ----------------------------------------------
-
-        if (
-          !chatRoomStore.hasMessageCache(
-            conversationId
-          )
-        ) {
-
-          console.log(
-            '📥 메시지 로드:',
-            conversationId
-          )
-
-          await loadMessages(
-            conversationId
-          )
-        }
-
-
-        // ----------------------------------------------
-        // 읽음 처리
-        // ----------------------------------------------
-
-        await chatStore.readConversation(
-          conversationId
-        )
-
-
-        // ----------------------------------------------
-        // 채팅방 목록 갱신
-        // ----------------------------------------------
-
+        await chatStore.readConversation(conversationId)
         await chatStore.getMyConversations()
 
-
-        // ----------------------------------------------
-        // 스크롤
-        // ----------------------------------------------
-
         await nextTick()
-
-        requestAnimationFrame(() => {
-          scrollToBottom()
-        })
-
-
-        console.log(
-          '✅ 기존 채팅방 진입 완료:',
-          conversationId
-        )
-
+        requestAnimationFrame(() => scrollToBottom())
       } catch (error) {
-
-        console.error(
-          '❌ 기존 채팅방 진입 실패:',
-          error
-        )
-
+        console.error('기존 채팅방 진입 실패:', error)
       } finally {
-
         isProcessing.value = false
-
       }
-
       return
     }
 
-
-    // ==================================================
-    // 4. ⭐ 여기부터는 conversationId가 없는 경우
-    // ==================================================
-
-    if (!isChatRoomCreate) {
-
-      console.log(
-        '⏸️ 중간 상태 무시:',
-        state
-      )
-
-      return
-    }
-
-
-    // ==================================================
-    // 5. 새 방 멤버 확인
-    // ==================================================
-
-    if (
-      memberIds.length === 0
-    ) {
-
-      console.warn(
-        '❌ 새 채팅방 memberIds 없음'
-      )
-
-      return
-    }
-
-
-    // ==================================================
-    // 6. 새 방 생성
-    // ==================================================
+    if (!isChatRoomCreate) return
+    if (memberIds.length === 0) return
 
     isProcessing.value = true
-
     try {
+      const chatType = currentTab === 'inviteChatRoom' ? 'GROUP' : memberIds.length > 1 ? 'GROUP' : 'DIRECT'
 
-      const chatType =
-        currentTab === 'inviteChatRoom'
-          ? 'GROUP'
-          : memberIds.length > 1
-            ? 'GROUP'
-            : 'DIRECT'
-
-
-      console.log(
-        '🆕 새 채팅방 생성 시작:',
-        {
-          chatType,
-          memberIds
-        }
-      )
-
-
-      // ----------------------------------------------
-      // 방 생성
-      // ----------------------------------------------
-
-      const newConversationId =
-        await chatRoomStore.createChat({
-
-          memberIds,
-
-          chatType,
-
-          name:
-            chatType === 'GROUP'
-              ? uiStore.roomName
-              : null,
-
-          message: ''
-        })
-
-
-      console.log(
-        '🆕 새 conversationId:',
-        newConversationId
-      )
-
-
-      // ----------------------------------------------
-      // ⭐ 생성 완료 후 ID 먼저 저장
-      // ----------------------------------------------
-
-      chatRoomStore.conversationId =
-        newConversationId
-
-      uiStore.conversationId =
-        newConversationId
-
-
-      // ----------------------------------------------
-      // ⭐ 새 방 생성 상태 종료
-      // ----------------------------------------------
-
-      uiStore.isChatRoomCreate = false
-
-
-      // ----------------------------------------------
-      // 그룹 Socket Join
-      // ----------------------------------------------
-
-      if (
-        chatType === 'GROUP'
-      ) {
-
-        console.log(
-          '🔌 새 그룹방 Socket Join:',
-          newConversationId
-        )
-
-        await chatRoomStore.joinConversation(
-          newConversationId,
-          memberIds
-        )
-      }
-
-
-      // ----------------------------------------------
-      // 메시지 로드
-      // ----------------------------------------------
-
-      await loadMessages(
-        newConversationId
-      )
-
-
-      // ----------------------------------------------
-      // 읽음 처리
-      // ----------------------------------------------
-
-      await chatStore.readConversation(
-        newConversationId
-      )
-
-
-      // ----------------------------------------------
-      // 목록 갱신
-      // ----------------------------------------------
-
-      await chatStore.getMyConversations()
-
-
-      // ----------------------------------------------
-      // 스크롤
-      // ----------------------------------------------
-
-      await nextTick()
-
-      requestAnimationFrame(() => {
-        scrollToBottom()
+      const newConversationId = await chatRoomStore.createChat({
+        memberIds,
+        chatType,
+        name: chatType === 'GROUP' ? uiStore.roomName : null,
+        message: ''
       })
 
+      chatRoomStore.conversationId = newConversationId
+      uiStore.conversationId = newConversationId
+      uiStore.isChatRoomCreate = false
 
-      console.log(
-        '✅ 새 채팅방 생성 완료:',
-        newConversationId
-      )
+      if (chatType === 'GROUP') {
+        await chatRoomStore.joinConversation(newConversationId, memberIds)
+      }
 
+      await loadMessages(newConversationId)
+      await chatStore.readConversation(newConversationId)
+      await chatStore.getMyConversations()
+
+      await nextTick()
+      requestAnimationFrame(() => scrollToBottom())
     } catch (error) {
-
-      console.error(
-        '❌ 새 채팅방 생성 실패:',
-        error
-      )
-
+      console.error('새 채팅방 생성 실패:', error)
     } finally {
-
       isProcessing.value = false
-
     }
-
   },
-
-  {
-    immediate: true
-  }
+  { immediate: true }
 )
 
 const loadMessages = async (id: string) => {
@@ -463,14 +302,14 @@ const selectFeature = async (feature: Feature) => {
       break;
 
     case "Image":
-      console.log("사진 업로드 기능");
+      // 📷 파일 탐색기 열기
+      fileInputRef.value?.click();
       break;
   }
 };
 
 const translateWithAI = async () => {
   const text = newMessage.value.trim();
-
   if (!text) return;
 
   try {
@@ -496,38 +335,24 @@ const translateWithAI = async () => {
   }
 };
 
-
-
-const handleMemberAction = async (action: string, member: GroupChatMember ) => {
-  
+const handleMemberAction = async (action: string, member: GroupChatMember) => {
   const friendId = member.id
-  console.log('선택된 멤버 액션:', action, '멤버 ID:', friendId)
-
   if (action === 'addFriend') {
-    
-
-      await friendStore.addFriendRequest({searchName: member.name})
-      await friendStore.fetchFriends();
-
+    await friendStore.addFriendRequest({ searchName: member.name })
+    await friendStore.fetchFriends();
   } else {
-    // 질문자님이 작성해주신 로직 적용
     uiStore.profileMenuFriendId = friendId
-    
     if (action === 'viewBio') {
-       modalStore.openModal('viewBio') 
-       console.log('소개글 보기 모달 오픈')
-    }
-    else if (action === 'block') {
+      modalStore.openModal('viewBio')
+    } else if (action === 'block') {
       await blockStore.requestBlockUser(friendId)
-    }
-    else if (action === 'delete') {
+    } else if (action === 'delete') {
       if (confirm('정말 삭제하시겠습니까?')) {
         alert('삭제 기능 준비중입니다.')
       }
     }
   }
 }
-
 </script>
 
 <template>
@@ -535,6 +360,15 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
     v-if="uiStore.currentTab === 'chatRoom' || uiStore.currentTab === 'inviteChatRoom'"
     class="flex h-screen min-h-0 flex-col bg-[#dfdad1] relative"
   >
+    <!-- 숨겨진 이미지 File Input -->
+    <input
+      ref="fileInputRef"
+      type="file"
+      accept="image/*"
+      class="hidden"
+      @change="handleFileChange"
+    />
+
     <!-- 헤더 -->
     <div class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center">
       <button 
@@ -549,7 +383,6 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
       </span>
 
       <div class="flex items-center gap-3">
-        <!-- 그룹 채팅일 때만 대화 상대 목록 버튼 노출 -->
         <button 
           v-if="isGroupChat"
           @click="isMembersModalOpen = true"
@@ -561,9 +394,9 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
           </svg>
         </button>
 
-      <button  @click= "modalStore.openModal('chatRoomSettings') " class="hover:text-white transition-colors">
-        <Settings class="w-5 h-5 stroke-[2.5]" />
-      </button>
+        <button @click="modalStore.openModal('chatRoomSettings')" class="hover:text-white transition-colors">
+          <Settings class="w-5 h-5 stroke-[2.5]" />
+        </button>
       </div>
     </div>
 
@@ -581,22 +414,21 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
         </div>
 
         <ChatRoomMessage :message="message" :own-id="ownId" />
-        
       </div>
     </div>
 
     <!-- 하단 입력창 영역 -->
     <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
       <div class="flex gap-2 items-center">
-      <ChatFeatureModal
-        :loading="translatorStore.isInputTranslating"
-        @select="selectFeature"
-      />
+        <ChatFeatureModal
+          :loading="translatorStore.isInputTranslating"
+          @select="selectFeature"
+        />
 
         <input
           v-model="newMessage"
           type="text"
-          placeholder="메시지를 입력하세요..."
+          placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
           @keyup.enter="sendMessage"
           class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
         />
@@ -610,7 +442,68 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
       </div>
     </div>
 
-    <!-- ✅ 분리된 그룹 채팅 전용 모달 컴포넌트 적용 -->
+    <!-- 🖼️ 이미지 미리보기 및 설명 입력 모달 -->
+    <Teleport to="body">
+      <div
+        v-if="isImageModalOpen"
+        class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
+        @click.self="closeImageModal"
+      >
+        <div class="w-full max-w-md bg-[#e6e2db] border-4 border-[#2d2b28] shadow-[8px_8px_0px_0px_#121315] flex flex-col overflow-hidden">
+          
+          <!-- 모달 헤더 -->
+          <div class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold">
+            <span>// 이미지_전송_프로토콜.img</span>
+            <button type="button" @click="closeImageModal" class="hover:text-red-400 text-lg leading-none">
+              <X class="w-4 h-4" />
+            </button>
+          </div>
+
+          <!-- 미리보기 영역 -->
+          <div class="p-4 flex flex-col gap-3">
+            <div class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
+              <img
+                :src="imagePreviewUrl"
+                alt="미리보기"
+                class="max-w-full max-h-[290px] object-contain"
+              />
+            </div>
+
+            <!-- 설명 입력창 -->
+            <input
+              v-model="imageCaption"
+              type="text"
+              placeholder="이미지에 대한 설명을 입력하세요 (선택)"
+              @keyup.enter="sendImageMessage"
+              class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]"
+            />
+
+            <!-- 버튼 영역 -->
+            <div class="flex justify-end gap-2 mt-2">
+              <button
+                type="button"
+                @click="closeImageModal"
+                :disabled="isUploadingImage"
+                class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
+              >
+                취소
+              </button>
+              <button
+                type="button"
+                @click="sendImageMessage"
+                :disabled="isUploadingImage"
+                class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2"
+              >
+                <span v-if="isUploadingImage" class="animate-spin text-xs">🌀</span>
+                <span>{{ isUploadingImage ? '업로드 중...' : '전송' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Teleport>
+
+    <!-- 그룹 채팅 모달 등 나머지 유지 -->
     <GroupChatMembersModal
       v-if="isGroupChat"
       :is-open="isMembersModalOpen"
@@ -620,6 +513,5 @@ const handleMemberAction = async (action: string, member: GroupChatMember ) => {
     />
     <ChatSettingsModal />
     <StickerModal @select="handleStickerSelect" />
-
   </div>
 </template>

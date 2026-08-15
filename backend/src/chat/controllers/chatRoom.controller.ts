@@ -373,7 +373,7 @@ export const createMessage = async (
       });
     }
 
-    const createdMessage = await chatRoomService.createMessage(conversationId, ownId, content)
+    const createdMessage = await chatRoomService.createMessage(conversationId, ownId, content, attachments)
 
     const userInfo = await userService.findUserById(ownId)
 

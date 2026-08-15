@@ -17,11 +17,15 @@ export namespace ChatRoomApi{
       conversationId: String
    }
 
+   export interface Attachment {
+    url: string
+    guid: string
+}
 
    interface createMessageRequest {
       conversationId: string;
       content: string;
-      attachments?: unknown | null;
+      attachments?: Attachment[];
 }
 
   interface getGroupChatMembersResponse{

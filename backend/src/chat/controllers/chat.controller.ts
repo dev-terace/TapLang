@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { userService } from "../../users/services/user.service";
 import { chatService } from "../services/chat.service";
 import { blockUserService } from "../../block/service/block.service";
-
+import { chatRoomNotificationService } from "../services/chatRoomNotification.service";
 
 
 
@@ -49,6 +49,27 @@ export const getMyConversations = async (req: Request, res: Response) => {
   const ownId = await userService.findUserIdByAuthToken(req);
 
   const result = await chatService.getMyConversations(ownId);
+  
+  
+  const conversations = await Promise.all(
+  result.data.map(async (conversation) => {
+    const notification =
+      await chatRoomNotificationService.getChatRoomNotification(
+        ownId,
+        conversation.conversationId
+      );
+
+    // 알림이 꺼진 경우에만 notification: false 추가
+    if (!notification.notificationEnabled) {
+      return {
+        ...conversation,
+        notification: false
+      };
+    }
+
+    return conversation;
+  })
+);  
 
   const blockedResult =
     await blockUserService.getBlockedUsers(ownId);
@@ -57,7 +78,7 @@ export const getMyConversations = async (req: Request, res: Response) => {
     blockedResult.blockedUsers.map((user) => user.id)
   );
 
-  const filteredData = result.data
+  const filteredData = conversations
     .map((conversation) => {
       // 차단된 유저 제거
       const members = conversation.members.filter(

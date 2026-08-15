@@ -13,12 +13,14 @@ import { useModalStore } from '@/shared/modal/ModalStore'
 import { useChatSettingsStore } from '../store/ChatSettingsStore'
 import { useChatRoomNotificationStore } from '../store/ChatRoomNotificationStore'
 import { useUIStore } from '@/shared/ui/UiStore'
+import { useChatStore } from '../store/Chat'
 
 const modalStore = useModalStore()
 const chatSettigsStore = useChatSettingsStore()
 const chatRoomNotificationStore =
   useChatRoomNotificationStore()
 const uiStore = useUIStore()
+const chatStore = useChatStore();
 
 
 // ==================================================
@@ -35,44 +37,28 @@ const closeModal = () => {
 // ==================================================
 
 watch(
-  () => modalStore.activeModal,
-  async (modal) => {
+  [
+    () => modalStore.activeModal,
+    () => uiStore.conversationId
+  ],
+  async ([modal, conversationId]) => {
 
     if (modal !== 'chatRoomSettings') {
       return
     }
 
-    // ----------------------------------------------
-    // 전체 채팅 설정
-    // ----------------------------------------------
-
     await chatSettigsStore.loadChatSettings()
 
-
-    // ----------------------------------------------
-    // 현재 채팅방 알림 설정
-    // ----------------------------------------------
-
-    const conversationId =
-      uiStore.conversationId
-
     if (!conversationId) {
-
-      console.warn(
-        '⚠️ 현재 conversationId가 없습니다.'
-      )
-
-      // 방이 없으면 기본값
-      chatRoomNotificationStore.notificationEnabled =
-        true
-
       return
     }
-
 
     await chatRoomNotificationStore.getNotification(
       conversationId
     )
+  },
+  {
+    immediate: true
   }
 )
 
@@ -81,6 +67,25 @@ watch(
 // 설정 저장
 // ==================================================
 
+
+const toggleNotification = () => {
+  const conversationId = uiStore.conversationId
+
+  if (!conversationId) {
+    return
+  }
+
+  const current =
+    chatRoomNotificationStore.isNotificationEnabled(
+      conversationId
+    )
+
+  chatRoomNotificationStore.setNotificationEnabled(
+    conversationId,
+    !current
+  )
+}
+
 const saveSettings = async () => {
 
   try {
@@ -88,26 +93,18 @@ const saveSettings = async () => {
     const conversationId =
       uiStore.conversationId
 
-
-    // ----------------------------------------------
-    // 전체 채팅 설정 저장
-    // ----------------------------------------------
-
     await chatSettigsStore.saveChatSettings()
-
-
-    // ----------------------------------------------
-    // 현재 채팅방 알림 설정 저장
-    // ----------------------------------------------
 
     if (conversationId) {
 
       await chatRoomNotificationStore.updateNotification(
         conversationId,
-        chatRoomNotificationStore.notificationEnabled
+        chatRoomNotificationStore.isNotificationEnabled(
+          conversationId
+        )
       )
     }
-
+    chatStore.getMyConversations()
 
     closeModal()
 
@@ -224,7 +221,6 @@ const saveSettings = async () => {
                 p-3
               "
             >
-
               <div
                 class="
                   flex items-center
@@ -248,11 +244,8 @@ const saveSettings = async () => {
                       text-white
                     "
                   >
-
                     <Bell class="w-4 h-4" />
-
                   </div>
-
 
                   <div>
 
@@ -289,10 +282,7 @@ const saveSettings = async () => {
                     !uiStore.conversationId ||
                     chatRoomNotificationStore.isLoading
                   "
-                  @click="
-                    chatRoomNotificationStore.notificationEnabled =
-                      !chatRoomNotificationStore.notificationEnabled
-                  "
+                  @click="toggleNotification"
                   class="
                     relative
                     flex-shrink-0
@@ -302,7 +292,10 @@ const saveSettings = async () => {
                     disabled:opacity-50
                   "
                   :class="
-                    chatRoomNotificationStore.notificationEnabled
+                    uiStore.conversationId &&
+                    chatRoomNotificationStore.isNotificationEnabled(
+                      uiStore.conversationId
+                    )
                       ? 'bg-[#2d2b28]'
                       : 'bg-white'
                   "
@@ -320,7 +313,10 @@ const saveSettings = async () => {
                       transition-transform
                     "
                     :class="
-                      chatRoomNotificationStore.notificationEnabled
+                      uiStore.conversationId &&
+                      chatRoomNotificationStore.isNotificationEnabled(
+                        uiStore.conversationId
+                      )
                         ? 'translate-x-5'
                         : 'translate-x-0'
                     "
@@ -329,7 +325,6 @@ const saveSettings = async () => {
                 </button>
 
               </div>
-
             </section>
 
 

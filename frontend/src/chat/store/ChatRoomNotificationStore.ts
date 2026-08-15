@@ -100,52 +100,45 @@ export const useChatRoomNotificationStore = defineStore(
     // 특정 채팅방 알림 ON / OFF
     // ==================================================
 
-    const updateNotification = async (
-      conversationId: string,
-      enabled: boolean
-    ) => {
+      const updateNotification = async (
+        conversationId: string,
+        enabled: boolean
+      ) => {
 
-      try {
+        try {
 
-        isLoading.value = true
+          isLoading.value = true
 
+          const response =
+            await ChatRoomNotificationApi.updateNotification(
+              conversationId,
+              enabled
+            )
 
-        const response =
-          await ChatRoomNotificationApi.updateNotification(
-            conversationId,
-            enabled
+          const newEnabled =
+            response?.data?.notificationEnabled ?? enabled
+
+          notificationSettings.value[conversationId] =
+            newEnabled
+
+          return response
+
+        } catch (error) {
+
+          console.error(
+            '채팅방 알림 설정 변경 실패:',
+            error
           )
 
+          throw error
 
-        const newEnabled =
-          response?.data?.notificationEnabled
-          ?? response?.notificationEnabled
-          ?? enabled
+        } finally {
 
+          isLoading.value = false
 
-        // Store 즉시 반영
-        notificationSettings.value[conversationId] =
-          newEnabled
-
-
-        return response
-
-      } catch (error) {
-
-        console.error(
-          '채팅방 알림 설정 변경 실패:',
-          error
-        )
-
-        return null
-
-      } finally {
-
-        isLoading.value = false
+        }
 
       }
-
-    }
 
 
     // ==================================================

@@ -181,11 +181,17 @@ export const existsConversationMember = async (
 };
 
 
+export interface Attachment {
+  url: string
+  guid: string
+}
+
+
 export const createMessage = async (
   conversationId: string,
   senderId: number,
   content: string,
-  attachments?: unknown | null
+  attachments?: Attachment[]
 ) => {
   const message = await mongoPrisma.$transaction(async (tx) => {
     // 1. 메시지 생성

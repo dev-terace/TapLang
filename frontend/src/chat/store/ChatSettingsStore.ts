@@ -1,8 +1,7 @@
 import { defineStore } from 'pinia'
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 
 import { ChatSettingsApi } from '../api/chatSettings.api'
-
 
 export interface TranslatorLanguage {
   code: string
@@ -10,17 +9,13 @@ export interface TranslatorLanguage {
   nativeName: string
 }
 
-
 export interface ChatSettings {
   chatSourceLanguage: string
   chatTargetLanguage: string
-
   messageTranslateLanguage: string
-
   originalVoiceLanguage: string
   translatedVoiceLanguage: string
 }
-
 
 export const useChatSettingsStore = defineStore(
   'chatSettings',
@@ -99,16 +94,19 @@ export const useChatSettingsStore = defineStore(
     // =====================================================
 
     const chatSourceLanguage = ref('ko')
-
     const chatTargetLanguage = ref('en')
 
     const messageTranslateLanguage = ref('ko')
 
     const originalVoiceLanguage = ref('auto')
-
     const translatedVoiceLanguage = ref('ko')
 
 
+    // =====================================================
+    // 로딩 상태
+    // =====================================================
+
+    const isLoading = ref(false)
 
 
     // =====================================================
@@ -119,12 +117,10 @@ export const useChatSettingsStore = defineStore(
 
       try {
 
+        isLoading.value = true
 
-        console.log("loadChatSettings =============================")
         const settings =
           await ChatSettingsApi.getChatSettings()
-
-          
 
         chatSourceLanguage.value =
           settings.chatSourceLanguage
@@ -141,14 +137,16 @@ export const useChatSettingsStore = defineStore(
         translatedVoiceLanguage.value =
           settings.translatedVoiceLanguage
 
-
-
       } catch (error) {
 
         console.error(
           'loadChatSettings error:',
           error
         )
+
+      } finally {
+
+        isLoading.value = false
 
       }
 
@@ -162,6 +160,8 @@ export const useChatSettingsStore = defineStore(
     const saveChatSettings = async () => {
 
       try {
+
+        isLoading.value = true
 
         const settings =
           await ChatSettingsApi.updateChatSettings({
@@ -179,14 +179,12 @@ export const useChatSettingsStore = defineStore(
               originalVoiceLanguage.value,
 
             translatedVoiceLanguage:
-              translatedVoiceLanguage.value,
-
-          
+              translatedVoiceLanguage.value
 
           })
 
 
-        // 서버에서 반환된 값을 다시 반영
+        // 서버에서 반환된 값 반영
 
         chatSourceLanguage.value =
           settings.chatSourceLanguage
@@ -204,9 +202,7 @@ export const useChatSettingsStore = defineStore(
           settings.translatedVoiceLanguage
 
 
-
         return settings
-
 
       } catch (error) {
 
@@ -216,6 +212,10 @@ export const useChatSettingsStore = defineStore(
         )
 
         throw error
+
+      } finally {
+
+        isLoading.value = false
 
       }
 
@@ -238,7 +238,7 @@ export const useChatSettingsStore = defineStore(
       originalVoiceLanguage,
       translatedVoiceLanguage,
 
-  
+      isLoading,
 
       loadChatSettings,
       saveChatSettings

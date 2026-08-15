@@ -78,7 +78,13 @@ const useRecentFeature = () => {
 }
 
 const handleKeydown = (e: KeyboardEvent) => {
-  if (uiStore.currentTab !== 'chatRoom') return
+  if (
+    uiStore.currentTab !== 'chatRoom' &&
+    uiStore.currentTab !== 'inviteChatRoom'
+  ) {
+    return
+  }
+
   if (props.loading) return
 
   if (e.ctrlKey && e.key.toLowerCase() === 'e') {
