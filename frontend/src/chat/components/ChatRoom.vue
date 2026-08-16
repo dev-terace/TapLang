@@ -1,46 +1,40 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
+
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
-import { useChatStore } from '@/chat/store/Chat'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
 import ChatFeatureModal, { type Feature } from './ChatFeatureModel.vue'
 import GroupChatMembersModal, { type GroupChatMember } from './GroupChatMemberModal.vue'
-import { useChatScroll } from '@/chat/composables/useChatScroll'
-import { formatDate, isSameDate } from '@/chat/composables/chatDate'
+import { useChatScroll } from '@/chat/composables/chatRoom.vue/useChatScroll.js'
+import { formatDate, isSameDate } from '@/chat/composables/utils/chatDate.js'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
 import { useTranslatorStore } from '../store/AiTransStore.js'
 import { Settings, X } from 'lucide-vue-next'
 import ChatSettingsModal from './ChatSettingsModal.vue'
-import { useChatSettingsStore } from '../store/ChatSettingsStore.js'
 import StickerModal from './StickerModal.vue'
-import axios from 'axios' // 이미지 업로드용 (프로젝트의 axios 인스턴스로 대체 가능)
+// import axios from 'axios' // 이미지 업로드용 (프로젝트의 axios 인스턴스로 대체 가능)
+import { useChatRoom } from '../composables/chatRoom.vue/useChatRoom.js'
+import { useChatImage } from '../composables/chatRoom.vue/useChatImage.js'
+import { useChatTranslate } from '../composables/chatRoom.vue/useChatTranslate.js'
+import { useChatLeave } from '../composables/chatRoom.vue/useChatLeaves.js'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
-const chatStore = useChatStore()
+const { translate } = useChatTranslate()
 const authStore = useAuthStore()
 const modalStore = useModalStore()
 const friendStore = useFriendStore()
 const blockStore = useBlockStore()
 const translatorStore = useTranslatorStore()
-const chatSettingsStore = useChatSettingsStore()
+
 
 const ownId = computed(() => authStore.userInfo?.id)
 const newMessage = ref('')
 
-// ----------------------------------------------------
-// 📷 이미지 업로드 & 미리보기 관련 State
-// ----------------------------------------------------
-const fileInputRef = ref<HTMLInputElement | null>(null)
-const selectedFile = ref<File | null>(null)
-const imagePreviewUrl = ref<string | null>(null)
-const imageCaption = ref('') // 이미지 설명
-const isImageModalOpen = ref(false)
-const isUploadingImage = ref(false)
 
 // 1:1 채팅과 그룹 채팅을 정확하게 구분하는 로직
 const isGroupChat = computed(() => {
@@ -58,6 +52,47 @@ const filteredMessages = computed(() =>
 )
 const { scrollToBottom } = useChatScroll(messageContainer, () => filteredMessages.value)
 
+const {
+  createRoom
+} = useChatRoom({
+  scrollToBottom
+})
+
+const {
+  fileInputRef,
+  imagePreviewUrl,
+  imageCaption,
+  isImageModalOpen,
+  isUploadingImage,
+  handleFileChange,
+  closeImageModal,
+  sendImageMessage,
+  openFilePicker
+} = useChatImage({
+  scrollToBottom
+})
+
+
+const conversationId = computed(
+  () => chatRoomStore.conversationId
+)
+
+const { leaveChatRoom } = useChatLeave({
+  conversationId,
+
+  onLeave: async () => {
+    // 실제 나가기 API 연결 부분
+    console.log(
+      '채팅방 나가기:',
+      conversationId.value
+    )
+  },
+
+  onSuccess: () => {
+    uiStore.currentTab = 'chat'
+  }
+})
+
 // 대화 상대 모달 상태 (그룹 채팅 전용)
 const isMembersModalOpen = ref(false)
 
@@ -70,224 +105,39 @@ const handleStickerSelect = (sticker: string) => {
   newMessage.value += sticker
 }
 
-const isProcessing = ref(false)
 
-// ----------------------------------------------------
-// 🖼️ 이미지 처리 로직 (파일 선택 / Paste / 업로드)
-// ----------------------------------------------------
-
-// 1. 파일이 선택되었을 때 (파일 탐색기 또는 Ctrl+V)
-const processFile = (file: File) => {
-  if (!file.type.startsWith('image/')) {
-    alert('이미지 파일만 업로드할 수 있습니다.')
-    return
-  }
-
-  selectedFile.value = file
-  
-  // 기존 프리뷰 URL 메모리 해제 및 새로 생성
-  if (imagePreviewUrl.value) {
-    URL.revokeObjectURL(imagePreviewUrl.value)
-  }
-  imagePreviewUrl.value = URL.createObjectURL(file)
-  imageCaption.value = ''
-  isImageModalOpen.value = true
-}
-
-// 2. 파일 탐색기 인풋 변경 감지
-const handleFileChange = (e: Event) => {
-  const target = e.target as HTMLInputElement
-  if (target.files && target.files[0]) {
-    processFile(target.files[0])
-  }
-  // input value 초기화 (동일 파일 재선택 가능하게)
-  target.value = ''
-}
-
-// 3. Ctrl + V 붙여넣기 이벤트 핸들러
-const handlePaste = (e: ClipboardEvent) => {
-  if (uiStore.currentTab !== 'chatRoom' && uiStore.currentTab !== 'inviteChatRoom') return
-
-  const items = e.clipboardData?.items
-  if (!items) return
-
-  for (const item of items) {
-    if (item.type.indexOf('image') !== -1) {
-      e.preventDefault()
-      const file = item.getAsFile()
-      if (file) {
-        processFile(file)
-      }
-      break
-    }
-  }
-}
-
-// 4. 이미지 모달 닫기
-const closeImageModal = () => {
-  isImageModalOpen.value = false
-  selectedFile.value = null
-  imageCaption.value = ''
-  if (imagePreviewUrl.value) {
-    URL.revokeObjectURL(imagePreviewUrl.value)
-    imagePreviewUrl.value = null
-  }
-}
-
-// 5. 이미지 업로드 및 채팅 메시지 전송
-const sendImageMessage = async () => {
-  if (!selectedFile.value || !chatRoomStore.conversationId) return
-
-  try {
-    isUploadingImage.value = true
-
-    // A. 이미지 파일 백엔드 업로드
-    const formData = new FormData()
-    formData.append('image', selectedFile.value)
-
-    const { data } = await axios.post('/api/image/upload', formData, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-
-
-    console.log("sendImageMessage data", data);
-    // B. 업로드 후 발급받은 URL을 attachments로 메시지 전송
-    await chatRoomStore.createMessage({
-      conversationId: chatRoomStore.conversationId,
-      content: imageCaption.value.trim(), // 사진 설명이 메시지 텍스트가 됨
-      attachments: [
-        {
-          url: data.url, // /api/image/guid...
-          guid: data.guid
-        }
-      ]
-    })
-
-    closeImageModal()
-    scrollToBottom()
-
-  } catch (error) {
-    console.error('이미지 전송 실패:', error)
-    alert('이미지 업로드 중 오류가 발생했습니다.')
-  } finally {
-    isUploadingImage.value = false
-  }
-}
-
-// 이벤트 리스너 등록
-onMounted(() => {
-  window.addEventListener('paste', handlePaste)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('paste', handlePaste)
-  if (imagePreviewUrl.value) {
-    URL.revokeObjectURL(imagePreviewUrl.value)
-  }
-})
-
-// ==================================================
-// 기존 대화방 진입 및 메시지 워처
-// ==================================================
-watch(
-  () => ({
-    conversationId: uiStore.conversationId,
-    memberIds: [...uiStore.chatRoomMemberIds],
-    currentTab: uiStore.currentTab,
-    isChatRoomCreate: uiStore.isChatRoomCreate
-  }),
-  async (state) => {
-    const { conversationId, memberIds, currentTab, isChatRoomCreate } = state
-
-    if (currentTab !== 'chatRoom' && currentTab !== 'inviteChatRoom') return
-    if (isProcessing.value) return
-
-    if (conversationId) {
-      isProcessing.value = true
-      try {
-        chatRoomStore.conversationId = conversationId
-        const exists = await chatRoomStore.existsConversation(conversationId)
-        if (!exists) return
-
-        if (currentTab === 'inviteChatRoom') {
-          await chatRoomStore.joinConversation(conversationId, memberIds)
-        }
-
-        if (!chatRoomStore.hasMessageCache(conversationId)) {
-          await loadMessages(conversationId)
-        }
-
-        await chatStore.readConversation(conversationId)
-        await chatStore.getMyConversations()
-
-        await nextTick()
-        requestAnimationFrame(() => scrollToBottom())
-      } catch (error) {
-        console.error('기존 채팅방 진입 실패:', error)
-      } finally {
-        isProcessing.value = false
-      }
-      return
-    }
-
-    if (!isChatRoomCreate) return
-    if (memberIds.length === 0) return
-
-    isProcessing.value = true
-    try {
-      const chatType = currentTab === 'inviteChatRoom' ? 'GROUP' : memberIds.length > 1 ? 'GROUP' : 'DIRECT'
-
-      const newConversationId = await chatRoomStore.createChat({
-        memberIds,
-        chatType,
-        name: chatType === 'GROUP' ? uiStore.roomName : null,
-        message: ''
-      })
-
-      chatRoomStore.conversationId = newConversationId
-      uiStore.conversationId = newConversationId
-      uiStore.isChatRoomCreate = false
-
-      if (chatType === 'GROUP') {
-        await chatRoomStore.joinConversation(newConversationId, memberIds)
-      }
-
-      await loadMessages(newConversationId)
-      await chatStore.readConversation(newConversationId)
-      await chatStore.getMyConversations()
-
-      await nextTick()
-      requestAnimationFrame(() => scrollToBottom())
-    } catch (error) {
-      console.error('새 채팅방 생성 실패:', error)
-    } finally {
-      isProcessing.value = false
-    }
-  },
-  { immediate: true }
-)
-
-const loadMessages = async (id: string) => {
-  if (!id) return
-  try {
-    const { data } = await chatRoomStore.getChatMessages(id)
-    data.reverse().forEach(msg => chatRoomStore.addMessage(msg))
-  } catch (error) {
-    console.error('메시지 조회 실패:', error)
-    chatRoomStore.messages = []
-  }
-}
 
 const sendMessage = async () => {
   const trimmed = newMessage.value.trim()
-  if (!trimmed || !chatRoomStore.conversationId) return
+
+  // 빈 메시지는 전송하지 않음
+  if (!trimmed) {
+    return
+  }
+
+  // 채팅방이 없으면 먼저 생성
+  if (!chatRoomStore.conversationId) {
+    const conversationId = await createRoom()
+
+    if (!conversationId) {
+      return
+    }
+  }
+
+  const conversationId =
+    chatRoomStore.conversationId
+
+  if (!conversationId) {
+    return
+  }
 
   await chatRoomStore.createMessage({
-    conversationId: chatRoomStore.conversationId,
+    conversationId,
     content: trimmed
   })
 
   newMessage.value = ''
+
   scrollToBottom()
 }
 
@@ -303,37 +153,20 @@ const selectFeature = async (feature: Feature) => {
 
     case "Image":
       // 📷 파일 탐색기 열기
-      fileInputRef.value?.click();
+      openFilePicker()
       break;
   }
 };
 
+
+
 const translateWithAI = async () => {
-  const text = newMessage.value.trim();
-  if (!text) return;
+  const translatedText = await translate(newMessage.value)
 
-  try {
-    const chatSourceLanguage = chatSettingsStore.chatSourceLanguage
-    const chatTargetLanguage = chatSettingsStore.chatTargetLanguage
-
-    const result = await translatorStore.translateInput(
-      `${chatSourceLanguage}<->${chatTargetLanguage}`,
-      text
-    )
-
-    if (result === false) {
-      alert("번역할 수 없는 내용입니다.");
-      return;
-    }
-
-    if (result) {
-      newMessage.value = result.translatedText;
-    }
-  } catch (error) {
-    console.error(error);
-    alert("AI 번역에 실패했습니다.");
+  if (translatedText) {
+    newMessage.value = translatedText
   }
-};
+}
 
 const handleMemberAction = async (action: string, member: GroupChatMember) => {
   const friendId = member.id
@@ -353,6 +186,12 @@ const handleMemberAction = async (action: string, member: GroupChatMember) => {
     }
   }
 }
+
+
+
+console.log("formatDate", formatDate(new Date()))
+
+
 </script>
 
 <template>
@@ -397,6 +236,20 @@ const handleMemberAction = async (action: string, member: GroupChatMember) => {
         <button @click="modalStore.openModal('chatRoomSettings')" class="hover:text-white transition-colors">
           <Settings class="w-5 h-5 stroke-[2.5]" />
         </button>
+
+         <button
+        type="button"
+        @click="leaveChatRoom"
+        class="text-[#2d2b28]
+              hover:text-red-600
+              transition-colors
+              flex
+              items-center
+              justify-center"
+        title="채팅방 나가기"
+      >
+        <X class="w-5 h-5 stroke-[2.5]" />
+      </button>
       </div>
     </div>
 

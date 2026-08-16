@@ -7,6 +7,9 @@ import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
 import { Conversation } from '@/chat/store/Chat'
 import { useChatRoomStore } from '../store/ChatRoom'
+import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
+
+const { openConversation } = useChatNavigation()
 
 const uiStore = useUIStore()
 const chatStore = useChatStore()
@@ -28,37 +31,39 @@ watch(
   { immediate: true }
 )
 
-const openConversation = (conversation: Conversation) => {
-  if (conversation.type === "DIRECT") {
-    const otherMember = conversation.members.find(
-      member => String(member.userId) !== String(userInfo.value?.id)
-    );
+
+//   if (conversation.type === "DIRECT") {
+//     const otherMember = conversation.members.find(
+//       member => String(member.userId) !== String(userInfo.value?.id)
+//     );
     
-    uiStore.conversationId = null;
+//     // ❌ 기존: uiStore.conversationId = null; (이 부분 때문에 로딩이 안 되었음)
+//     // ✅ 수정: 목록에 존재하는 대화방의 ID를 정상 전달
+//     uiStore.conversationId = conversation.conversationId; 
     
-    const roomName = conversation?.name?.split('|').find(v => v !== userInfo.value?.name) ?? '1:1 채팅';
+//     const roomName = conversation?.name?.split('|').find(v => v !== userInfo.value?.name) ?? '1:1 채팅';
 
-    uiStore.changeChatRoomTab(
-      true,
-      otherMember ? [Number(otherMember.userId)] : [],
-      roomName,
-      'chatRoom' 
-    );
-    return;
-  }
+//     uiStore.changeChatRoomTab(
+//       true,
+//       otherMember ? [Number(otherMember.userId)] : [],
+//       roomName,
+//       'chatRoom' 
+//     );
+//     return;
+//   }
 
-  // GROUP 로직
-  uiStore.conversationId = conversation.conversationId;
+//   // GROUP 로직
+//   uiStore.conversationId = conversation.conversationId;
 
-  uiStore.changeChatRoomTab(
-    false,
-    conversation.members
-      .filter(member => String(member.userId) !== String(userInfo.value?.id))
-      .map(member => member.userId),
-    conversation.name ?? "",
-    "inviteChatRoom"
-  );
-};
+//   uiStore.changeChatRoomTab(
+//     false,
+//     conversation.members
+//       .filter(member => String(member.userId) !== String(userInfo.value?.id))
+//       .map(member => member.userId),
+//     conversation.name ?? "",
+//     "inviteChatRoom"
+//   );
+// };
 
 watch(
   () => conversations.value,

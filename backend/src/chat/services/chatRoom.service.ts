@@ -313,9 +313,7 @@ async function createGroup(
       members: {
         create: memberIds.map(id => ({
           userId: id,
-          role: id === ownId
-            ? ConversationMemberRole.OWNER :
-            ConversationMemberRole.MEMBER
+          role: ConversationMemberRole.MEMBER
         }))
       }
     }

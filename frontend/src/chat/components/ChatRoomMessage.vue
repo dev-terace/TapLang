@@ -1,10 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import {
+  computed,
+  ref,
+  toRef
+} from 'vue'
+
 import { Volume2, Languages } from 'lucide-vue-next'
 
 import { useChatSettingsStore } from '../store/ChatSettingsStore'
 import { useTranslatorStore as useAiTranslatorStore } from '../store/AiTransStore.js'
 import { ChatRoomApi } from '../api/chatRoom.api'
+import { useMessageTranslation } from '../composables/chatRoomMessage.vue/useMessageTranslation'
+import { useImageViewer } from '../composables/chatRoomMessage.vue/useImageViewer'
+import { useMessageSpeech } from '../composables/chatRoomMessage.vue/useMessageSpeech'
+
 
 const props = defineProps<{
   message: {
@@ -26,180 +35,119 @@ const isMine = computed(() => {
 const chatSettingsStore = useChatSettingsStore()
 const translatorStore = useAiTranslatorStore()
 
-// =====================================================
-// 번역 결과
-// =====================================================
+const messageRef = toRef(props, 'message')
 
-const translatedText = ref<string | null>(null)
+const {
+  translatedText,
+  isThisMessageTranslating,
+  isOtherMessageTranslating,
+  translateMessage
+} = useMessageTranslation(
+  messageRef,
+  chatSettingsStore,
+  translatorStore
+)
 
-// =====================================================
-// 현재 메시지가 번역 중인지
-// =====================================================
 
-const isThisMessageTranslating = computed(() => {
-  return (
-    translatorStore.isMessageTranslating &&
-    translatorStore.translatingMessageId === props.message.id
-  )
-})
 
-// =====================================================
-// 다른 메시지가 번역 중인지
-// =====================================================
+const {
+  speakOriginal,
+  speakTranslated,
+  stopSpeech
+} = useMessageSpeech(
+  chatSettingsStore
+)
 
-const isOtherMessageTranslating = computed(() => {
-  return (
-    translatorStore.isMessageTranslating &&
-    translatorStore.translatingMessageId !== props.message.id
-  )
-})
+const {
+  selectedImageUrl,
+  imageScale,
+  imageTransformOrigin,
+  openImageModal,
+  closeImageModal,
+  handleImageWheel,
+  handleImageDoubleClick
+} = useImageViewer()
 
-// =====================================================
-// 음성 언어 매핑
-// =====================================================
 
-const speechLanguages: Record<string, string> = {
-  ko: 'ko-KR',
-  en: 'en-US',
-  ja: 'ja-JP',
-  zh: 'zh-CN',
-  es: 'es-ES',
-  fr: 'fr-FR',
-  de: 'de-DE',
-  it: 'it-IT',
-  pt: 'pt-PT',
-  ru: 'ru-RU',
-  ar: 'ar-SA',
-  hi: 'hi-IN'
-}
 
-// =====================================================
-// 원본 메시지 음성
-// =====================================================
 
-const getOriginalSpeechLanguage = () => {
-  const language = chatSettingsStore.originalVoiceLanguage
+// const speechLanguages: Record<string, string> = {
+//   ko: 'ko-KR',
+//   en: 'en-US',
+//   ja: 'ja-JP',
+//   zh: 'zh-CN',
+//   es: 'es-ES',
+//   fr: 'fr-FR',
+//   de: 'de-DE',
+//   it: 'it-IT',
+//   pt: 'pt-PT',
+//   ru: 'ru-RU',
+//   ar: 'ar-SA',
+//   hi: 'hi-IN'
+// }
 
-  if (language === 'auto') {
-    return navigator.language
-  }
+// // =====================================================
+// // 원본 메시지 음성
+// // =====================================================
 
-  return speechLanguages[language] ?? 'en-US'
-}
+// const getOriginalSpeechLanguage = () => {
+//   const language = chatSettingsStore.originalVoiceLanguage
 
-const speakMessage = () => {
-  if (!props.message.content.trim()) return
+//   if (language === 'auto') {
+//     return navigator.language
+//   }
 
-  window.speechSynthesis.cancel()
+//   return speechLanguages[language] ?? 'en-US'
+// }
 
-  const utterance = new SpeechSynthesisUtterance(
-    props.message.content
-  )
+// const speakMessage = () => {
+//   if (!props.message.content.trim()) return
 
-  utterance.lang = getOriginalSpeechLanguage()
-  utterance.rate = 1
-  utterance.pitch = 1
-  utterance.volume = 1
+//   window.speechSynthesis.cancel()
 
-  window.speechSynthesis.speak(utterance)
-}
+//   const utterance = new SpeechSynthesisUtterance(
+//     props.message.content
+//   )
 
-// =====================================================
-// 번역 메시지 음성
-// =====================================================
+//   utterance.lang = getOriginalSpeechLanguage()
+//   utterance.rate = 1
+//   utterance.pitch = 1
+//   utterance.volume = 1
 
-const getTranslationSpeechLanguage = () => {
-  const language =
-    chatSettingsStore.translatedVoiceLanguage
+//   window.speechSynthesis.speak(utterance)
+// }
 
-  return speechLanguages[language] ?? 'en-US'
-}
+// // =====================================================
+// // 번역 메시지 음성
+// // =====================================================
 
-const speakTranslatedMessage = () => {
-  if (!translatedText.value) return
+// const getTranslationSpeechLanguage = () => {
+//   const language =
+//     chatSettingsStore.translatedVoiceLanguage
 
-  window.speechSynthesis.cancel()
+//   return speechLanguages[language] ?? 'en-US'
+// }
 
-  const utterance =
-    new SpeechSynthesisUtterance(
-      translatedText.value
-    )
+// const speakTranslatedMessage = () => {
+//   if (!translatedText.value) return
 
-  utterance.lang =
-    getTranslationSpeechLanguage()
+//   window.speechSynthesis.cancel()
 
-  utterance.rate = 1
-  utterance.pitch = 1
-  utterance.volume = 1
+//   const utterance =
+//     new SpeechSynthesisUtterance(
+//       translatedText.value
+//     )
 
-  window.speechSynthesis.speak(utterance)
-}
+//   utterance.lang =
+//     getTranslationSpeechLanguage()
 
-// =====================================================
-// 메시지 번역
-// =====================================================
+//   utterance.rate = 1
+//   utterance.pitch = 1
+//   utterance.volume = 1
 
-const translateMessage = async () => {
+//   window.speechSynthesis.speak(utterance)
+// }
 
-  // 다른 메시지가 번역 중
-  if (isOtherMessageTranslating.value) {
-    return
-  }
-
-  // 현재 메시지가 번역 중
-  if (isThisMessageTranslating.value) {
-    return
-  }
-
-  // 이미 번역되어 있으면 닫기
-  if (translatedText.value) {
-    translatedText.value = null
-    window.speechSynthesis.cancel()
-    return
-  }
-
-  const text =
-    props.message.content.trim()
-
-  if (!text) return
-
-  try {
-
-    const targetLanguage =
-      chatSettingsStore.messageTranslateLanguage
-
-    console.log(
-      '번역 대상 언어:',
-      targetLanguage
-    )
-
-    console.log(
-      '번역할 메시지:',
-      text
-    )
-
-    const result =
-      await translatorStore.translateMessage(
-        props.message.id,
-        targetLanguage,
-        text
-      )
-
-    if (!result) {
-      return
-    }
-
-    translatedText.value =
-      result.translatedText
-
-  } catch (error) {
-
-    console.error(
-      '메시지 번역 실패:',
-      error
-    )
-  }
-}
 
 // =====================================================
 // 이미지 만료 상태
@@ -218,126 +166,7 @@ const isImageExpired = (guid: string) => {
   return expiredImages.value.has(guid)
 }
 
-// =====================================================
-// 이미지 모달
-// =====================================================
 
-const selectedImageUrl =
-  ref<string | null>(null)
-
-const imageScale = ref(1)
-
-const imageTransformOrigin =
-  ref('center center')
-
-// =====================================================
-// 이미지 모달 열기
-// =====================================================
-
-const openImageModal = (url: string) => {
-
-  if (!url) return
-
-  selectedImageUrl.value = url
-
-  imageScale.value = 1
-
-  imageTransformOrigin.value =
-    'center center'
-}
-
-// =====================================================
-// 이미지 모달 닫기
-// =====================================================
-
-const closeImageModal = () => {
-
-  selectedImageUrl.value = null
-
-  imageScale.value = 1
-
-  imageTransformOrigin.value =
-    'center center'
-}
-
-// =====================================================
-// 이미지 확대 / 축소
-// 마우스 위치 기준
-// =====================================================
-
-const handleImageWheel = (
-  event: WheelEvent
-) => {
-
-  event.preventDefault()
-
-  const image =
-    event.currentTarget as HTMLImageElement
-
-  const rect =
-    image.getBoundingClientRect()
-
-  // 마우스 위치 계산
-  const x =
-    ((event.clientX - rect.left) / rect.width) * 100
-
-  const y =
-    ((event.clientY - rect.top) / rect.height) * 100
-
-  imageTransformOrigin.value =
-    `${x}% ${y}%`
-
-  const zoomStep = 0.15
-
-  if (event.deltaY < 0) {
-
-    // 위로 스크롤 = 확대
-    imageScale.value =
-      Math.min(
-        imageScale.value + zoomStep,
-        4
-      )
-
-  } else {
-
-    // 아래로 스크롤 = 축소
-    imageScale.value =
-      Math.max(
-        imageScale.value - zoomStep,
-        0.5
-      )
-  }
-}
-
-// =====================================================
-// 이미지 더블클릭 확대
-// =====================================================
-
-const handleImageDoubleClick = (
-  event: MouseEvent
-) => {
-
-  const image =
-    event.currentTarget as HTMLImageElement
-
-  const rect =
-    image.getBoundingClientRect()
-
-  const x =
-    ((event.clientX - rect.left) / rect.width) * 100
-
-  const y =
-    ((event.clientY - rect.top) / rect.height) * 100
-
-  imageTransformOrigin.value =
-    `${x}% ${y}%`
-
-  imageScale.value =
-    Math.min(
-      imageScale.value + 0.5,
-      4
-    )
-}
 </script>
 
 
@@ -632,7 +461,7 @@ const handleImageDoubleClick = (
 
         <button
           type="button"
-          @click.stop="speakMessage"
+          @click.stop="speakOriginal(message.content)"
 
           class="shrink-0
                  hover:opacity-60
@@ -775,7 +604,7 @@ const handleImageDoubleClick = (
 
             <button
               type="button"
-              @click.stop="speakTranslatedMessage"
+              @click.stop="speakTranslated(translatedText)"
 
               class="shrink-0
                      text-[#2d2b28]

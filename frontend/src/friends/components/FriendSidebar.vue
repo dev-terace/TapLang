@@ -7,7 +7,7 @@ import { useUIStore } from '@/shared/ui/UiStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
 import { useProfileStore } from '@/profile/store/ProfileStore.js'
 import { useSocketRegister } from '@/shared/socket/socket.register.js'
-
+import { useChatStore } from '@/chat/store/Chat.js'
 // Modals
 import FriendModal from './FriendModal.vue'
 import CountryModal from '@/profile/components/CountryModal.vue'
@@ -19,7 +19,9 @@ import CreateRoomModal from './CreateRoomModal.vue'
 import FriendSidebarHeader from './FriendSidebarHeader.vue'
 import FriendRequestItem from './FriendRequestItem.vue'
 import FriendListItem from './FriendListItem.vue'
+import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
 
+const { openDirectChatWithUser } = useChatNavigation()
 
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
@@ -28,6 +30,7 @@ const uiStore = useUIStore()
 const blockStore = useBlockStore()
 const profileStore = useProfileStore()
 const isMyOnlineStatus = ref<boolean | null>(null)
+const chatStore = useChatStore()
 
 const socket = useSocketRegister()
 const alertFunc = (msg: string) => alert(msg)
@@ -91,9 +94,30 @@ const handleMenuAction = async (action: string, friendId: string) => {
 }
 
 // 더블클릭 채팅 진입 핸들러
-const handleDoubleClick = (friend: any) => {
-  uiStore.conversationId = null
-  uiStore.changeChatRoomTab(true, [friend.id], friend.name, 'chatRoom')
+// const handleDoubleClick = async (friend: any) => {
+//   // 1. 최신 대화 목록 확인
+//   await chatStore.getMyConversations()
+
+//   // 2. 해당 친구와의 기존 1:1 채팅방 검색
+//   const existingRoom = chatStore.conversations?.data?.find((c: any) => 
+//     c.type === 'DIRECT' && 
+//     c.members.some((m: any) => String(m.userId) === String(friend.id))
+//   )
+
+//   if (existingRoom) {
+//     // 기존 방이 존재하면 ID 세팅 (메시지 내역 바로 로드)
+//     uiStore.conversationId = existingRoom.conversationId
+//     uiStore.isChatRoomCreate = false
+//   } else {
+//     // 신규 방인 경우 null 처리 및 생성 플래그 true
+//     uiStore.conversationId = null
+//     uiStore.isChatRoomCreate = true
+//   }
+
+//   uiStore.changeChatRoomTab(true, [Number(friend.id)], friend.name, 'chatRoom')
+// }
+const handleDoubleClick = async (friend: any) => {
+  openDirectChatWithUser(friend.id, friend.name)
 }
 
 // 검색 및 초대 모드 관련 상태
