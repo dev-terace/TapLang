@@ -1,8 +1,12 @@
 import api from "@/shared/auth/api.config";
 import axios from "axios";
-
+import { useSocketRegister } from '@/shared/socket/socket.register.js'
+import { useUIStore } from "@/shared/ui/UiStore";
+import { useChatStore } from "../store/Chat";
 export namespace ChatRoomApi{
 
+
+   
 
    interface CreateChatRequest {
       memberIds: number[];
@@ -36,6 +40,21 @@ export namespace ChatRoomApi{
   }
 
 
+
+ export  async function leaveConversation(conversationId: string) {
+  const socketStore = useSocketRegister()
+
+  const response = await api.delete(
+    `/api/chat-room/${conversationId}`,
+  )
+
+
+ if (response.data.data.deleted) {
+    socketStore.socket.emit("chat-room:leave", conversationId)
+ }
+
+  return response.data
+}
 export async function getGroupChatMembers(conversationId: string) {
   try {
     const response = await api.get<getGroupChatMembersResponse[]>(`/api/chat-room/group/${conversationId}`);
@@ -120,18 +139,72 @@ export const getChatMessages = async (
 };
 
     
-export async function createMessage(request: createMessageRequest)
-{
-   const response = await api.post("/api/chat-room/message",
+export async function createMessage(
+  request: createMessageRequest
+) {
+  const uiStore = useUIStore();
+  const chatStore = useChatStore()
+
+  try {
+    console.log('[createMessage request]', request)
+
+    const response = await api.post(
+      "/api/chat-room/message",
       {
-         conversationId: request.conversationId,
-         content: request.content,
-         attachments: request.attachments
-         
+        conversationId: request.conversationId,
+        content: request.content,
+        attachments: request.attachments
       }
-   )
-   console.log("createMessage data: ", response.data)
+    )
+
+    console.log(
+      '[createMessage response]',
+      response.data
+    )
+
+    return response.data
+
+  } catch (error: any) {
+
+    console.error(
+      '[createMessage error]',
+      error
+    )
+
+    console.error(
+      '[createMessage status]',
+      error.response?.status
+    )
+
+    console.error(
+      '[createMessage server response]',
+      error.response?.data
+    )
+
+    console.error(
+      '[createMessage request]',
+      error.config?.data
+    )
+
+    // 서버에서 400을 반환한 경우
+    if (error.response?.status === 400) {
+      chatStore.getMyConversations()
+      uiStore.changeTab('chat')  
+
+      
+      const message =
+        error.response?.data?.message ??
+        '메시지를 보낼 수 없습니다.'
+
+     
+      alert(message)
+      
+    }
+
+    throw error
+  }
 }
+
 export async function createChat(request: CreateChatRequest) {
 
   console.log("createChat request:", request);

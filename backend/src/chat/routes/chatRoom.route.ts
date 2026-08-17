@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { createChat, createMessage, getMessages, 
-        existsConversation, joinConversation, getGroupChatMembers, getConversationInfo } from '../controllers/chatRoom.controller';
+        existsConversation, joinConversation, getGroupChatMembers
+        , getConversationInfo, leaveConversation } from '../controllers/chatRoom.controller';
 const router = Router();
 
 router.post("/", createChat);
@@ -19,10 +20,18 @@ router.get(
   "/:conversationId",
   existsConversation
 );
+
+router.delete(
+  '/:conversationId',
+  leaveConversation,
+)
+
 router.get(
   "/info/:conversationId",
   getConversationInfo
 );
+
+
 
 
 export default router;

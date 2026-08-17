@@ -73,6 +73,23 @@ export const useProfileStore = defineStore('profile', () => {
         }
     }
 
+
+    const checkUsernameTag = async (username: string) => {
+        isLoading.value = true
+        error.value = null
+
+        try {
+            // API 호출 (예: GET /api/profiles/check-tag?username=...)
+            const data = await ProfileApi.checkUsernameTag(username)
+            return data // { tag: '#0001' } 형태
+        } catch (err: any) {
+            error.value = err.message || '태그 조회 실패'
+            throw err
+        } finally {
+            isLoading.value = false
+        }
+    }
+
     return {
         isLoading,
         error,
@@ -81,6 +98,7 @@ export const useProfileStore = defineStore('profile', () => {
         profileDetails,
         userProfileDetails,
         updateProfileDetails,
-        updateOnlineStatusVisibility
+        updateOnlineStatusVisibility,
+        checkUsernameTag
     }
 })

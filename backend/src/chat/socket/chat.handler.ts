@@ -58,3 +58,73 @@ export const emitNewMessage = (
       conversationName
     });
 };
+
+
+const leaveConversationMember = (
+  conversationId: string,
+  userId: number
+) => {
+  const io = getSocketIO();
+
+  const socketId = userSockets.get(userId);
+
+  if (!socketId) {
+    console.log(
+      `[chatHandler] socket not found. userId=${userId}`
+    );
+    return;
+  }
+
+  const socket = io.sockets.sockets.get(socketId);
+
+  if (!socket) {
+    console.log(
+      `[chatHandler] socket instance not found. userId=${userId}`
+    );
+    return;
+  }
+
+  const room = `conversation:${conversationId}`;
+
+  socket.leave(room);
+
+  console.log(
+    `[chatHandler] user ${userId} left ${room}`
+  );
+};
+
+export const registerLeaveConversationMember = (socket: Socket) => {
+  socket.on(
+    "conversation:leave",
+    async (conversationId: string) => {
+      try {
+        const ownId = socket.data.userId;
+
+        if (!ownId) {
+          console.error(
+            "[conversation:leave] userId가 없습니다."
+          );
+          return;
+        }
+
+        if (!conversationId) {
+          console.error(
+            "[conversation:leave] conversationId가 없습니다."
+          );
+          return;
+        }
+
+        leaveConversationMember(
+          conversationId,
+          ownId
+        );
+
+      } catch (error) {
+        console.error(
+          "[conversation:leave] error:",
+          error
+        );
+      }
+    }
+  );
+};

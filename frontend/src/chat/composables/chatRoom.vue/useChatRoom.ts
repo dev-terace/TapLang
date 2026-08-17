@@ -48,6 +48,13 @@ export function useChatRoom(options: UseChatRoomOptions) {
             ? 'GROUP'
             : 'DIRECT'
 
+
+          console.log('createChat request', {
+      memberIds,
+      chatType,
+      name: chatType === 'GROUP' ? uiStore.roomName : null,
+            
+    })      
       const conversationId = await chatRoomStore.createChat({
         memberIds,
         chatType,

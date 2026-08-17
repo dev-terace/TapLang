@@ -70,7 +70,7 @@ const findUserIdByAuthToken = async(req: Request): Promise<number> => {
 
 const findOrCreateUser = async (userInput: FindOrCreateInput) => {
   // 1. providerId로 기존 유저 조회
-const existingUser = await prisma.myProfile.findUnique({
+  const existingUser = await prisma.myProfile.findUnique({
     where: {
       providerId: userInput.providerId,
     },
@@ -80,22 +80,46 @@ const existingUser = await prisma.myProfile.findUnique({
       flag: true,
       email: true,
       statusMsg: true,
-      showOnlineStatus: true
-  },
-});
+      showOnlineStatus: true,
+    },
+  });
 
   // 2. 유저가 이미 존재하면 기존 유저 반환 (isNew: false)
   if (existingUser) {
     return { user: existingUser, isNew: false };
   }
 
-  // 3. 존재하지 않는 신규 유저라면 name#count 로직 적용 후 생성 (isNew: true)
-  const nameCount = await prisma.myProfile.count({
-    where: { name: userInput.name },
+  // 3. 신규 유저 태그 번호 생성 (#0부터 빈 번호 차곡차곡 채우기)
+  const existingUsers = await prisma.myProfile.findMany({
+    where: {
+      name: {
+        startsWith: `${userInput.name}#`,
+      },
+    },
+    select: {
+      name: true,
+    },
   });
 
-  const filterName = `${userInput.name}#${nameCount}`;
+  // 사용 중인 태그 번호 추출
+  const usedTags = new Set(
+    existingUsers
+      .map((u) => {
+        const tagStr = u.name.split('#').pop();
+        return tagStr !== undefined ? parseInt(tagStr, 10) : NaN;
+      })
+      .filter((tag) => !isNaN(tag))
+  );
 
+  // #0부터 가장 작은 미사용 태그 번호 탐색
+  let availableTag = 0;
+  while (usedTags.has(availableTag)) {
+    availableTag++;
+  }
+
+  const filterName = `${userInput.name}#${availableTag}`;
+
+  // 4. 유저 생성
   const newUser = await prisma.myProfile.create({
     data: {
       provider: userInput.provider,
@@ -111,26 +135,22 @@ const existingUser = await prisma.myProfile.findUnique({
       flag: true,
       email: true,
       statusMsg: true,
-      showOnlineStatus: true
+      showOnlineStatus: true,
     },
-})
+  });
 
-const newId = newUser.id
-await prisma.myProfileDetails.create({
-  data: {
-    profileId: newId,
-    bio: '',
-  },
-})
+  const newId = newUser.id;
+  await prisma.myProfileDetails.create({
+    data: {
+      profileId: newId,
+      bio: '',
+    },
+  });
 
-;
-
-return {
-  user: newUser,
-  isNew: true,
-};
-
-
+  return {
+    user: newUser,
+    isNew: true,
+  };
 };
 
 export const userService = {

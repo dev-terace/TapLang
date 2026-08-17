@@ -10,6 +10,8 @@ export namespace ProfileApi {
 
   // 프로필 수정 요청
   export interface UpdateProfileDetailsPayload {
+    userName?: string
+    userNameTag?: string
     bio: string
     spokenLangs: string[]
     learningLangs: string[]
@@ -46,6 +48,42 @@ export namespace ProfileApi {
     snsLinks: SnsLinkPayload[]
 }
 
+export interface CheckUsernameTagResponse {
+  available: boolean
+}
+
+
+export async function checkUsernameTag(
+  username: string
+): Promise<CheckUsernameTagResponse> {
+  try {
+    const response =
+      await api.get<CheckUsernameTagResponse>(
+        '/api/profile/tag',
+        {
+          params: {
+            username
+          }
+        }
+      )
+
+    return response.data
+
+  } catch (error: unknown) {
+
+    if (axios.isAxiosError(error)) {
+      throw new Error(
+        error.response?.data?.message ??
+        '사용자 이름 중복 여부를 확인하지 못했습니다.'
+      )
+    }
+
+    throw new Error(
+      '알 수 없는 오류가 발생했습니다.'
+    )
+  }
+}
+
 
 export async function updateOnlineStatusVisibility(showOnlineStatus: boolean) {
   try {
@@ -62,6 +100,8 @@ export async function updateOnlineStatusVisibility(showOnlineStatus: boolean) {
     throw new Error('알 수 없는 오류가 발생했습니다.')
   }
 }
+
+
 
 export async function getUserProfileDetails(userId: number): Promise<GetUserProfileDetailsResponse> {
   try {

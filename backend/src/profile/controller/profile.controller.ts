@@ -6,6 +6,35 @@ import { userService } from "../../users/services/user.service";
 
 
 
+
+export const checkUsernameTag = async (
+  req: Request,
+  res: Response,
+) => {
+  try {
+    // GET Query 또는 POST Body에서 username 추출
+    const username = req.query.username as string;
+
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: '아이디를 입력해주세요.',
+      });
+    }
+
+    const result = await profileDetailService.checkUsernameTag(username);
+
+    return res.status(200).json(result);
+    ;
+  } catch (error: any) {
+    console.error('checkUsernameTag 에러:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || '태그 생성 중 오류가 발생했습니다.',
+    });
+  }
+};
+
 export const updateOnlineStatusVisibility = async (
   req: Request,
   res: Response
@@ -102,7 +131,7 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
       }
 
       // 2. 요청 Body 데이터 추출
-      const { bio, spokenLangs, learningLangs, snsLinks } = req.body;
+      const { userName, userNameTag, bio, spokenLangs, learningLangs, snsLinks } = req.body;
 
       // 3. 간단한 유효성 검증 (필요시 추가)
       if (!Array.isArray(spokenLangs) || !Array.isArray(learningLangs) || !Array.isArray(snsLinks)) {
@@ -111,6 +140,8 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
 
       // 4. 서비스 레이어(Prisma 로직) 호출
       const updatedProfile = await profileDetailService.upsertMyProfileDetails(ownId, {
+        userName,
+        userNameTag,
         bio,
         spokenLangs,
         learningLangs,

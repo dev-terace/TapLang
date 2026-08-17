@@ -4,6 +4,66 @@ import { userService } from "../../users/services/user.service";
 import { joinConversationMembers, emitNewMessage } from "../socket/chat.handler"
 import { blockUserService } from "../../block/service/block.service";
 
+export const leaveConversation = async(req: Request, res: Response) => {
+ try {
+      const { conversationId } = req.params
+
+      const userId = await userService.findUserIdByAuthToken(req)
+
+      if (!userId) {
+        return res.status(401).json({
+          message: '인증이 필요합니다.',
+        })
+      }
+
+      if (!conversationId) {
+        return res.status(400).json({
+          message: 'conversationId가 필요합니다.',
+        })
+      }
+
+      const result =
+        await chatRoomService.leaveConversation(
+          conversationId,
+          Number(userId),
+        )
+
+      return res.status(200).json({
+        message: '채팅방에서 나갔습니다.',
+        data: result,
+      })
+
+    } catch (error) {
+
+      if (
+        error instanceof Error &&
+        error.message === 'CONVERSATION_MEMBER_NOT_FOUND'
+      ) {
+        return res.status(404).json({
+          message: '채팅방의 멤버가 아닙니다.',
+        })
+      }
+
+      if (
+        error instanceof Error &&
+        error.message === 'CONVERSATION_NOT_FOUND'
+      ) {
+        return res.status(404).json({
+          message: '채팅방을 찾을 수 없습니다.',
+        })
+      }
+
+      console.error(
+        '[ConversationController] leaveConversation error:',
+        error,
+      )
+
+      return res.status(500).json({
+        message: '채팅방 나가기에 실패했습니다.',
+      })
+    }
+}
+
 
 export const getConversationInfo = async (
   req: Request,
@@ -357,6 +417,16 @@ export const createMessage = async (
     const ownId = await userService.findUserIdByAuthToken(req);
 
 
+
+    console.log(
+  "[createMessage] conversationId:",
+  conversationId
+);
+
+console.log(
+  "[createMessage] ownId:",
+  ownId
+);
     if (content == null) {
       return res.status(400).json({
         message: "메시지를 입력해주세요!"
@@ -367,9 +437,13 @@ export const createMessage = async (
 
     const isExist = await chatRoomService.existsConversationMember(conversationId, ownId)
 
+    console.log("isExist =", isExist);
+
+
+
     if (!isExist) {
       return res.status(400).json({
-        message: "잘못된 요청입니다!"
+        message: "상대방이 채팅방을 나갔습니다."
       });
     }
 

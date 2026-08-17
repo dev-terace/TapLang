@@ -2,6 +2,8 @@ import { Server, Socket } from "socket.io";
 import { registerFriendEvents, registerHeartBeatEvents } from "../friends/socket/friends.handler";
 import { verifyToken } from "@clerk/backend";
 import { userService } from "../users/services/user.service";
+import { registerLeaveConversationMember } from "../chat/socket/chat.handler";
+
 
 let io: Server;
 
@@ -95,6 +97,8 @@ export const initializeSocket = (
       );
 
       registerHeartBeatEvents(socket)
+
+      registerLeaveConversationMember(socket)
 
     }
   );

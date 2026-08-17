@@ -8,6 +8,196 @@ import { ConversationMemberRole } from "../../../generated/mongo";
 
 //memberIds 값의 ownId가 포함 됨
 
+export const leaveConversation = async (
+  conversationId: string,
+  userId: number
+) => {
+
+  return mongoPrisma.$transaction(async (tx) => {
+
+    /*
+     * 1. 현재 사용자가 채팅방 멤버인지 확인
+     */
+    const member =
+      await tx.conversationMember.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
+        },
+      });
+
+    if (!member) {
+      throw new Error(
+        "CONVERSATION_MEMBER_NOT_FOUND"
+      );
+    }
+
+
+    /*
+     * 2. 채팅방 조회
+     */
+    const conversation =
+      await tx.conversation.findUnique({
+        where: {
+          id: conversationId,
+        },
+        select: {
+          id: true,
+          type: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error(
+        "CONVERSATION_NOT_FOUND"
+      );
+    }
+
+
+    /*
+     * ========================================
+     * DIRECT
+     * ========================================
+     *
+     * 1:1 채팅은 한 명이 나가면
+     * 채팅방 자체를 삭제한다.
+     *
+     * 삭제 순서:
+     *
+     * Message
+     *     ↓
+     * ConversationMember
+     *     ↓
+     * Conversation
+     */
+    if (conversation.type === "DIRECT") {
+
+      /*
+       * 3. 메시지 전체 삭제
+       */
+      await tx.message.deleteMany({
+        where: {
+          conversationId,
+        },
+      });
+
+
+      /*
+       * 4. 모든 채팅방 멤버 삭제
+       *
+       * 나간 사용자뿐만 아니라
+       * 상대방의 ConversationMember도 삭제
+       */
+      await tx.conversationMember.deleteMany({
+        where: {
+          conversationId,
+        },
+      });
+
+
+      /*
+       * 5. Conversation 삭제
+       */
+      await tx.conversation.delete({
+        where: {
+          id: conversationId,
+        },
+      });
+
+
+      return {
+        conversationId,
+        deleted: true,
+      };
+    }
+
+
+    /*
+     * ========================================
+     * GROUP
+     * ========================================
+     */
+
+    /*
+     * 6. 현재 멤버 수 확인
+     */
+    const memberCount =
+      await tx.conversationMember.count({
+        where: {
+          conversationId,
+        },
+      });
+
+
+    /*
+     * 7. 마지막 멤버가 나가는 경우
+     *
+     * Message
+     * ConversationMember
+     * Conversation
+     * 전부 삭제
+     */
+    if (memberCount === 1) {
+
+      /*
+       * 메시지 삭제
+       */
+      await tx.message.deleteMany({
+        where: {
+          conversationId,
+        },
+      });
+
+
+      /*
+       * 마지막 멤버 삭제
+       */
+      await tx.conversationMember.delete({
+        where: {
+          id: member.id,
+        },
+      });
+
+
+      /*
+       * 채팅방 삭제
+       */
+      await tx.conversation.delete({
+        where: {
+          id: conversationId,
+        },
+      });
+
+
+      return {
+        conversationId,
+        deleted: true,
+      };
+    }
+
+
+    /*
+     * 8. 일반 GROUP 탈퇴
+     *
+     * 방은 유지하고
+     * 현재 사용자만 멤버에서 제거
+     */
+    await tx.conversationMember.delete({
+      where: {
+        id: member.id,
+      },
+    });
+
+
+    return {
+      conversationId,
+      deleted: false,
+    };
+  });
+};
+
 
 export const getConversationInfo = async (
   conversationId: string,
@@ -193,6 +383,16 @@ export const createMessage = async (
   content: string,
   attachments?: Attachment[]
 ) => {
+
+
+    if (!conversationId) {
+    throw new Error("CONVERSATION_ID_REQUIRED");
+  }
+
+  if (!content?.trim() && !attachments?.length) {
+    throw new Error("MESSAGE_CONTENT_REQUIRED");
+  }
+
   const message = await mongoPrisma.$transaction(async (tx) => {
     // 1. 메시지 생성
     const message = await tx.message.create({
@@ -325,47 +525,73 @@ async function getOrCreateDirect(
   receiverId: number,
   name: string
 ) {
-
   if (ownId === receiverId) {
     throw new Error("same user");
   }
 
   // 친구 확인
+  // ...
 
-  const directKey = [
-    ownId,
-    receiverId
-  ]
-    .sort()
+  const directKey = [ownId, receiverId]
+    .sort((a, b) => a - b)
     .join(":");
 
+  // 1. 기존 DIRECT 채팅방 조회
+  const existingConversation =
+    await mongoPrisma.conversation.findFirst({
+      where: {
+        directKey
+      }
+    });
 
-  return mongoPrisma.conversation.upsert({
-    where: {
-      directKey
-    },
+  if (existingConversation) {
+    return existingConversation;
+  }
 
-    update: {
-    },
+  // 2. 없으면 생성
+  try {
+    return await mongoPrisma.conversation.create({
+      data: {
+        id: uuidv7(),
+        type: "DIRECT",
+        directKey,
+        name,
 
-    create: {
-      id: uuidv7(),
-      type: "DIRECT",
-      directKey,
-      name: name,
+        members: {
+          create: [
+            {
+              userId: ownId
+            },
+            {
+              userId: receiverId
+            }
+          ]
+        }
+      }
+    });
+  } catch (error: any) {
 
-      members: {
-        create: [
-          {
-            userId: ownId
-          },
-          {
-            userId: receiverId
+    // 동시에 같은 DIRECT 방을 생성하려고 한 경우
+    // MongoDB partial unique index가 한쪽을 막음
+    if (
+      error?.code === 11000 ||
+      error?.message?.includes("duplicate key")
+    ) {
+
+      const conversation =
+        await mongoPrisma.conversation.findFirst({
+          where: {
+            directKey
           }
-        ]
+        });
+
+      if (conversation) {
+        return conversation;
       }
     }
-  });
+
+    throw error;
+  }
 }
 
 
@@ -376,6 +602,7 @@ export const chatRoomService = {
   getMessages,
   existsConversation,
   getGroupChatMembers,
-  getConversationInfo
+  getConversationInfo,
+  leaveConversation
 
 };

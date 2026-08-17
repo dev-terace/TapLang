@@ -32,6 +32,7 @@ const profileStore = useProfileStore()
 const isMyOnlineStatus = ref<boolean | null>(null)
 const chatStore = useChatStore()
 
+
 const socket = useSocketRegister()
 const alertFunc = (msg: string) => alert(msg)
 
@@ -42,13 +43,12 @@ watch(
     if (!userInfo) return
 
     isMyOnlineStatus.value = userInfo.showOnlineStatus
+    blockStore.getBlockedUsers()
   },
   { immediate: true }
 )
 
-onMounted(() => {
-  blockStore.getBlockedUsers()
-})
+
 
 // 드롭다운 메뉴 상태
 const activeMenuId = ref<string | null>(null)
