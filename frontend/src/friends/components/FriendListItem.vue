@@ -67,7 +67,7 @@ const containerClass = computed(() => {
       >
         <span class="transition-opacity" :class="friend.isMe ? 'group-hover/avatar:opacity-30' : ''">
           <img 
-            :src="`https://flagcdn.com/w40/${friend.isMe ? friend.flag : 'kr'}.png`"
+            :src="`https://flagcdn.com/w40/${ friend.flag }.png`"
             alt=""
             class="w-4 h-3 object-cover flex-shrink-0"
           />

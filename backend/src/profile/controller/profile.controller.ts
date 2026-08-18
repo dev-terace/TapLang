@@ -157,3 +157,28 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
      
     }
   }
+
+
+  export const updateStatusMessage = async (req: Request, res: Response) => {
+  try {
+    // 💡 인증 미들웨어를 통해 주입된 사용자 ID라고 가정합니다 (req.user.id 등 프로젝트 환경에 맞게 수정)
+    const userId = await userService.findUserIdByAuthToken(req) 
+    const { message } = req.body;
+
+    if (!userId) {
+      return res.status(401).json({ message: 'Unauthorized' });
+    }
+
+    // 상태 메시지 업데이트 실행 (메시지가 빈 문자열이면 지우는 것으로 처리)
+    const updatedProfile = await profileService.updateStatusMessage(userId, message || null);
+
+    res.status(200).json({ 
+      success: true, 
+      data: updatedProfile,
+      message: '상태 메시지가 업데이트 되었습니다.' 
+    });
+  } catch (error) {
+    console.error('상태 메시지 업데이트 오류:', error);
+    res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
+  }
+};

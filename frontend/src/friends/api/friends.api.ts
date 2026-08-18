@@ -28,14 +28,14 @@ export namespace FriendApi {
         statusMsg?: string;
     }
 
-    interface FindReqFriends{
+    interface FindReqFriends {
         id: number;
         name: string;
         flag: string;
-        
+
     }
 
-    interface FindReqFriendsResponse{
+    interface FindReqFriendsResponse {
         friends: FindReqFriends[];
     }
 
@@ -67,8 +67,8 @@ export namespace FriendApi {
 
     export async function findReqFriends() {
         try {
-            const response  = await api.get<FindReqFriendsResponse>("/api/friends/request");
-            
+            const response = await api.get<FindReqFriendsResponse>("/api/friends/request");
+
             console.log("find req friends func : ", response);
             return response.data;
         } catch (error) {
@@ -110,6 +110,13 @@ export namespace FriendApi {
         }
     }
 
-    
+
+    export const updateStatusMessage = async (message: string) => {
+        // 💡 백엔드 라우터 주소에 맞게 '/api/profile/status' 부분 수정
+        const response = await api.patch('/api/profile/status', { message });
+        return response.data;
+    };
+
+
 
 }

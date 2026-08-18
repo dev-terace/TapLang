@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import api from '@/shared/auth/api.config'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 
@@ -13,8 +14,8 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'invite-submit', memberId: number): void // 실제 초대 실행 시 (선택된 유저 ID 전달)
-  (e: 'member-action', action: string, memberId: number): void // 멤버 개별 액션용
+  (e: 'invite-submit', memberIds: number[]): void
+  (e: 'member-action', action: string, memberId: number): void
 }>()
 
 // API 응답 데이터 타입
@@ -33,7 +34,7 @@ const isLoading = ref(false)
 // === 초대 모드 전용 상태 ===
 const isInviteMode = ref(false) // 초대 모드 활성화 여부
 const invitableFriends = ref<GroupChatMember[]>([]) // 초대 가능한 친구 목록
-const selectedFriendId = ref<number | null>(null) // 선택된 친구 ID
+const selectedFriendIds = ref<number[]>([]) // 선택된 친구 ID 배열 (다중 선택 지원)
 
 // isOpen 상태를 감지하여 모달이 열릴 때 API 요청 및 상태 초기화
 watch(
@@ -49,7 +50,7 @@ watch(
         const data = await chatRoomStore.getGroupChatMembers(convId)
         const fetchedMembers = Array.isArray(data) ? data : [data]
         
-        // ⭐ 본인(authStore.userInfo.id) 제외하고 리스트에 할당
+        // ⭐ 본인 제외하고 리스트에 할당
         members.value = fetchedMembers.filter(
           (member) => member.id !== authStore.userInfo?.id
         )
@@ -63,7 +64,7 @@ watch(
       // 모달이 닫힐 때 모든 상태 초기화
       expandedMemberIndex.value = null
       isInviteMode.value = false
-      selectedFriendId.value = null
+      selectedFriendIds.value = []
       invitableFriends.value = []
     }
   },
@@ -77,46 +78,88 @@ const toggleMember = (index: number) => {
 // === 초대 모드 관련 함수 ===
 const openInviteMode = async () => {
   isInviteMode.value = true
-  selectedFriendId.value = null
+  selectedFriendIds.value = []
   isLoading.value = true
 
   try {
-    // TODO: 실제 프로젝트의 '친구 목록 조회 API'로 교체해 주세요.
-    // 예: const data = await userStore.getFriends()
+    const response = await api.get('/api/friends')
     
-    // 임시 테스트용 목업 데이터
-    setTimeout(() => {
-      const mockFriends = [
-        { id: 101, name: '김철수 (친구)', flag: 'kr', statusMsg: '열코딩 중입니다.' },
-        { id: 102, name: 'John Doe', flag: 'us', statusMsg: 'Hello Retro!' },
-        { id: 103, name: '타나카', flag: 'jp', statusMsg: 'こんにちは' },
-      ]
+    // 💡 백엔드 응답 구조 ({ friends: [...], message: "..." })에 맞게 배열을 추출합니다.
+    const rawList = response.data?.friends
+    
+    // 배열인지 확실히 검증하여 안전하게 할당
+    const friendsList: GroupChatMember[] = Array.isArray(rawList) ? rawList : []
 
-      // ⭐ 초대 목록에서도 본인이 혹시 포함되어 있다면 제외하도록 필터링 적용
-      invitableFriends.value = mockFriends.filter(
-        (friend) => friend.id !== authStore.userInfo?.id
-      )
-      
-      isLoading.value = false
-    }, 500)
+    // 현재 채팅방에 이미 참여 중인 멤버 ID 목록 (O(1) 조회를 위해 Set 사용)
+    const existingMemberIds = new Set(members.value.map((m) => m.id))
     
+    // 본인 제외 & 이미 참여중인 멤버 제외 필터링 적용
+    invitableFriends.value = friendsList.filter(
+      (friend) => friend.id !== authStore.userInfo?.id && !existingMemberIds.has(friend.id)
+    )
+
   } catch (error) {
     console.error('초대 가능 인원을 불러오는 중 오류 발생:', error)
+    invitableFriends.value = []
+  } finally {
     isLoading.value = false
+  }
+}
+
+// 체크박스 토글 함수 (다중 선택)
+const toggleSelection = (friendId: number) => {
+  const index = selectedFriendIds.value.indexOf(friendId)
+  if (index === -1) {
+    selectedFriendIds.value.push(friendId)
+  } else {
+    selectedFriendIds.value.splice(index, 1)
   }
 }
 
 const cancelInviteMode = () => {
   isInviteMode.value = false
-  selectedFriendId.value = null
+  selectedFriendIds.value = []
 }
 
-const submitInvite = () => {
-  if (selectedFriendId.value) {
-    emit('invite-submit', selectedFriendId.value)
-    // 초대 후 처리 로직 (필요시 모달을 닫거나 초대 모드 해제)
+const submitInvite = async () => {
+  if (selectedFriendIds.value.length === 0) return
+
+  const convId = chatRoomStore.conversationId
+  if (!convId) {
+    console.error('대화방 ID가 존재하지 않습니다.')
+    return
+  }
+
+  try {
+    isLoading.value = true
+
+    // 💡 /api/chat-room/invite API 호출 (대화방 ID와 선택된 멤버 ID 배열 전달)
+    await api.post('/api/chat-room/invite', {
+      conversationId: convId,      // 대화방 ID (백엔드 필드명에 맞춰 chatRoomId 등으로 수정 가능)
+      memberIds: selectedFriendIds.value // 초대할 친구 ID 배열
+    })
+
+    alert('초대가 완료되었습니다.')
+
+    // 초대 모드 종료 및 선택 상태 초기화
     isInviteMode.value = false
-    selectedFriendId.value = null
+    selectedFriendIds.value = []
+
+    // 💡 초대 완료 후 새로 추가된 멤버 목록 다시 불러오기
+    const data = await chatRoomStore.getGroupChatMembers(convId)
+    const fetchedMembers = Array.isArray(data) ? data : [data]
+    members.value = fetchedMembers.filter(
+      (member) => member.id !== authStore.userInfo?.id
+    )
+
+    // 부모 컴포넌트에 이벤트 알림이 필요하다면 유지, 불필요 시 생략 가능
+    emit('invite-submit', selectedFriendIds.value)
+
+  } catch (error) {
+    console.error('인원 초대 중 오류 발생:', error)
+    alert('초대에 실패했습니다. 다시 시도해 주세요.')
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -155,7 +198,7 @@ const submitInvite = () => {
         
         <!-- 동적 타이틀 텍스트 -->
         <p class="text-xs font-bold uppercase text-neutral-500 shrink-0">
-          // {{ isInviteMode ? '초대할 인원' : '현재 참여 인원' }}
+          // {{ isInviteMode ? '초대할 인원 선택 (다중 선택 가능)' : '현재 참여 인원' }}
         </p>
 
         <!-- 스크롤 영역 -->
@@ -176,12 +219,12 @@ const submitInvite = () => {
               v-else
               v-for="(friend, index) in invitableFriends"
               :key="friend.id || index"
-              @click="selectedFriendId = friend.id"
+              @click="toggleSelection(friend.id)"
               class="group flex items-center gap-3 p-2 cursor-pointer transition-colors bg-[#f4f1eb] border-2 border-[#2d2b28] shadow-[3px_3px_0px_0px_#2d2b28] hover:bg-[#e8e3d8]"
             >
-              <!-- 커스텀 라디오 버튼 -->
-              <div class="w-4 h-4 rounded-full border-2 border-[#2d2b28] flex items-center justify-center bg-[#fbf9f5] shrink-0">
-                <div v-if="selectedFriendId === friend.id" class="w-2 h-2 rounded-full bg-[#2d2b28]"></div>
+              <!-- 커스텀 체크박스 버튼 -->
+              <div class="w-4 h-4 border-2 border-[#2d2b28] flex items-center justify-center bg-[#fbf9f5] shrink-0">
+                <div v-if="selectedFriendIds.includes(friend.id)" class="w-2.5 h-2.5 bg-[#2d2b28]"></div>
               </div>
 
               <!-- 아바타 (국기) -->
@@ -301,13 +344,13 @@ const submitInvite = () => {
             </button>
             <button
               @click="submitInvite"
-              :disabled="!selectedFriendId"
+              :disabled="selectedFriendIds.length === 0"
               class="border-2 border-[#2d2b28] px-4 py-1.5 font-bold transition-all shadow-[2px_2px_0px_0px_#a39b90]"
-              :class="selectedFriendId 
+              :class="selectedFriendIds.length > 0
                 ? 'bg-[#2d2b28] text-[#fbf9f5] hover:bg-neutral-800' 
                 : 'bg-neutral-400 text-neutral-600 cursor-not-allowed shadow-none border-neutral-500'"
             >
-              선택 초대
+              선택 초대 ({{ selectedFriendIds.length }}명)
             </button>
           </template>
 

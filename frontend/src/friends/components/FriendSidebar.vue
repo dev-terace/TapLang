@@ -20,6 +20,7 @@ import FriendSidebarHeader from './FriendSidebarHeader.vue'
 import FriendRequestItem from './FriendRequestItem.vue'
 import FriendListItem from './FriendListItem.vue'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
+import FriendStatusMessageModal from './FriendStatusMessageModal.vue'
 
 const { openDirectChatWithUser } = useChatNavigation()
 
@@ -61,7 +62,7 @@ const handleMenuAction = async (action: string, friendId: string) => {
   closeMenu()
   if (['editBio', 'editStatus', 'goOffline', 'goOnline'].includes(action)) {
     if (action === 'editBio') modalStore.openModal('editBio')
-    if (action === 'editStatus') alertFunc('상태 메시지 편집 기능 준비중입니다.')
+    if (action === 'editStatus') modalStore.openModal('updateStatus')
     if (action === 'goOffline') {
         await profileStore.updateOnlineStatusVisibility(false)
         isMyOnlineStatus.value = false 
@@ -305,7 +306,7 @@ const handleCreateChatRoom = (roomName: string) => {
     <CountryModal/>
     <EditBioModal/>
     <ViewBioModal/>
-    
+    <FriendStatusMessageModal />
     <CreateRoomModal
       :is-open="isCreateRoomModalOpen"
       :friend-names="selectedFriendNames"

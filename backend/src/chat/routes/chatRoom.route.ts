@@ -1,13 +1,14 @@
 import { Router } from 'express';
 import { createChat, createMessage, getMessages, 
         existsConversation, joinConversation, getGroupChatMembers
-        , getConversationInfo, leaveConversation } from '../controllers/chatRoom.controller';
+        , getConversationInfo, leaveConversation, inviteMembers } from '../controllers/chatRoom.controller';
 const router = Router();
 
 router.post("/", createChat);
 router.post("/message", createMessage)
 
 router.post("/join", joinConversation)
+router.post("/invite", inviteMembers);
 
 router.get("/group/:conversationId", getGroupChatMembers)
 

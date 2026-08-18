@@ -1,16 +1,12 @@
 import { connectMongoDB } from "../../lib/mongo";
-import { postgresPrisma  } from "../../lib/prisma";
-import { mongoPrisma  } from "../../lib/prisma";
+import { postgresPrisma } from "../../lib/prisma";
+import { mongoPrisma } from "../../lib/prisma";
 
-
-
-export const  readConversation = async(
+export const readConversation = async (
   conversationId: string,
-  ownId: number
+  ownIdInput: number
 ) => {
-
-  console.log("read conversationId: ", conversationId)
-  console.log("read conversation ownId: ", ownId)
+  const ownId = Number(ownIdInput); // ★ 타입 강제 변환
 
   return mongoPrisma.conversationMember.updateMany({
     where: {
@@ -22,310 +18,217 @@ export const  readConversation = async(
       lastReadAt: new Date(),
     },
   });
-}
+};
 
 export const getMyConversations = async (
-  userId: number,
+  userIdInput: number,
   limit = 20,
   cursor?: {
-    lastMessageAt: Date;
+    lastMessageAt: Date | string;
     conversationId: string;
   }
 ) => {
-
+  const userId = Number(userIdInput); // ★ 타입 강제 변환
   const db = await connectMongoDB();
 
-
   const pipeline: any[] = [
-
-    // 내가 속한 채팅방
-    {
-      $match: {
-        userId
-      }
-    },
-
-
-    // Conversation 조회
+    { $match: { userId } },
     {
       $lookup: {
         from: "Conversation",
         localField: "conversationId",
         foreignField: "_id",
-        as: "conversation"
-      }
+        as: "conversation",
+      },
     },
-
-
-    {
-      $unwind: "$conversation"
-    }
-
+    { $unwind: "$conversation" },
   ];
 
-
-  // cursor
   if (cursor) {
-
+    const cursorDate = new Date(cursor.lastMessageAt);
     pipeline.push({
       $match: {
         $or: [
+          { "conversation.lastMessageAt": { $lt: cursorDate } },
           {
-            "conversation.lastMessageAt": {
-              $lt: cursor.lastMessageAt
-            }
+            "conversation.lastMessageAt": cursorDate,
+            "conversation._id": { $lt: cursor.conversationId },
           },
-          {
-            "conversation.lastMessageAt": cursor.lastMessageAt,
-            "conversation._id": {
-              $lt: cursor.conversationId
-            }
-          }
-        ]
-      }
+        ],
+      },
     });
-
   }
 
-
-
   pipeline.push(
-
-    // 멤버 조회
     {
       $lookup: {
         from: "ConversationMember",
-
-        let: {
-          cid: "$conversationId"
-        },
-
+        let: { cid: "$conversationId" },
         pipeline: [
-
           {
             $match: {
               $expr: {
                 $and: [
-                  {
-                    $eq:[
-                      "$conversationId",
-                      "$$cid"
-                    ]
-                  },
-                  {
-                    $ne:[
-                      "$userId",
-                      userId
-                    ]
-                  }
-                ]
-              }
-            }
+                  { $eq: ["$conversationId", "$$cid"] },
+                  { $ne: ["$userId", userId] },
+                ],
+              },
+            },
           },
-
-
-          {
-            $limit:4
-          },
-
-
-          {
-            $project:{
-              _id:0,
-              userId:1,
-              role:1
-            }
-          }
-
+          { $limit: 4 },
+          { $project: { _id: 0, userId: 1, role: 1 } },
         ],
-
-        as:"members"
-      }
+        as: "members",
+      },
     },
-
-
-    // 마지막 메시지
     {
-      $lookup:{
-        from:"Message",
-
-        localField:
-          "conversation.lastMessageId",
-
-        foreignField:"_id",
-
-        as:"lastMessage"
-      }
+      $lookup: {
+        from: "Message",
+        localField: "conversation.lastMessageId",
+        foreignField: "_id",
+        as: "lastMessage",
+      },
     },
-
-
     {
-      $unwind:{
-        path:"$lastMessage",
-        preserveNullAndEmptyArrays:true
-      }
+      $unwind: {
+        path: "$lastMessage",
+        preserveNullAndEmptyArrays: true,
+      },
     },
-
-
     {
-      $sort:{
-        "conversation.lastMessageAt":-1,
-        "conversation._id":-1
-      }
+      $sort: {
+        "conversation.lastMessageAt": -1,
+        "conversation._id": -1,
+      },
     },
-
-
+    { $limit: limit },
     {
-      $limit: limit
-    },
-
-
-    {
-      $project:{
-        _id:0,
-
-        conversationId:"$conversation._id",
-
-        type:"$conversation.type",
-
-        name:"$conversation.name",
-
-        unreadCount:1,
-
-        members:1,
-
-
-        lastMessage:{
-          id:"$lastMessage._id",
-          senderId:"$lastMessage.senderId",
-          content:"$lastMessage.content",
-          attachments:"$lastMessage.attachments",
-          createdAt:"$lastMessage.createdAt"
+      $project: {
+        _id: 0,
+        conversationId: "$conversation._id",
+        type: "$conversation.type",
+        name: "$conversation.name",
+        directKey: "$conversation.directKey",
+        unreadCount: 1,
+        members: 1,
+        lastMessage: {
+          id: "$lastMessage._id",
+          senderId: "$lastMessage.senderId",
+          content: "$lastMessage.content",
+          attachments: "$lastMessage.attachments",
+          createdAt: "$lastMessage.createdAt",
         },
+        lastMessageId: "$conversation.lastMessageId",
+        lastMessageAt: "$conversation.lastMessageAt",
+      },
+    }
+  );
 
+  const data = await db
+    .collection("ConversationMember")
+    .aggregate(pipeline)
+    .toArray();
 
-        lastMessageId:
-          "$conversation.lastMessageId",
+  const memberIds = [
+    ...new Set([
+      userId,
+      ...data.flatMap((room) => {
+        const ids = room.members.map((member: any) => member.userId);
+        if (room.type === "DIRECT" && room.directKey) {
+          const opponentId = room.directKey
+            .split(":")
+            .map(Number)
+            .find((id: number) => id !== userId);
+          if (opponentId) ids.push(opponentId);
+        }
+        return ids;
+      }),
+    ]),
+  ];
 
-        lastMessageAt:
-          "$conversation.lastMessageAt"
+  const profiles = await postgresPrisma.myProfile.findMany({
+    where: { id: { in: memberIds } },
+    select: { id: true, name: true, flag: true },
+  });
+
+  const profileMap = new Map(profiles.map((p) => [p.id, p]));
+
+  const result = data.map((room) => {
+    let formattedMembers = room.members.map((member: any) => ({
+      userId: member.userId,
+      role: member.role,
+      name: profileMap.get(member.userId)?.name ?? "(퇴장한 사용자)",
+      flag: profileMap.get(member.userId)?.flag ?? "",
+      isLeft: false,
+    }));
+
+    // 1:1 채팅 상대방 퇴장 처리
+    if (room.type === "DIRECT" && formattedMembers.length === 0 && room.directKey) {
+      const opponentId = room.directKey
+        .split(":")
+        .map(Number)
+        .find((id: number) => id !== userId);
+
+      if (opponentId) {
+        const opponentProfile = profileMap.get(opponentId);
+        formattedMembers = [
+          {
+            userId: opponentId,
+            role: "MEMBER",
+            name: opponentProfile?.name ?? "(알 수 없음)",
+            flag: opponentProfile?.flag ?? "",
+            isLeft: true,
+          },
+        ];
       }
     }
 
-  );
+    // ★ 그룹 채팅에서 혼자 남아 formattedMembers가 빈 경우 내 프로필 보완
+    if (room.type === "GROUP" && formattedMembers.length === 0) {
+      const myProfile = profileMap.get(userId);
+      formattedMembers = [
+        {
+          userId,
+          role: "MEMBER",
+          name: myProfile?.name ?? "(나)",
+          flag: myProfile?.flag ?? "",
+          isLeft: false,
+        },
+      ];
+    }
 
+    let displayName = room.name;
+    if (room.type === "GROUP" && (!displayName || displayName.trim() === "")) {
+      displayName =
+        formattedMembers.length > 0
+          ? formattedMembers.map((m) => m.name).join(", ")
+          : "(대화 상대 없음)";
+    }
 
-  const data =
-    await db
-      .collection("ConversationMember")
-      .aggregate(pipeline)
-      .toArray();
-
-
-
-  /**
-   * 프로필 조회
-   */
-
-  const memberIds = [
-    ...new Set(
-      data.flatMap(room =>
-        room.members.map(
-          (member:any)=>member.userId
-        )
-      )
-    )
-  ];
-
-
-
-  const profiles =
-    await postgresPrisma.myProfile.findMany({
-
-      where:{
-        id:{
-          in:memberIds
-        }
-      },
-
-      select:{
-        id:true,
-        name:true,
-        flag:true
-      }
-
-    });
-
-
-
-  const profileMap = new Map(
-    profiles.map(profile=>[
-      profile.id,
-      profile
-    ])
-  );
-
-
-
-  /**
-   * 응답 데이터 재구성
-   */
-
-  const result =
-    data.map(room=>({
-
+    return {
       ...room,
+      name: displayName,
+      members: formattedMembers,
+      activeMemberCount: formattedMembers.length,
+    };
+  });
 
-      members:
-        room.members.map((member:any)=>({
-
-          userId:member.userId,
-
-          role:member.role,
-
-          name:
-            profileMap.get(member.userId)?.name ?? "",
-
-          flag:
-            profileMap.get(member.userId)?.flag ?? ""
-
-        }))
-
-    }));
-
-
-
-  const last =
-    result[result.length-1];
-
-
-  const nextCursor =
-    last
-    ? {
-        lastMessageAt:
-          last.lastMessageAt,
-
-        conversationId:
-          last.conversationId
-      }
-    : null;
-
-
+  const last = result[result.length - 1];
 
   return {
-    data:result,
-    nextCursor
+    data: result,
+    nextCursor: last
+      ? {
+          lastMessageAt: last.lastMessageAt,
+          conversationId: last.conversationId,
+        }
+      : null,
   };
+}
 
-};
-
-export const getConversationUnreadCounts = async (
-  userId: number
-) => {
+export const getConversationUnreadCounts = async (userIdInput: number) => {
+  const userId = Number(userIdInput); // ★ 타입 강제 변환
   const db = await connectMongoDB();
-
-  console.log("userId: ", userId);
-  console.log("userId Type ", typeof userId);
 
   const result = await db
     .collection("ConversationMember")
@@ -351,16 +254,10 @@ export const getConversationUnreadCounts = async (
                 $expr: {
                   $and: [
                     {
-                      $eq: [
-                        "$conversationId",
-                        "$$conversationId",
-                      ],
+                      $eq: ["$conversationId", "$$conversationId"],
                     },
                     {
-                      $gt: [
-                        "$createdAt",
-                        "$$lastReadAt",
-                      ],
+                      $gt: ["$createdAt", "$$lastReadAt"],
                     },
                   ],
                 },
@@ -382,10 +279,7 @@ export const getConversationUnreadCounts = async (
           unreadCount: {
             $ifNull: [
               {
-                $arrayElemAt: [
-                  "$unread.count",
-                  0,
-                ],
+                $arrayElemAt: ["$unread.count", 0],
               },
               0,
             ],
@@ -411,5 +305,5 @@ export const getConversationUnreadCounts = async (
 export const chatService = {
   getConversationUnreadCounts,
   getMyConversations,
-  readConversation
-}
+  readConversation,
+};

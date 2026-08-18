@@ -27,14 +27,21 @@ export const useFriendStore = defineStore('friend', () => {
   const friends = ref<Friend[]>([])
   const reqFriends = ref<ReqFriends[]>([])
 
-  const fetchFriends = async () => {
+const fetchFriends = async () => {
   const response = await FriendApi.getFriends();
-
   console.log("fetchFriends : ", response);
+
+  // 1. 기존 친구 목록의 온라인 상태를 기억해둡니다 (id를 기준으로)
+  const currentOnlineStatus = new Map(
+    friends.value.map(f => [f.id, f.online])
+  );
+
   friends.value = response.data.friends.map(friend => ({
-  ...friend,
-  online: false
-}))
+    ...friend,
+    // 2. 백엔드에서 online 값을 준다면 그것을 쓰고, 
+    // 없다면 기존 상태를 유지, 그것도 없다면(새 친구) false로 설정
+    online: friend.online ?? currentOnlineStatus.get(friend.id) ?? false
+  }))
   
   }
 
@@ -89,6 +96,24 @@ const findReqFriends = async () => {
   
 
 
+  const myStatusMessage = ref('');
+
+  // 상태 메시지 업데이트 Action
+  const updateStatusMessage = async (payload: { message: string }) => {
+    try {
+      const result = await FriendApi.updateStatusMessage(payload.message);
+      
+      if (result.success) {
+        // 성공 시 로컬 Store 상태도 동기화
+        myStatusMessage.value = payload.message;
+        return result;
+      }
+    } catch (error) {
+      console.error('Store: 상태 메시지 업데이트 실패', error);
+      throw error; // UI 컴포넌트(Modal)로 에러를 던져서 알림창 등을 띄울 수 있게 함
+    }
+  };
+
   return {
     friends,
     onlineFriends,
@@ -99,7 +124,8 @@ const findReqFriends = async () => {
     fetchFriends,
     findReqFriends,
     declinedFriendRequest,
-    deleteFriend
-  
+    deleteFriend,
+    updateStatusMessage,
+    myStatusMessage
   }
 })
