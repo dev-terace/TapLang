@@ -44,6 +44,7 @@
           <!-- <InviteChatRoom /> -->
           <GroupChat />
           <TransTag />
+          <CustomChatRoom />
          
         </div>
       </section>
@@ -87,7 +88,7 @@ import Notice from './notice/Notice.vue'
 import Footer from './shared/ui/components/Footer.vue'
 import Chat from './chat/components/Chat.vue'
 import ChatRoom from './chat/components/ChatRoom.vue'
-import GroupChat from './group_chat/components/GroupChat.vue'
+import GroupChat from './custom_chat/components/CustomChat.vue'
 import TransTag from './trans_tag/components/TransTag.vue'
 import ViewPort from './shared/ui/components/ViewPort.vue'
 import FriendSidebar from './friends/components/FriendSidebar.vue'
@@ -97,7 +98,7 @@ import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useSocketRegister } from '@/shared/socket/socket.register.js';
 import ChatNotification from './shared/notification/components/chatNotification.vue'
-
+import CustomChatRoom from './custom_chat/components/CustomChatRoom.vue'
 const socketRegister = useSocketRegister();
 
 

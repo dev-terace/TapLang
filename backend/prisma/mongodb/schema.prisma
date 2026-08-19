@@ -38,6 +38,9 @@ model Conversation {
   // 그룹명
   name String?
 
+  description String? //CUSTOM 전용  
+  password String? //CUSTOM 전용
+
   members ConversationMember[]
 
   createdAt DateTime @default(now())
@@ -101,4 +104,5 @@ model Message {
 enum ConversationType {
   DIRECT
   GROUP
+  CUSTOM
 }

@@ -308,7 +308,7 @@ export const createMessage = async (
 export const createChatInfo = async (
   memberIds: number[],
   ownId: number,
-  chatType: "DIRECT" | "GROUP",
+  chatType: "DIRECT" | "GROUP" ,
   name: string
 ) => {
   let conversation;

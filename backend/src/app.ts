@@ -12,6 +12,8 @@ import chatSettingsRouter from "./chat_settings/router/chatSettings.router"
 import { clerkMiddleware, requireAuth } from "@clerk/express"
 import chatNotificationRouter from "./chat/routes/chatRoomNotification.router"
 import imageRouter from "./image/router/image.router"
+import customChatRouter from "./custom_chat/router/customChat_router"
+import customChatRoomRouter from "./custom_chat/router/customChatRoom.router"
 import './image/service/uploadCleanUp.service'
 const app: Application = express();
 
@@ -42,7 +44,8 @@ app.use("/api/translate", requireApiAuth, translateRouter)
 app.use("/api/chat-settings", requireApiAuth, chatSettingsRouter)
 app.use("/api/chat-room-notification", requireApiAuth, chatNotificationRouter)
 app.use("/api/image", requireApiAuth, imageRouter)
-
+app.use("/api/custom-chat", requireApiAuth, customChatRouter)
+app.use("/api/custom-chat-room", requireApiAuth, customChatRoomRouter)
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
