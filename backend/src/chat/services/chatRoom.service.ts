@@ -7,6 +7,7 @@ export const leaveConversation = async (
   userId: number
 ) => {
   return mongoPrisma.$transaction(async (tx) => {
+
     /*
      * 1. 현재 사용자가 채팅방 멤버인지 확인
      */
@@ -23,8 +24,9 @@ export const leaveConversation = async (
       throw new Error("CONVERSATION_MEMBER_NOT_FOUND");
     }
 
+
     /*
-     * 2. 채팅방 조회
+     * 2. 채팅방 존재 여부 확인
      */
     const conversation = await tx.conversation.findUnique({
       where: {
@@ -39,8 +41,51 @@ export const leaveConversation = async (
       throw new Error("CONVERSATION_NOT_FOUND");
     }
 
+
     /*
-     * 3. 사용자 본인의 ConversationMember 정보만 삭제
+     * 3. OWNER인 경우
+     *
+     * 현재 OWNER를 제외하고
+     * 가장 먼저 들어온 멤버에게 방장 위임
+     */
+    if (member.role === "OWNER") {
+
+      const nextOwner =
+        await tx.conversationMember.findFirst({
+          where: {
+            conversationId,
+            userId: {
+              not: userId,
+            },
+          },
+          orderBy: {
+            joinedAt: "asc",
+          },
+        });
+
+
+      /*
+       * 다른 멤버가 없는 경우
+       *
+       * → 마지막 멤버이므로
+       *    아래에서 Conversation 자체 삭제
+       */
+      if (nextOwner) {
+
+        await tx.conversationMember.update({
+          where: {
+            id: nextOwner.id,
+          },
+          data: {
+            role: "OWNER",
+          },
+        });
+      }
+    }
+
+
+    /*
+     * 4. 현재 사용자 멤버 삭제
      */
     await tx.conversationMember.delete({
       where: {
@@ -48,9 +93,52 @@ export const leaveConversation = async (
       },
     });
 
+
+    /*
+     * 5. 남은 멤버 수 확인
+     */
+    const remainingMemberCount =
+      await tx.conversationMember.count({
+        where: {
+          conversationId,
+        },
+      });
+
+
+    /*
+     * 6. 남은 멤버가 없으면 채팅방 삭제
+     */
+    if (remainingMemberCount === 0) {
+
+      await tx.message.deleteMany({
+        where: {
+          conversationId,
+        },
+      });
+
+      await tx.conversation.delete({
+        where: {
+          id: conversationId,
+        },
+      });
+
+      return {
+        conversationId,
+        deleted: true,
+        ownerTransferred: false,
+        remainingMemberCount: 0,
+      };
+    }
+
+
+    /*
+     * 7. OWNER가 나갔다면 방장 위임 완료
+     */
     return {
       conversationId,
       deleted: false,
+      ownerTransferred: member.role === "OWNER",
+      remainingMemberCount,
     };
   });
 };
@@ -59,51 +147,186 @@ export const getConversationInfo = async (
   conversationId: string,
   userId: number
 ) => {
-  const conversation = await mongoPrisma.conversation.findUnique({
-    where: { id: conversationId },
-    include: { members: true },
-  });
 
-  if (!conversation) return null;
+  const conversation =
+    await mongoPrisma.conversation.findUnique({
+      where: {
+        id: conversationId
+      },
+      include: {
+        members: true
+      }
+    })
 
-  // 1. 요청자(나)가 현재 방의 멤버인지 검증 (내가 방에 남아있는 한 true)
-  const isMember = conversation.members.some((m) => m.userId === userId);
-  if (!isMember) return null;
+  if (!conversation) {
+    return null
+  }
 
-  // 2. 1:1 채팅인 경우 상대방 퇴장 여부 체크
-  if (conversation.type === "DIRECT" && conversation.directKey) {
-    const opponentId = conversation.directKey
-      .split(":")
-      .map(Number)
-      .find((id) => id !== userId);
+  // 현재 사용자가 방의 멤버인지 확인
+  const isMember = conversation.members.some(
+    member => member.userId === userId
+  )
 
-    const isOpponentInMembers = conversation.members.some(
-      (m) => m.userId === opponentId
-    );
+  if (!isMember) {
+    return null
+  }
+
+
+  // ==================================================
+  // 멤버 프로필 조회
+  // ==================================================
+
+  const userIds = [
+    ...new Set(
+      conversation.members.map(
+        member => member.userId
+      )
+    )
+  ]
+
+  const profiles =
+    await postgresPrisma.myProfile.findMany({
+      where: {
+        id: {
+          in: userIds
+        }
+      },
+      select: {
+        id: true,
+        name: true,
+        flag: true,
+        statusMsg: true
+      }
+    })
+
+
+  const profileMap = new Map(
+    profiles.map(profile => [
+      profile.id,
+      profile
+    ])
+  )
+
+
+  // ==================================================
+  // 멤버 + 프로필 결합
+  // ==================================================
+
+  const members = conversation.members.map(
+    member => {
+
+      const profile =
+        profileMap.get(member.userId)
+
+      return {
+        id: member.id,
+        userId: member.userId,
+
+        role: member.role,
+
+        joinedAt: member.joinedAt,
+
+        unreadCount: member.unreadCount,
+        lastReadAt: member.lastReadAt,
+
+        name: profile?.name ?? "(알 수 없음)",
+        flag: profile?.flag ?? "",
+        statusMsg: profile?.statusMsg ?? null
+      }
+    }
+  )
+
+
+  // ==================================================
+  // CUSTOM
+  // ==================================================
+
+  if (conversation.type === "CUSTOM") {
+
+    const owner =
+      members.find(
+        member =>
+          member.role === "OWNER"
+      )
 
     return {
       ...conversation,
+
+      members,
+
+      owner: owner ?? null,
+
+      activeMemberCount:
+        members.length
+    }
+  }
+
+
+  // ==================================================
+  // DIRECT
+  // ==================================================
+
+  if (
+    conversation.type === "DIRECT" &&
+    conversation.directKey
+  ) {
+
+    const opponentId =
+      conversation.directKey
+        .split(":")
+        .map(Number)
+        .find(id => id !== userId)
+
+    const isOpponentInMembers =
+      conversation.members.some(
+        member =>
+          member.userId === opponentId
+      )
+
+    return {
+      ...conversation,
+
+      members,
+
       opponentInfo: {
         userId: opponentId,
-        isLeft: !isOpponentInMembers, // true면 상대방이 나간 상태
-      },
-    };
+        isLeft: !isOpponentInMembers
+      }
+    }
   }
 
-  // 3. 그룹 채팅인 경우 (1명만 남았을 때 포함)
+
+  // ==================================================
+  // GROUP
+  // ==================================================
+
   if (conversation.type === "GROUP") {
-    const activeMemberCount = conversation.members.length;
+
+    const activeMemberCount =
+      conversation.members.length
 
     return {
       ...conversation,
-      name: conversation.name || "(대화 상대 없음)",
-      activeMemberCount, // 현재 방에 남아있는 인원수 (1명 남아있으면 1)
-      isSoleMember: activeMemberCount === 1, // 혼자 남아있는지 여부
-    };
+
+      members,
+
+      name:
+        conversation.name ||
+        "(대화 상대 없음)",
+
+      activeMemberCount,
+
+      isSoleMember:
+        activeMemberCount === 1
+    }
   }
 
-  return conversation;
-};
+
+  return {
+    ...conversation,
+    members
+  }
+}
 
 export const getGroupChatMembers = async (conversationId: string) => {
   // MongoDB에서 대화방에 '현재 남아있는' 멤버들의 userId 추출
@@ -578,6 +801,27 @@ export const inviteMembers = async (
   };
 };
 
+
+
+export const getMyConversationIds = async (
+  userId: number
+): Promise<string[]> => {
+
+  const members =
+    await mongoPrisma.conversationMember.findMany({
+      where: {
+        userId,
+      },
+      select: {
+        conversationId: true,
+      },
+    })
+
+  return members.map(
+    member => member.conversationId
+  )
+}
+
 export const chatRoomService = {
   createChatInfo,
   createMessage,
@@ -588,5 +832,6 @@ export const chatRoomService = {
   getConversationInfo,
   leaveConversation,
   getMemberCount,
-  inviteMembers
+  inviteMembers,
+  getMyConversationIds
 };

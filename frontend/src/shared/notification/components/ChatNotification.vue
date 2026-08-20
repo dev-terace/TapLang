@@ -7,11 +7,12 @@ import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useOpenConversation } from '@/chat/composables/useOpenConversationRoom'
 
 import notificationSound from '@/assets/audio/chatNotification.mp3'
-
+import { useCustomChatStore } from '@/custom_chat/stores/CustomChatStore'
 // Store & Composable
 const notificationStore = useNotificationStore()
 const chatRoomStore = useChatRoomStore()
 const { openConversation } = useOpenConversation()
+const customChatStore = useCustomChatStore()
 
 // 상태
 const isOpening = ref(false)
@@ -100,6 +101,14 @@ const openChat = async (notification: {
     if (!conversation) {
       console.error('❌ 채팅방 정보를 찾을 수 없습니다.')
       return
+    }
+
+
+    if (conversation.type === 'CUSTOM') {
+
+      customChatStore.setCurrentConversation(
+        conversation
+      )
     }
 
     // 채팅방 열기

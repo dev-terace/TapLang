@@ -7,11 +7,9 @@ import { useModalStore } from '@/shared/modal/ModalStore'
 import { customChatApi } from '../api/customChat.api'
 import CustomChatCreateModal from './CustomChatCreateModal.vue'
 import { useCustomChatRoom } from '../composable/useCustomChatRoom'
-
 const uiStore = useUIStore()
 const modalStore = useModalStore()
 const customChatStore = useCustomChatStore()
-
 const isLoading = ref(false)
 
 // 다음 페이지 cursor
@@ -125,6 +123,7 @@ watch(
     // 탭을 다시 열면 첫 페이지부터
     // =======================================================
 
+    
     nextCursor.value = null
 
     customChatStore.setCustomRooms([])
@@ -156,12 +155,72 @@ const loadMoreCustomChats = () => {
 }
 
 
-const {
-  enterCustomRoom,
-  isProcessing
-} = useCustomChatRoom({
-  scrollToBottom: () => {}
-})
+const enterCustomRoom = async (
+  room: customChatStore.CustomRoom,
+  password?: string
+) => {
+
+  if (isLoading.value) {
+    return false
+  }
+
+  try {
+
+    isLoading.value = true
+
+    // =====================================================
+    // 비밀방이면 비밀번호 검증
+    // =====================================================
+
+    if (room.isSecret) {
+
+      if (!password) {
+        return false
+      }
+
+      // 실제 비밀번호 검증 API가 있다면 여기서 호출
+      // await customChatApi.verifyPassword(...)
+    }
+
+    // =====================================================
+    // 현재 CUSTOM 방 저장
+    // =====================================================
+
+     customChatStore.setCurrentRoom(room)
+    // =====================================================
+    // 현재 conversation 설정
+    // =====================================================
+
+   
+
+    uiStore.conversationId =
+      room.id
+
+
+    // =====================================================
+    // CUSTOM 채팅방 화면으로 이동
+    // =====================================================
+
+    uiStore.currentTab =
+      'customChatRoom'
+
+    return true
+
+  } catch (error) {
+
+    console.error(
+      '[CUSTOM ROOM] 입장 실패:',
+      error
+    )
+
+    return false
+
+  } finally {
+
+    isLoading.value = false
+
+  }
+}
 
 
 const handleCustomRoomClick = async (

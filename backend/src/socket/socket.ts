@@ -3,7 +3,7 @@ import { registerFriendEvents, registerHeartBeatEvents } from "../friends/socket
 import { verifyToken } from "@clerk/backend";
 import { userService } from "../users/services/user.service";
 import { registerLeaveConversationMember } from "../chat/socket/chat.handler";
-
+import { chatRoomService } from "../chat/services/chatRoom.service";
 
 let io: Server;
 
@@ -67,7 +67,7 @@ export const initializeSocket = (
 
   io.on(
     "connection",
-    (socket) => {
+    async (socket) => {
 
       const userId = socket.data.userId;
 
@@ -76,6 +76,18 @@ export const initializeSocket = (
       socket.join(
         `user:${userId}`
       );
+
+
+        const conversationIds = await chatRoomService.getMyConversationIds(Number(userId))
+
+  for (const conversationId of conversationIds) {
+
+    socket.join(
+      `conversation:${conversationId}`
+    )
+
+  }
+
 
       socket.on("disconnect", () => {
         for (const [id, socketId] of userSockets) {

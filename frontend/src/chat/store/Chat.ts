@@ -8,14 +8,28 @@ export interface ConversationResponse {
 }
 
 export interface Conversation {
-    conversationId: string
-    type: 'DIRECT' | 'GROUP'
-    name: string | null
-    members: ConversationMember[]
-    unreadCount: number
-    lastMessage: LastMessage | null
-    lastMessageId: string | null
-    lastMessageAt: string | null
+
+  conversationId: string
+
+  type: 'DIRECT' | 'GROUP' | 'CUSTOM'
+
+  name: string | null
+
+  members: ConversationMember[]
+
+  // CUSTOM
+  owner?: ConversationMember | null
+
+  // CUSTOM
+  activeMemberCount?: number
+
+  unreadCount: number
+
+  lastMessage: LastMessage | null
+
+  lastMessageId: string | null
+
+  lastMessageAt: string | null
 }
 
 export interface ConversationMember {

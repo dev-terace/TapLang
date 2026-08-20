@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, nextTick } from 'vue'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
@@ -14,9 +14,6 @@ import ChatFeatureModal, {
   type Feature
 } from '@/chat/components/ChatFeatureModel.vue'
 
-import GroupChatMembersModal, {
-  type GroupChatMember
-} from '@/chat/components/GroupChatMemberModal.vue'
 
 import ChatSettingsModal from '@/chat/components/ChatSettingsModal.vue'
 import StickerModal from '@/chat/components/StickerModal.vue'
@@ -37,6 +34,8 @@ import { useCustomChatStore } from '../stores/CustomChatStore'
 import { useChatMessages } from '../composable/useChatMessages'
 import { customChatApi } from '../api/customChat.api.js'
 import { ChatApi } from '@/chat/api/chat.api.js'
+import CustomChatMemberModal from './CustomChatMemberModal.vue'
+import CustomChatFeatureModel from './CustomChatFeatureModel.vue'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -68,21 +67,16 @@ const isEntering = ref(false)
 // 현재 CUSTOM 방
 // =========================================================
 
-const currentRoom = computed(() => {
+const currentRoom =
+  computed(() => customChatStore.currentRoom)
 
-  const conversationId =
-    chatRoomStore.conversationId
 
-  
-    
-
-  if (!conversationId) {
-    return null
+const isOwner = computed(() => {
+  if (!currentRoom.value) {
+    return false
   }
 
-  return customChatStore.customRooms.find(
-    room => room.id === conversationId
-  ) ?? null
+  return currentRoom.value.owner === authStore.userInfo?.name
 })
 
 // =========================================================
@@ -268,6 +262,7 @@ watch(
 
     await enterCustomRoom()
     customChatApi.joinCustomChat(conversationId);
+    customChatApi.joinConversation(conversationId);
   },
   {
     immediate: true
@@ -713,10 +708,11 @@ const goBack = () => {
         class="flex gap-2 items-center"
       >
 
-        <ChatFeatureModal
-          :loading="translatorStore.isInputTranslating"
-          @select="selectFeature"
-        />
+      <CustomChatFeatureModel
+        :loading="translatorStore.isInputTranslating"
+        :show-owner-features="isOwner"
+        @select="selectFeature"
+      />
 
 
         <input
@@ -857,7 +853,7 @@ const goBack = () => {
     <!-- 멤버 모달 -->
     <!-- ================================================= -->
 
-    <GroupChatMembersModal
+    <CustomChatMemberModal
       :is-open="isMembersModalOpen"
       @close="isMembersModalOpen = false"
       @invite="handleInvite"

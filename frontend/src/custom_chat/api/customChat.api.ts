@@ -133,6 +133,33 @@ export const getCustomChats = async (
     conversationId: string
   }
 
+  export const joinConversation = async (
+    conversationId: string
+  ) => {
+
+    try {
+
+      console.log("custom joinConversation", conversationId)
+      const response = await api.post(
+        '/api/custom-chat-room/join',
+        {
+          conversationId,
+        }
+      )
+
+      return response.data
+
+    } catch (error) {
+
+      console.error(
+        'CustomChat 입장 실패:',
+        error
+      )
+
+      throw error
+    }
+  }
+
 
   export const joinCustomChat = async (
     conversationId: string

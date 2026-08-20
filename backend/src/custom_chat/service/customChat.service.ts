@@ -89,6 +89,48 @@ export class CustomChatRoomService {
 
 
 
+
+  async getCustomChatMemberIds (
+  conversationId: string
+) {
+
+  if (!conversationId) {
+    throw new Error("CONVERSATION_ID_REQUIRED");
+  }
+
+  const conversation =
+    await mongoPrisma.conversation.findUnique({
+      where: {
+        id: conversationId,
+      },
+      select: {
+        type: true,
+      },
+    });
+
+  if (!conversation) {
+    throw new Error("CONVERSATION_NOT_FOUND");
+  }
+
+  if (conversation.type !== "CUSTOM") {
+    throw new Error("NOT_A_CUSTOM_CHAT");
+  }
+
+  const members =
+    await mongoPrisma.conversationMember.findMany({
+      where: {
+        conversationId,
+      },
+      select: {
+        userId: true,
+      },
+    });
+
+  return members.map(
+    member => member.userId
+  );
+};
+
 async joinCustomChat  (
   conversationId: string,
   userId: number

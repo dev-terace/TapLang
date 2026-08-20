@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
-
 // =========================================================
 // CUSTOM 채팅방
 // =========================================================
@@ -49,6 +48,86 @@ export const useCustomChatStore = defineStore(
 
     const customRooms =
       ref<CustomRoom[]>([])
+
+
+    // =======================================================
+    // 현재 열려있는 CUSTOM 채팅방
+    // =======================================================
+
+    const currentRoom =
+      ref<CustomRoom | null>(null)
+
+
+    // =======================================================
+    // 현재 방 설정
+    // =======================================================
+
+    const setCurrentRoom = (
+      room: CustomRoom | null
+    ) => {
+
+      currentRoom.value = room
+    }
+
+
+
+    const setCurrentConversation = (
+      conversation: Conversation
+    ) => {
+
+      const ownerMember =
+        conversation.members?.find(
+          member => member.role === 'OWNER'
+        )
+
+      currentRoom.value = {
+
+        id: conversation.conversationId,
+
+        title:
+          conversation.name ??
+          'CUSTOM 채팅방',
+
+        desc:
+          conversation.description ??
+          '',
+
+        ownerId:
+          ownerMember?.userId ??
+          0,
+
+        owner:
+          ownerMember?.name ??
+          '알 수 없음',
+
+        members:
+          conversation.members?.length ??
+          0,
+
+        isSecret:
+          conversation.isSecret ??
+          false,
+
+        type: 'CUSTOM',
+
+        lastMessageAt:
+          conversation.lastMessageAt ??
+          null,
+
+        createdAt:
+          conversation.createdAt ??
+          new Date().toISOString()
+      }
+    }
+
+    // =======================================================
+    // 현재 방 초기화
+    // =======================================================
+
+    const clearCurrentRoom = () => {
+
+      currentRoom.value = null
+    }
 
 
     // =======================================================
@@ -116,7 +195,6 @@ export const useCustomChatStore = defineStore(
       room: CustomRoom
     ) => {
 
-      // 비밀방
       if (room.isSecret) {
 
         const password =
@@ -124,14 +202,9 @@ export const useCustomChatStore = defineStore(
             `[${room.title}] 은(는) 비밀 대화방입니다.\n입장 비밀번호를 입력하세요:`
           )
 
-
         if (!password) {
           return
         }
-
-
-        // TODO
-        // 추후 비밀번호 검증 API 연결
 
         console.log(
           'CUSTOM 비밀방 입장:',
@@ -142,8 +215,6 @@ export const useCustomChatStore = defineStore(
         return
       }
 
-
-      // 공개방
       console.log(
         'CUSTOM 채팅방 입장:',
         room.id
@@ -151,15 +222,13 @@ export const useCustomChatStore = defineStore(
     }
 
 
-    // =======================================================
-    // Return
-    // =======================================================
-
     return {
 
       customFilter,
 
       customRooms,
+
+      currentRoom,
 
       filteredCustomRooms,
 
@@ -169,7 +238,12 @@ export const useCustomChatStore = defineStore(
 
       changeCustomFilter,
 
+      setCurrentRoom,
+
+      clearCurrentRoom,
+
       handleCustomRoomClick,
+      setCurrentConversation
     }
   }
 )

@@ -24,7 +24,8 @@ export function registerChatRoomSocket(socket: Socket) {
     const isMatchingRoom = chatRoomStore.conversationId === msg.conversationId;
 
     // 2. 현재 화면이 채팅방 화면인지 확인 (1:1 채팅 & 그룹 채팅 모두 포함)
-    const isViewingChatTab = uiStore.currentTab === "chatRoom" || uiStore.currentTab === "inviteChatRoom";
+    const isViewingChatTab = uiStore.currentTab === "chatRoom" || uiStore.currentTab === "inviteChatRoom"
+                            || uiStore.currentTab === "customChatRoom";
 
     const isBlocked = blockStore.blockedUsers?.some(
       (user) => user.id === msg.senderId

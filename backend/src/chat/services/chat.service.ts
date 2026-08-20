@@ -31,18 +31,31 @@ export const getMyConversations = async (
   const userId = Number(userIdInput); // ★ 타입 강제 변환
   const db = await connectMongoDB();
 
-  const pipeline: any[] = [
-    { $match: { userId } },
-    {
-      $lookup: {
-        from: "Conversation",
-        localField: "conversationId",
-        foreignField: "_id",
-        as: "conversation",
+const pipeline: any[] = [
+  {
+    $match: {
+      userId,
+    },
+  },
+  {
+    $lookup: {
+      from: "Conversation",
+      localField: "conversationId",
+      foreignField: "_id",
+      as: "conversation",
+    },
+  },
+  {
+    $unwind: "$conversation",
+  },
+  {
+    $match: {
+      "conversation.type": {
+        $in: ["DIRECT", "GROUP"],
       },
     },
-    { $unwind: "$conversation" },
-  ];
+  },
+];
 
   if (cursor) {
     const cursorDate = new Date(cursor.lastMessageAt);

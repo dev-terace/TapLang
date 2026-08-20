@@ -202,12 +202,12 @@ export const joinConversation = async (
       });
     }
 
-    // 소켓 룸 입장 처리
-    joinConversationMembers(
-      conversationId,
-      validMemberIds,
-      Number(ownId)
-    );
+    // // 소켓 룸 입장 처리
+    // joinConversationMembers(
+    //   conversationId,
+    //   validMemberIds,
+    //   Number(ownId)
+    // );
 
     return res.status(200).json({
       success: true,
@@ -440,6 +440,7 @@ export const createMessage = async (
       throw new Error("유저 없음");
     }
 
+
     emitNewMessage(conversationId, createdMessage, userInfo, conversationInfo.name);
 
 
@@ -495,7 +496,7 @@ export const inviteMembers = async (req: Request, res: Response) => {
     );
 
     // 1. 초대된 유저 소켓 룸(conversation:id) 참가 처리
-    joinConversationMembers(conversationId, result.invitedUserIds, ownId);
+    // joinConversationMembers(conversationId, result.invitedUserIds, ownId);
 
     // 2. 채팅방에 초대 실시간 메시지(소켓 이벤트) 전송
     if (result.systemMessage && result.inviter) {
