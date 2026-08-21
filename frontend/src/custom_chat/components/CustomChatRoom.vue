@@ -33,9 +33,11 @@ import { useChatLeave } from '@/chat/composables/chatRoom.vue/useChatLeaves.js'
 import { useCustomChatStore } from '../stores/CustomChatStore'
 import { useChatMessages } from '../composable/useChatMessages'
 import { customChatApi } from '../api/customChat.api.js'
-import { ChatApi } from '@/chat/api/chat.api.js'
+import { customChatRoomApi } from '../api/customChatRoom.api'
+
 import CustomChatMemberModal from './CustomChatMemberModal.vue'
 import CustomChatFeatureModel from './CustomChatFeatureModel.vue'
+import CustomChatFeatureMemberModal from './CustomChatFeatureMemberModal.vue'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -260,9 +262,35 @@ watch(
       return
     }
 
-    await enterCustomRoom()
-    customChatApi.joinCustomChat(conversationId);
-    customChatApi.joinConversation(conversationId);
+    
+   
+    try {
+      
+       
+       await customChatApi.joinConversation(conversationId)
+       await customChatApi.joinCustomChat(conversationId)
+       await enterCustomRoom() 
+
+    } catch (error: any) {
+
+      if (error.response?.status === 403) {
+
+        window.alert(
+          '이 채팅방에 입장할 수 없습니다.'
+        )
+
+        chatRoomStore.setConversationId(null)
+        uiStore.conversationId = null
+        uiStore.currentTab = 'groupChat'
+
+        return
+      }
+
+      console.error(
+        'CUSTOM 채팅방 입장 실패:',
+        error
+      )
+    }
   },
   {
     immediate: true
@@ -315,12 +343,9 @@ const sendMessage = async () => {
 // 기능 메뉴
 // =========================================================
 
-const selectFeature = async (
-  feature: Feature
-) => {
-
+// Feature 선택 핸들러
+const selectFeature = async (feature: Feature) => {
   switch (feature.id) {
-
     case 'AI':
       await translateWithAI()
       break
@@ -331,6 +356,18 @@ const selectFeature = async (
 
     case 'Image':
       openFilePicker()
+      break
+
+    case 'TransferOwner':
+      modalStore.openModal('transferOwner')
+      break
+
+    case 'KickMember':
+      modalStore.openModal('kickMember')
+      break
+
+    default:
+      console.warn(`Unhandled feature ID: ${(feature as Feature).id}`)
       break
   }
 }
@@ -381,49 +418,54 @@ const handleInvite = () => {
 // =========================================================
 
 const handleMemberAction = async (
-  action: string,
+  action: 'addFriend' | 'viewBio' | 'block' | 'delete' | 'delegateHost' | 'kick' | string,
   member: GroupChatMember
 ) => {
-
   const friendId = member.id
+  const conversationId = chatRoomStore.conversationId
 
+  // 1. 친구 추가
   if (action === 'addFriend') {
-
     await friendStore.addFriendRequest({
       searchName: member.name
     })
-
     await friendStore.fetchFriends()
-
     return
   }
 
-  uiStore.profileMenuFriendId =
-    friendId
+  // 2. 방장 위임
+  if (action === 'delegateHost') {
+    if (window.confirm(`${member.name}님에게 방장을 위임하시겠습니까?`)) {
+      if (conversationId) {
+        // TODO: chatRoomStore의 방장 위임 API 메서드로 연결
+        await customChatRoomApi.transferOwner({ conversationId, targetUserId: friendId })
+        modalStore.closeModal()
+      }
+    }
+    return
+  }
+
+  // 3. 강퇴 / 내보내기
+  if (action === 'kick') {
+    if (window.confirm(`${member.name}님을 방에서 내보내시겠습니까?`)) {
+      if (conversationId) {
+        // TODO: chatRoomStore의 멤버 내보내기 API 메서드로 연결
+        await customChatRoomApi.kickMember({ conversationId, targetUserId: friendId })
+      }
+    }
+    return
+  }
+
+  // 4. 프로필 관련 기존 공통 처리
+  uiStore.profileMenuFriendId = friendId
 
   if (action === 'viewBio') {
-
-    modalStore.openModal(
-      'viewBio'
-    )
-
+    modalStore.openModal('viewBio')
   } else if (action === 'block') {
-
-    await blockStore.requestBlockUser(
-      friendId
-    )
-
+    await blockStore.requestBlockUser(friendId)
   } else if (action === 'delete') {
-
-    if (
-      window.confirm(
-        '정말 삭제하시겠습니까?'
-      )
-    ) {
-
-      window.alert(
-        '삭제 기능 준비중입니다.'
-      )
+    if (window.confirm('정말 삭제하시겠습니까?')) {
+      window.alert('삭제 기능 준비중입니다.')
     }
   }
 }
@@ -449,38 +491,24 @@ const goBack = () => {
 
 <template>
 
-  <div
-    v-if="uiStore.currentTab === 'customChatRoom'"
-    class="flex h-screen min-h-0 flex-col bg-[#dfdad1] relative"
-  >
+  <div v-if="uiStore.currentTab === 'customChatRoom'" class="flex h-screen min-h-0 flex-col bg-[#dfdad1] relative">
 
     <!-- ================================================= -->
     <!-- 파일 업로드 -->
     <!-- ================================================= -->
 
-    <input
-      ref="fileInputRef"
-      type="file"
-      accept="image/*"
-      class="hidden"
-      @change="handleFileChange"
-    />
+    <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleFileChange" />
 
 
     <!-- ================================================= -->
     <!-- 헤더 -->
     <!-- ================================================= -->
 
-    <div
-      class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
-    >
+    <div class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center">
 
       <!-- 뒤로 -->
-      <button
-        type="button"
-        @click="goBack"
-        class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1"
-      >
+      <button type="button" @click="goBack"
+        class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
         <span>&lt;</span>
         뒤로
       </button>
@@ -488,38 +516,26 @@ const goBack = () => {
 
       <!-- 방 정보 -->
 
-      <div
-        class="flex flex-col items-center min-w-0 px-2"
-      >
+      <div class="flex flex-col items-center min-w-0 px-2">
 
-        <div
-          class="flex items-center gap-2 max-w-[220px]"
-        >
+        <div class="flex items-center gap-2 max-w-[220px]">
 
           <!-- 공개 / 비밀 -->
 
-          <span
-            v-if="currentRoom?.isSecret"
-            class="text-[10px] bg-red-600 text-white px-1 font-bold shrink-0"
-          >
+          <span v-if="currentRoom?.isSecret" class="text-[10px] bg-red-600 text-white px-1 font-bold shrink-0">
             🔒
           </span>
 
-          <span
-            v-else
-            class="text-[10px] bg-blue-600 text-white px-1 font-bold shrink-0"
-          >
+          <span v-else class="text-[10px] bg-blue-600 text-white px-1 font-bold shrink-0">
             🌐
           </span>
 
 
-          <span
-            class="text-xs font-bold tracking-wider truncate"
-          >
+          <span class="text-xs font-bold tracking-wider truncate">
             {{
               currentRoom?.title
-                || uiStore.roomName
-                || 'CUSTOM 채팅방'
+              || uiStore.roomName
+              || 'CUSTOM 채팅방'
             }}
           </span>
 
@@ -528,10 +544,7 @@ const goBack = () => {
 
         <!-- 방장 / 인원 -->
 
-        <span
-          v-if="currentRoom"
-          class="text-[9px] text-neutral-600 mt-0.5"
-        >
+        <span v-if="currentRoom" class="text-[9px] text-neutral-600 mt-0.5">
           방장 {{ currentRoom.owner }}
           ·
           {{ currentRoom.members }}명
@@ -542,29 +555,17 @@ const goBack = () => {
 
       <!-- 오른쪽 버튼 -->
 
-      <div
-        class="flex items-center gap-3"
-      >
+      <div class="flex items-center gap-3">
 
         <!-- 멤버 -->
 
-        <button
-          type="button"
-          @click="isMembersModalOpen = true"
-          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center"
-          title="대화 상대 목록"
-        >
+        <button type="button" @click="isMembersModalOpen = true"
+          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" title="대화 상대 목록">
 
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="currentColor"
-            class="w-6 h-6"
-          >
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
 
             <path
-              d="M5.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM2.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM18.75 7.5a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1-6.75 0ZM21 18.75a.75.75 0 0 0-.42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0-5.06-1.01Z"
-            />
+              d="M5.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM2.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM18.75 7.5a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1-6.75 0ZM21 18.75a.75.75 0 0 0-.42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0-5.06-1.01Z" />
 
           </svg>
 
@@ -573,32 +574,20 @@ const goBack = () => {
 
         <!-- 설정 -->
 
-        <button
-          type="button"
-          @click="modalStore.openModal('chatRoomSettings')"
-          class="hover:text-white transition-colors"
-          title="채팅방 설정"
-        >
+        <button type="button" @click="modalStore.openModal('chatRoomSettings')"
+          class="hover:text-white transition-colors" title="채팅방 설정">
 
-          <Settings
-            class="w-5 h-5 stroke-[2.5]"
-          />
+          <Settings class="w-5 h-5 stroke-[2.5]" />
 
         </button>
 
 
         <!-- 나가기 -->
 
-        <button
-          type="button"
-          @click="leaveChatRoom"
-          class="text-[#2d2b28] hover:text-red-600 transition-colors flex items-center justify-center"
-          title="채팅방 나가기"
-        >
+        <button type="button" @click="leaveChatRoom"
+          class="text-[#2d2b28] hover:text-red-600 transition-colors flex items-center justify-center" title="채팅방 나가기">
 
-          <X
-            class="w-5 h-5 stroke-[2.5]"
-          />
+          <X class="w-5 h-5 stroke-[2.5]" />
 
         </button>
 
@@ -611,10 +600,7 @@ const goBack = () => {
     <!-- 입장 로딩 -->
     <!-- ================================================= -->
 
-    <div
-      v-if="isEntering"
-      class="flex-1 flex items-center justify-center text-xs font-bold text-neutral-500"
-    >
+    <div v-if="isEntering" class="flex-1 flex items-center justify-center text-xs font-bold text-neutral-500">
 
       CUSTOM 채팅방에 접속하는 중...
 
@@ -625,33 +611,21 @@ const goBack = () => {
     <!-- 메시지 -->
     <!-- ================================================= -->
 
-    <div
-      v-else
-      ref="messageContainer"
-      class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col"
-    >
+    <div v-else ref="messageContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col">
 
-      <div
-        v-for="(message, index) in filteredMessages"
-        :key="message.id"
-      >
+      <div v-for="(message, index) in filteredMessages" :key="message.id">
 
         <!-- 날짜 -->
 
-        <div
-          v-if="
-            index === 0 ||
-            !isSameDate(
-              filteredMessages[index - 1].createdAt,
-              message.createdAt
-            )
-          "
-          class="flex justify-center my-3"
-        >
+        <div v-if="
+          index === 0 ||
+          !isSameDate(
+            filteredMessages[index - 1].createdAt,
+            message.createdAt
+          )
+        " class="flex justify-center my-3">
 
-          <span
-            class="text-[10px] bg-[#c5bfb6] px-2 py-1 border-2 border-[#2d2b28] font-bold text-[#2d2b28]"
-          >
+          <span class="text-[10px] bg-[#c5bfb6] px-2 py-1 border-2 border-[#2d2b28] font-bold text-[#2d2b28]">
             {{ formatDate(message.createdAt) }}
           </span>
 
@@ -660,24 +634,16 @@ const goBack = () => {
 
         <!-- 메시지 -->
 
-        <ChatRoomMessage
-          :message="message"
-          :own-id="ownId"
-        />
+        <ChatRoomMessage :message="message" :own-id="ownId" />
 
       </div>
 
 
       <!-- 메시지 없음 -->
 
-      <div
-        v-if="filteredMessages.length === 0"
-        class="flex-1 flex items-center justify-center"
-      >
+      <div v-if="filteredMessages.length === 0" class="flex-1 flex items-center justify-center">
 
-        <div
-          class="text-center text-[10px] text-neutral-500"
-        >
+        <div class="text-center text-[10px] text-neutral-500">
 
           <div class="text-xl mb-2">
             💬
@@ -700,35 +666,21 @@ const goBack = () => {
     <!-- 입력창 -->
     <!-- ================================================= -->
 
-    <div
-      class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]"
-    >
+    <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
 
-      <div
-        class="flex gap-2 items-center"
-      >
+      <div class="flex gap-2 items-center">
 
-      <CustomChatFeatureModel
-        :loading="translatorStore.isInputTranslating"
-        :show-owner-features="isOwner"
-        @select="selectFeature"
-      />
+        <CustomChatFeatureModel :loading="translatorStore.isInputTranslating" :show-owner-features="isOwner"
+          @select="selectFeature" />
 
 
-        <input
-          v-model="newMessage"
-          type="text"
-          placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
+        <input v-model="newMessage" type="text" placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
           @keyup.enter="sendMessage"
-          class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
-        />
+          class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9" />
 
 
-        <button
-          type="button"
-          @click="sendMessage"
-          class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
-        >
+        <button type="button" @click="sendMessage"
+          class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
           전송
         </button>
 
@@ -743,29 +695,19 @@ const goBack = () => {
 
     <Teleport to="body">
 
-      <div
-        v-if="isImageModalOpen"
-        class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
-        @click.self="closeImageModal"
-      >
+      <div v-if="isImageModalOpen" class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
+        @click.self="closeImageModal">
 
         <div
-          class="w-full max-w-md bg-[#e6e2db] border-4 border-[#2d2b28] shadow-[8px_8px_0px_0px_#121315] flex flex-col overflow-hidden"
-        >
+          class="w-full max-w-md bg-[#e6e2db] border-4 border-[#2d2b28] shadow-[8px_8px_0px_0px_#121315] flex flex-col overflow-hidden">
 
-          <div
-            class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold"
-          >
+          <div class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold">
 
             <span>
               // 이미지_전송_프로토콜.img
             </span>
 
-            <button
-              type="button"
-              @click="closeImageModal"
-              class="hover:text-red-400 text-lg leading-none"
-            >
+            <button type="button" @click="closeImageModal" class="hover:text-red-400 text-lg leading-none">
 
               <X class="w-4 h-4" />
 
@@ -774,57 +716,33 @@ const goBack = () => {
           </div>
 
 
-          <div
-            class="p-4 flex flex-col gap-3"
-          >
+          <div class="p-4 flex flex-col gap-3">
 
             <div
-              class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center"
-            >
+              class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
 
-              <img
-                :src="imagePreviewUrl"
-                alt="미리보기"
-                class="max-w-full max-h-[290px] object-contain"
-              />
+              <img :src="imagePreviewUrl" alt="미리보기" class="max-w-full max-h-[290px] object-contain" />
 
             </div>
 
 
-            <input
-              v-model="imageCaption"
-              type="text"
-              placeholder="이미지에 대한 설명을 입력하세요 (선택)"
+            <input v-model="imageCaption" type="text" placeholder="이미지에 대한 설명을 입력하세요 (선택)"
               @keyup.enter="sendImageMessage"
-              class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]"
-            />
+              class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]" />
 
 
-            <div
-              class="flex justify-end gap-2 mt-2"
-            >
+            <div class="flex justify-end gap-2 mt-2">
 
-              <button
-                type="button"
-                @click="closeImageModal"
-                :disabled="isUploadingImage"
-                class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-              >
+              <button type="button" @click="closeImageModal" :disabled="isUploadingImage"
+                class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                 취소
               </button>
 
 
-              <button
-                type="button"
-                @click="sendImageMessage"
-                :disabled="isUploadingImage"
-                class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2"
-              >
+              <button type="button" @click="sendImageMessage" :disabled="isUploadingImage"
+                class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2">
 
-                <span
-                  v-if="isUploadingImage"
-                  class="animate-spin text-xs"
-                >
+                <span v-if="isUploadingImage" class="animate-spin text-xs">
                   🌀
                 </span>
 
@@ -853,12 +771,8 @@ const goBack = () => {
     <!-- 멤버 모달 -->
     <!-- ================================================= -->
 
-    <CustomChatMemberModal
-      :is-open="isMembersModalOpen"
-      @close="isMembersModalOpen = false"
-      @invite="handleInvite"
-      @member-action="handleMemberAction"
-    />
+    <CustomChatMemberModal :is-open="isMembersModalOpen" @close="isMembersModalOpen = false" @invite="handleInvite"
+      @member-action="handleMemberAction" />
 
 
     <!-- 설정 -->
@@ -868,9 +782,12 @@ const goBack = () => {
 
     <!-- 스티커 -->
 
-    <StickerModal
-      @select="handleStickerSelect"
-    />
+    <StickerModal @select="handleStickerSelect" />
+
+    <CustomChatFeatureMemberModal
+      :is-open="modalStore.activeModal === 'transferOwner' || modalStore.activeModal === 'kickMember'"
+      :mode="modalStore.activeModal as MemberActionMode" @close="modalStore.closeModal()"
+      @member-action="handleMemberAction" />
 
   </div>
 

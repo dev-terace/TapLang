@@ -850,7 +850,139 @@ async joinCustomChat  (
 
   }
 
-  
+
+
+
+  async transferOwner  (
+  conversationId: string,
+  currentUserId: number,
+  targetUserId: number
+)  {
+  // 1. 요청자가 방장인지 확인
+  const requester = await mongoPrisma.conversationMember.findUnique({
+    where: {
+      conversationId_userId: { conversationId, userId: currentUserId },
+    },
+  });
+
+  if (!requester || requester.role !== ConversationMemberRole.OWNER) {
+    throw new Error('FORBIDDEN_NOT_OWNER');
+  }
+
+  // 2. 대상 유저가 멤버로 존재하는지 확인
+  const target = await mongoPrisma.conversationMember.findUnique({
+    where: {
+      conversationId_userId: { conversationId, userId: targetUserId },
+    },
+  });
+
+  if (!target) {
+    throw new Error('TARGET_NOT_MEMBER');
+  }
+
+  if (currentUserId === targetUserId) {
+    throw new Error('CANNOT_TRANSFER_TO_SELF');
+  }
+
+  // 3. 트랜잭션: 기존 방장 -> 일반 멤버, 대상 유저 -> 방장
+  return await mongoPrisma.$transaction([
+    mongoPrisma.conversationMember.update({
+      where: {
+        conversationId_userId: { conversationId, userId: currentUserId },
+      },
+      data: { role: ConversationMemberRole.MEMBER },
+    }),
+    mongoPrisma.conversationMember.update({
+      where: {
+        conversationId_userId: { conversationId, userId: targetUserId },
+      },
+      data: { role: ConversationMemberRole.OWNER },
+    }),
+  ]);
+};
+
+// 멤버 내보내기 (강퇴)
+async kickMember  (
+  conversationId: string,
+  currentUserId: number,
+  targetUserId: number
+) {
+  // 1. 요청자가 방장인지 확인
+  const requester = await mongoPrisma.conversationMember.findUnique({
+    where: {
+      conversationId_userId: { conversationId, userId: currentUserId },
+    },
+  });
+
+  if (!requester || requester.role !== ConversationMemberRole.OWNER) {
+    throw new Error('FORBIDDEN_NOT_OWNER');
+  }
+
+  // 2. 자기 자신은 강퇴 불가
+  if (currentUserId === targetUserId) {
+    throw new Error('CANNOT_KICK_SELF');
+  }
+
+  // 3. 대상 멤버 존재 여부 확인
+  const target = await mongoPrisma.conversationMember.findUnique({
+    where: {
+      conversationId_userId: { conversationId, userId: targetUserId },
+    },
+  });
+
+  if (!target) {
+    throw new Error('TARGET_NOT_MEMBER');
+  }
+
+  // 4. 멤버 삭제
+  return await mongoPrisma.conversationMember.delete({
+    where: {
+      conversationId_userId: { conversationId, userId: targetUserId },
+    },
+  });
+};
+
+
+// =========================================================
+// CUSTOM 채팅방 멤버 수 조회
+// =========================================================
+
+async getCustomChatMemberCount(
+  conversationId: string
+) {
+
+  if (!conversationId) {
+    throw new Error("CONVERSATION_ID_REQUIRED");
+  }
+
+  const conversation =
+    await mongoPrisma.conversation.findUnique({
+      where: {
+        id: conversationId,
+      },
+      select: {
+        type: true,
+      },
+    });
+
+  if (!conversation) {
+    throw new Error("CONVERSATION_NOT_FOUND");
+  }
+
+  if (conversation.type !== "CUSTOM") {
+    throw new Error("NOT_A_CUSTOM_CHAT");
+  }
+
+  const memberCount =
+    await mongoPrisma.conversationMember.count({
+      where: {
+        conversationId,
+      },
+    });
+
+  return memberCount;
+}
+s
 
 }
 

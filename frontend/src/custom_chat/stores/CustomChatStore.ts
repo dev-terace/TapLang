@@ -222,6 +222,51 @@ export const useCustomChatStore = defineStore(
     }
 
 
+    const updateRoomMemberCount = (
+      conversationId: string,
+      memberCount: number
+    ) => {
+      const room = customRooms.value.find(
+        room => room.id === conversationId
+      )
+
+      if (!room) {
+        return
+      }
+
+      room.members = memberCount
+
+      // 현재 열려있는 방이라면 같이 변경
+      if (currentRoom.value?.id === conversationId) {
+        currentRoom.value.members = memberCount
+      }
+    }
+
+
+    const updateRoomOwner = (
+      conversationId: string,
+      ownerId: number,
+      ownerName: string
+    ) => {
+      const room = customRooms.value.find(
+        room => room.id === conversationId
+      )
+
+      if (!room) {
+        return
+      }
+
+      room.ownerId = ownerId
+      room.owner = ownerName
+
+      // 현재 열려있는 방이라면 같이 변경
+      if (currentRoom.value?.id === conversationId) {
+        currentRoom.value.ownerId = ownerId
+        currentRoom.value.owner = ownerName
+      }
+    }
+
+
     return {
 
       customFilter,
@@ -243,7 +288,9 @@ export const useCustomChatStore = defineStore(
       clearCurrentRoom,
 
       handleCustomRoomClick,
-      setCurrentConversation
+      setCurrentConversation,
+      updateRoomMemberCount,
+      updateRoomOwner
     }
   }
 )

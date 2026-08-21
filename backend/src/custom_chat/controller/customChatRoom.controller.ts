@@ -3,9 +3,9 @@ import { chatRoomService } from "../../custom_chat/service/customChat.service";
 import { joinConversationMembers, emitNewMessage } from "../../chat/socket/chat.handler"
 import { userService } from "../../users/services/user.service";
 import { chatRoomService as prevChatRoomSerive } from "../../chat/services/chatRoom.service";
-import { joinConversationMembers } from "../../chat/socket/chat.handler";
-
-
+import { kickedMemberProc, joinedConversation } from "../socket/customChatRoom.handler";
+import { transferredOwner } from "../socket/customChatRoom.handler";
+import { customBanChatService } from "../service/customBanChat.service";
 
 export const joinConversation = async (
   req: Request,
@@ -15,6 +15,8 @@ export const joinConversation = async (
     console.log("[joinConversation] body:", req.body)
 
     const { conversationId } = req.body
+
+
 
     // 1. conversationId 검증
     if (!conversationId) {
@@ -27,6 +29,15 @@ export const joinConversation = async (
     // 2. 로그인 사용자
     const ownId = await userService.findUserIdByAuthToken(req)
 
+
+
+    if (await customBanChatService.isBanned(conversationId, ownId)) {
+      return res.status(403).json({
+        message: 'REJOIN_RESTRICTED'
+      })
+    }
+
+    
     if (!ownId) {
       return res.status(401).json({
         success: false,
@@ -49,19 +60,6 @@ export const joinConversation = async (
       })
     }
 
-    // 4. 현재 사용자가 실제 채팅방 멤버인지 확인
-    const isMember =
-      await prevChatRoomSerive.existsConversationMember(
-        conversationId,
-        numericOwnId
-      )
-
-    if (!isMember) {
-      return res.status(403).json({
-        success: false,
-        message: "채팅방 멤버가 아닙니다.",
-      })
-    }
 
     // 5. DB에서 현재 채팅방의 모든 멤버 조회
     const memberIds =
@@ -81,11 +79,15 @@ export const joinConversation = async (
 
     // 6. 현재 접속 중인 멤버들의 socket을
     //    conversation room에 참가시킴
-    joinConversationMembers(
+
+
+    await joinConversationMembers(
       conversationId,
       memberIds,
       numericOwnId
     )
+
+    await joinedConversation(conversationId)
 
     return res.status(200).json({
       success: true,
@@ -133,8 +135,9 @@ export const joinCustomChat = async (
         conversationId,
         userId
       );
-    
-    joinConversationMembers(conversationId, [], userId);
+
+    await joinConversationMembers(conversationId, [], userId);
+    await joinedConversation(conversationId)
 
     return res.status(200).json({
       success: true,
@@ -171,3 +174,76 @@ export const joinCustomChat = async (
     }
   }
 };
+
+
+export const transferOwner = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = await userService.findUserIdByAuthToken(req)
+    const { conversationId } = req.params;
+    const { targetUserId } = req.body;
+
+    if (!currentUserId) {
+      return res.status(401).json({ message: "UNAUTHORIZED" });
+    }
+
+    if (!targetUserId || typeof targetUserId !== "number") {
+      return res.status(400).json({ message: "TARGET_USER_ID_REQUIRED" });
+    }
+
+    await chatRoomService.transferOwner(conversationId, currentUserId, targetUserId);
+
+    transferredOwner(conversationId, targetUserId)
+
+    return res.status(200).json({
+      success: true,
+      message: "OWNER_TRANSFERRED_SUCCESSFULLY",
+    });
+  } catch (error: any) {
+    if (error.message === "FORBIDDEN_NOT_OWNER") {
+      return res.status(403).json({ message: error.message });
+    }
+    if (error.message === "TARGET_NOT_MEMBER" || error.message === "CANNOT_TRANSFER_TO_SELF") {
+      return res.status(400).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "INTERNAL_SERVER_ERROR", error: error.message });
+  }
+}
+
+// =========================================================
+// 6. 멤버 강퇴
+// =========================================================
+export const kickMember = async (req: Request, res: Response) => {
+  try {
+    const currentUserId = await userService.findUserIdByAuthToken(req)
+    const { conversationId, targetUserId } = req.params;
+
+    if (!currentUserId) {
+      return res.status(401).json({ message: "UNAUTHORIZED" });
+    }
+
+    const targetId = Number(targetUserId);
+    if (Number.isNaN(targetId)) {
+      return res.status(400).json({ message: "INVALID_TARGET_USER_ID" });
+    }
+
+    await chatRoomService.kickMember(conversationId, currentUserId, targetId);
+    await customBanChatService.banMember(conversationId, targetId)
+
+    await kickedMemberProc(conversationId, targetId);
+    return res.status(200).json({
+      success: true,
+      message: "MEMBER_KICKED_SUCCESSFULLY",
+    });
+
+
+
+  } catch (error: any) {
+    if (error.message === "FORBIDDEN_NOT_OWNER") {
+      return res.status(403).json({ message: error.message });
+    }
+    if (error.message === "CANNOT_KICK_SELF" || error.message === "TARGET_NOT_MEMBER") {
+      return res.status(400).json({ message: error.message });
+    }
+    return res.status(500).json({ message: "INTERNAL_SERVER_ERROR", error: error.message });
+  }
+}

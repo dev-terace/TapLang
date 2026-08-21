@@ -822,6 +822,22 @@ export const getMyConversationIds = async (
   )
 }
 
+
+export const getMembers = async (conversationId: string) => {
+  return await prisma.conversationMember.findMany({
+    where: { conversationId },
+    select: {
+      id: true,
+      userId: true,
+      role: true,
+      joinedAt: true,
+    },
+  });
+};
+
+// 방장 위임
+
+
 export const chatRoomService = {
   createChatInfo,
   createMessage,

@@ -40,6 +40,7 @@ model Conversation {
 
   description String? //CUSTOM 전용  
   password String? //CUSTOM 전용
+  bans ConversationBan[]
 
   members ConversationMember[]
 
@@ -51,6 +52,24 @@ model Conversation {
   lastMessageId String?
   lastMessageAt DateTime?
 
+}
+
+
+model ConversationBan {
+  id String @id @default(uuid()) @map("_id")
+
+  conversationId String
+  userId Int
+
+  bannedAt DateTime @default(now())
+  bannedUntil DateTime?
+
+  conversation Conversation @relation(fields: [conversationId],references: [id])
+
+  @@unique([conversationId, userId])
+  @@index([userId])
+  @@index([conversationId])
+  @@index([bannedUntil])
 }
 
 

@@ -5,6 +5,8 @@ import { useFriendStore } from "../../friends/stores/FriendStore";
 import {registerFriendSocket} from "@/friends/sockets/friend.socket"
 import { startHeartbeat } from "@/friends/sockets/friend.heartbeat.socket";
 import { registerChatRoomSocket } from "@/chat/sockets/chatRoom.socket";
+import { registerKickedMemberProc, registerTransferredOwnerProc} from "@/custom_chat/sockets/customChatRoom.socket"
+
 import {
   connectSocket,
   disconnectSocket
@@ -41,8 +43,8 @@ export const useSocketRegister = defineStore("socket", () => {
   );
   startHeartbeat(socketInstance);
   registerChatRoomSocket(socketInstance);
-    
-
+  registerKickedMemberProc(socketInstance)  
+  registerTransferredOwnerProc(socketInstance)
 
   };
 
