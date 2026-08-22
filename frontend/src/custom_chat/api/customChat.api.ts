@@ -134,7 +134,8 @@ export const getCustomChats = async (
   }
 
   export const joinConversation = async (
-    conversationId: string
+    conversationId: string,
+    password: string | null
   ) => {
 
     try {
@@ -144,6 +145,7 @@ export const getCustomChats = async (
         '/api/custom-chat-room/join',
         {
           conversationId,
+          password,
         }
       )
 
@@ -162,7 +164,8 @@ export const getCustomChats = async (
 
 
   export const joinCustomChat = async (
-    conversationId: string
+    conversationId: string,
+    password: string | null,
   ): Promise<JoinCustomChatResponse> => {
 
     try {
@@ -172,6 +175,8 @@ export const getCustomChats = async (
           "/api/custom-chat-room",
           {
             conversationId,
+            password,
+  
           }
         )
 
@@ -198,6 +203,74 @@ export const getCustomChats = async (
 
 
 
+
+
+  export interface MyCustomChatRoom {
+  id: string
+  title: string
+  desc: string
+
+  ownerId: number
+  owner: string
+
+  members: number
+
+  isSecret: boolean
+  type: "CUSTOM"
+
+  lastMessageAt: string | null
+  createdAt: string
+}
+
+export interface MyCustomChatCursor {
+  lastMessageAt: string | null;
+  createdAt: string;
+  id: string;
+}
+
+export interface GetMyCustomChatsResponse {
+  items: MyCustomChatRoom[]
+  nextCursor: MyCustomChatCursor | null
+}
+
+export const getMyCustomChats = async (
+  cursor?: MyCustomChatCursor
+): Promise<GetMyCustomChatsResponse> => {
+
+  try {
+
+    const response =
+      await api.get<GetMyCustomChatsResponse>(
+        "/api/custom-chat/my-chat",
+        {
+          params: cursor
+            ? {
+                cursor: JSON.stringify(cursor),
+              }
+            : undefined,
+        }
+      )
+
+    console.log(
+      "getMyCustomChats res data:",
+      response.data
+    )
+
+    return response.data
+
+  } catch (error) {
+
+    if (axios.isAxiosError(error)) {
+
+      throw new Error(
+        error.response?.data?.message ??
+        "내가 참여한 커스텀 채팅방을 불러오지 못했습니다."
+      )
+    }
+
+    throw error
+  }
+}
 
 
 

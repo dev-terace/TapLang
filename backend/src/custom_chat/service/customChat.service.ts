@@ -84,118 +84,125 @@ const toISOStringSafe = (
 };
 
 
+export interface MyCustomChatCursor {
+  lastMessageAt: string | null;
+  createdAt: string;
+  id: string;
+}
+
+
 export class CustomChatRoomService {
 
 
 
 
 
-  async getCustomChatMemberIds (
-  conversationId: string
-) {
+  async getCustomChatMemberIds(
+    conversationId: string
+  ) {
 
-  if (!conversationId) {
-    throw new Error("CONVERSATION_ID_REQUIRED");
-  }
+    if (!conversationId) {
+      throw new Error("CONVERSATION_ID_REQUIRED");
+    }
 
-  const conversation =
-    await mongoPrisma.conversation.findUnique({
+    const conversation =
+      await mongoPrisma.conversation.findUnique({
+        where: {
+          id: conversationId,
+        },
+        select: {
+          type: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error("CONVERSATION_NOT_FOUND");
+    }
+
+    if (conversation.type !== "CUSTOM") {
+      throw new Error("NOT_A_CUSTOM_CHAT");
+    }
+
+    const members =
+      await mongoPrisma.conversationMember.findMany({
+        where: {
+          conversationId,
+        },
+        select: {
+          userId: true,
+        },
+      });
+
+    return members.map(
+      member => member.userId
+    );
+  };
+
+  async joinCustomChat(
+    conversationId: string,
+    userId: number
+  ) {
+    const conversation = await mongoPrisma.conversation.findUnique({
       where: {
         id: conversationId,
       },
       select: {
+        id: true,
         type: true,
+        name: true,
       },
-    });
+    })
 
-  if (!conversation) {
-    throw new Error("CONVERSATION_NOT_FOUND");
-  }
+    if (!conversation) {
+      throw new Error("CONVERSATION_NOT_FOUND")
+    }
 
-  if (conversation.type !== "CUSTOM") {
-    throw new Error("NOT_A_CUSTOM_CHAT");
-  }
+    // CUSTOM 방도 GROUP 타입을 사용한다면
+    if (conversation.type !== "CUSTOM") {
+      throw new Error("NOT_A_GROUP_CHAT")
+    }
 
-  const members =
-    await mongoPrisma.conversationMember.findMany({
-      where: {
+    // 이미 참가 중인지 확인
+    const existingMember =
+      await mongoPrisma.conversationMember.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
+        },
+      })
+
+    // 이미 참가 중이면 그냥 성공 처리
+    if (existingMember) {
+      return {
         conversationId,
-      },
-      select: {
-        userId: true,
-      },
-    });
+        joined: false,
+        alreadyMember: true,
+      }
+    }
 
-  return members.map(
-    member => member.userId
-  );
-};
-
-async joinCustomChat  (
-  conversationId: string,
-  userId: number
-)  {
-  const conversation = await mongoPrisma.conversation.findUnique({
-    where: {
-      id: conversationId,
-    },
-    select: {
-      id: true,
-      type: true,
-      name: true,
-    },
-  })
-
-  if (!conversation) {
-    throw new Error("CONVERSATION_NOT_FOUND")
-  }
-
-  // CUSTOM 방도 GROUP 타입을 사용한다면
-  if (conversation.type !== "CUSTOM") {
-    throw new Error("NOT_A_GROUP_CHAT")
-  }
-
-  // 이미 참가 중인지 확인
-  const existingMember =
-    await mongoPrisma.conversationMember.findUnique({
-      where: {
-        conversationId_userId: {
+    // 멤버 추가
+    const member =
+      await mongoPrisma.conversationMember.create({
+        data: {
           conversationId,
           userId,
+          role: ConversationMemberRole.MEMBER,
         },
-      },
-    })
+      })
 
-  // 이미 참가 중이면 그냥 성공 처리
-  if (existingMember) {
     return {
       conversationId,
-      joined: false,
-      alreadyMember: true,
+      joined: true,
+      alreadyMember: false,
+      member: {
+        id: member.id,
+        userId: member.userId,
+        role: member.role,
+      },
     }
   }
-
-  // 멤버 추가
-  const member =
-    await mongoPrisma.conversationMember.create({
-      data: {
-        conversationId,
-        userId,
-        role: ConversationMemberRole.MEMBER,
-      },
-    })
-
-  return {
-    conversationId,
-    joined: true,
-    alreadyMember: false,
-    member: {
-      id: member.id,
-      userId: member.userId,
-      role: member.role,
-    },
-  }
-}
   // =========================================================
   // CUSTOM 채팅방 생성
   // =========================================================
@@ -435,8 +442,8 @@ async joinCustomChat  (
       const lastMessageAt =
         cursor.lastMessageAt
           ? new Date(
-              cursor.lastMessageAt
-            )
+            cursor.lastMessageAt
+          )
           : null;
 
 
@@ -669,23 +676,23 @@ async joinCustomChat  (
 
         ? await postgresPrisma.myProfile.findMany({
 
-            where: {
+          where: {
 
-              id: {
-                in: ownerIds,
-              },
-
+            id: {
+              in: ownerIds,
             },
 
-            select: {
+          },
 
-              id: true,
+          select: {
 
-              name: true,
+            id: true,
 
-            },
+            name: true,
 
-          })
+          },
+
+        })
 
         : [];
 
@@ -719,7 +726,7 @@ async joinCustomChat  (
 
       const last =
         documents[
-          documents.length - 1
+        documents.length - 1
         ];
 
 
@@ -803,9 +810,9 @@ async joinCustomChat  (
               conversation.ownerId != null
 
                 ? ownerMap.get(
-                    conversation.ownerId
-                  ) ??
-                  "(알 수 없음)"
+                  conversation.ownerId
+                ) ??
+                "(알 수 없음)"
 
                 : "(알 수 없음)",
 
@@ -853,138 +860,745 @@ async joinCustomChat  (
 
 
 
-  async transferOwner  (
-  conversationId: string,
-  currentUserId: number,
-  targetUserId: number
-)  {
-  // 1. 요청자가 방장인지 확인
-  const requester = await mongoPrisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: currentUserId },
-    },
-  });
-
-  if (!requester || requester.role !== ConversationMemberRole.OWNER) {
-    throw new Error('FORBIDDEN_NOT_OWNER');
-  }
-
-  // 2. 대상 유저가 멤버로 존재하는지 확인
-  const target = await mongoPrisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: targetUserId },
-    },
-  });
-
-  if (!target) {
-    throw new Error('TARGET_NOT_MEMBER');
-  }
-
-  if (currentUserId === targetUserId) {
-    throw new Error('CANNOT_TRANSFER_TO_SELF');
-  }
-
-  // 3. 트랜잭션: 기존 방장 -> 일반 멤버, 대상 유저 -> 방장
-  return await mongoPrisma.$transaction([
-    mongoPrisma.conversationMember.update({
+  async transferOwner(
+    conversationId: string,
+    currentUserId: number,
+    targetUserId: number
+  ) {
+    // 1. 요청자가 방장인지 확인
+    const requester = await mongoPrisma.conversationMember.findUnique({
       where: {
         conversationId_userId: { conversationId, userId: currentUserId },
       },
-      data: { role: ConversationMemberRole.MEMBER },
-    }),
-    mongoPrisma.conversationMember.update({
+    });
+
+    if (!requester || requester.role !== ConversationMemberRole.OWNER) {
+      throw new Error('FORBIDDEN_NOT_OWNER');
+    }
+
+    // 2. 대상 유저가 멤버로 존재하는지 확인
+    const target = await mongoPrisma.conversationMember.findUnique({
       where: {
         conversationId_userId: { conversationId, userId: targetUserId },
       },
-      data: { role: ConversationMemberRole.OWNER },
-    }),
-  ]);
-};
+    });
 
-// 멤버 내보내기 (강퇴)
-async kickMember  (
-  conversationId: string,
-  currentUserId: number,
-  targetUserId: number
-) {
-  // 1. 요청자가 방장인지 확인
-  const requester = await mongoPrisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: currentUserId },
-    },
-  });
+    if (!target) {
+      throw new Error('TARGET_NOT_MEMBER');
+    }
 
-  if (!requester || requester.role !== ConversationMemberRole.OWNER) {
-    throw new Error('FORBIDDEN_NOT_OWNER');
-  }
+    if (currentUserId === targetUserId) {
+      throw new Error('CANNOT_TRANSFER_TO_SELF');
+    }
 
-  // 2. 자기 자신은 강퇴 불가
-  if (currentUserId === targetUserId) {
-    throw new Error('CANNOT_KICK_SELF');
-  }
+    // 3. 트랜잭션: 기존 방장 -> 일반 멤버, 대상 유저 -> 방장
+    return await mongoPrisma.$transaction([
+      mongoPrisma.conversationMember.update({
+        where: {
+          conversationId_userId: { conversationId, userId: currentUserId },
+        },
+        data: { role: ConversationMemberRole.MEMBER },
+      }),
+      mongoPrisma.conversationMember.update({
+        where: {
+          conversationId_userId: { conversationId, userId: targetUserId },
+        },
+        data: { role: ConversationMemberRole.OWNER },
+      }),
+    ]);
+  };
 
-  // 3. 대상 멤버 존재 여부 확인
-  const target = await mongoPrisma.conversationMember.findUnique({
-    where: {
-      conversationId_userId: { conversationId, userId: targetUserId },
-    },
-  });
-
-  if (!target) {
-    throw new Error('TARGET_NOT_MEMBER');
-  }
-
-  // 4. 멤버 삭제
-  return await mongoPrisma.conversationMember.delete({
-    where: {
-      conversationId_userId: { conversationId, userId: targetUserId },
-    },
-  });
-};
-
-
-// =========================================================
-// CUSTOM 채팅방 멤버 수 조회
-// =========================================================
-
-async getCustomChatMemberCount(
-  conversationId: string
-) {
-
-  if (!conversationId) {
-    throw new Error("CONVERSATION_ID_REQUIRED");
-  }
-
-  const conversation =
-    await mongoPrisma.conversation.findUnique({
+  // 멤버 내보내기 (강퇴)
+  async kickMember(
+    conversationId: string,
+    currentUserId: number,
+    targetUserId: number
+  ) {
+    // 1. 요청자가 방장인지 확인
+    const requester = await mongoPrisma.conversationMember.findUnique({
       where: {
-        id: conversationId,
-      },
-      select: {
-        type: true,
+        conversationId_userId: { conversationId, userId: currentUserId },
       },
     });
 
-  if (!conversation) {
-    throw new Error("CONVERSATION_NOT_FOUND");
-  }
+    if (!requester || requester.role !== ConversationMemberRole.OWNER) {
+      throw new Error('FORBIDDEN_NOT_OWNER');
+    }
 
-  if (conversation.type !== "CUSTOM") {
-    throw new Error("NOT_A_CUSTOM_CHAT");
-  }
+    // 2. 자기 자신은 강퇴 불가
+    if (currentUserId === targetUserId) {
+      throw new Error('CANNOT_KICK_SELF');
+    }
 
-  const memberCount =
-    await mongoPrisma.conversationMember.count({
+    // 3. 대상 멤버 존재 여부 확인
+    const target = await mongoPrisma.conversationMember.findUnique({
       where: {
-        conversationId,
+        conversationId_userId: { conversationId, userId: targetUserId },
       },
     });
 
-  return memberCount;
+    if (!target) {
+      throw new Error('TARGET_NOT_MEMBER');
+    }
+
+    // 4. 멤버 삭제
+    return await mongoPrisma.conversationMember.delete({
+      where: {
+        conversationId_userId: { conversationId, userId: targetUserId },
+      },
+    });
+  };
+
+
+  // =========================================================
+  // CUSTOM 채팅방 멤버 수 조회
+  // =========================================================
+
+  async getCustomChatMemberCount(
+    conversationId: string
+  ) {
+
+    if (!conversationId) {
+      throw new Error("CONVERSATION_ID_REQUIRED");
+    }
+
+    const conversation =
+      await mongoPrisma.conversation.findUnique({
+        where: {
+          id: conversationId,
+        },
+        select: {
+          type: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error("CONVERSATION_NOT_FOUND");
+    }
+
+    if (conversation.type !== "CUSTOM") {
+      throw new Error("NOT_A_CUSTOM_CHAT");
+    }
+
+    const memberCount =
+      await mongoPrisma.conversationMember.count({
+        where: {
+          conversationId,
+        },
+      });
+
+    return memberCount;
+  }
+
+
+  async getCustomChatPassword(
+    conversationId: string
+  ): Promise<string | null> {
+
+    if (!conversationId) {
+      throw new Error("CONVERSATION_ID_REQUIRED");
+    }
+
+    const conversation =
+      await mongoPrisma.conversation.findUnique({
+        where: {
+          id: conversationId,
+        },
+        select: {
+          type: true,
+          password: true,
+        },
+      });
+
+    if (!conversation) {
+      throw new Error("CONVERSATION_NOT_FOUND");
+    }
+
+    if (conversation.type !== "CUSTOM") {
+      throw new Error("NOT_A_CUSTOM_CHAT");
+    }
+
+    return conversation.password;
+  }
+
+
+
+  async isConversationMember(
+    conversationId: string,
+    userId: number
+  ): Promise<boolean> {
+
+    if (!conversationId) {
+      throw new Error("CONVERSATION_ID_REQUIRED");
+    }
+
+    if (!userId) {
+      throw new Error("USER_ID_REQUIRED");
+    }
+
+    const member =
+      await mongoPrisma.conversationMember.findUnique({
+        where: {
+          conversationId_userId: {
+            conversationId,
+            userId,
+          },
+        },
+        select: {
+          id: true,
+        },
+      });
+
+    return member !== null;
+  }
+
+
+
+  
+
+async getMyCustomChats(
+  userId: number,
+  cursor?: MyCustomChatCursor
+): Promise<{
+  items: CustomRoom[]
+  nextCursor: MyCustomChatCursor | null
+}> {
+
+  if (!userId) {
+    throw new Error("USER_ID_REQUIRED");
+  }
+
+  const pipeline: any[] = [
+
+    // =====================================================
+    // 1. CUSTOM 채팅방만 조회
+    // =====================================================
+
+    {
+      $match: {
+        type: "CUSTOM",
+      },
+    },
+
+    // =====================================================
+    // 2. 현재 사용자가 멤버인지 조회
+    // =====================================================
+
+    {
+      $lookup: {
+        from: "ConversationMember",
+
+        let: {
+          conversationId: "$_id",
+        },
+
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  {
+                    $eq: [
+                      "$conversationId",
+                      "$$conversationId",
+                    ],
+                  },
+                  {
+                    $eq: [
+                      "$userId",
+                      userId,
+                    ],
+                  },
+                ],
+              },
+            },
+          },
+        ],
+
+        as: "myMembership",
+      },
+    },
+
+    // =====================================================
+    // 3. 내가 가입한 방만 남김
+    // =====================================================
+
+    {
+      $match: {
+        "myMembership.0": {
+          $exists: true,
+        },
+      },
+    },
+
+    // =====================================================
+    // 4. 전체 멤버 조회
+    // =====================================================
+
+    {
+      $lookup: {
+        from: "ConversationMember",
+
+        localField: "_id",
+        foreignField: "conversationId",
+
+        as: "members",
+      },
+    },
+
+    // =====================================================
+    // 5. 멤버 수 + 방장 ID
+    // =====================================================
+
+    {
+      $addFields: {
+
+        memberCount: {
+          $size: "$members",
+        },
+
+        ownerId: {
+          $let: {
+
+            vars: {
+              owner: {
+                $arrayElemAt: [
+
+                  {
+                    $filter: {
+
+                      input: "$members",
+
+                      as: "member",
+
+                      cond: {
+                        $eq: [
+                          "$$member.role",
+                          "OWNER",
+                        ],
+                      },
+                    },
+                  },
+
+                  0,
+                ],
+              },
+            },
+
+            in: "$$owner.userId",
+          },
+        },
+      },
+    },
+
+    // =====================================================
+    // 6. 비밀방 여부
+    // =====================================================
+
+    {
+      $addFields: {
+
+        isSecret: {
+          $and: [
+
+            {
+              $ne: [
+                "$password",
+                null,
+              ],
+            },
+
+            {
+              $ne: [
+                "$password",
+                "",
+              ],
+            },
+
+          ],
+        },
+      },
+    },
+
+    // =====================================================
+    // 7. 불필요한 데이터 제거
+    // =====================================================
+
+    {
+      $project: {
+
+        members: 0,
+        myMembership: 0,
+        password: 0,
+      },
+    },
+  ];
+
+
+  // =========================================================
+  // Cursor (페이지네이션)
+  // =========================================================
+
+  if (cursor) {
+
+    const createdAt =
+      new Date(
+        cursor.createdAt
+      );
+
+    if (
+      Number.isNaN(
+        createdAt.getTime()
+      )
+    ) {
+
+      throw new Error(
+        "INVALID_CURSOR"
+      );
+
+    }
+
+
+    const lastMessageAt =
+      cursor.lastMessageAt
+        ? new Date(
+          cursor.lastMessageAt
+        )
+        : null;
+
+
+    if (
+      lastMessageAt &&
+      Number.isNaN(
+        lastMessageAt.getTime()
+      )
+    ) {
+
+      throw new Error(
+        "INVALID_CURSOR"
+      );
+
+    }
+
+
+    // =====================================================
+    // 메시지가 있는 방 (lastMessageAt 기준 정렬)
+    // =====================================================
+
+    if (lastMessageAt) {
+
+      pipeline.push({
+
+        $match: {
+
+          $or: [
+
+            // 최근 메시지가 더 오래됨
+            {
+              lastMessageAt: {
+                $lt: lastMessageAt,
+              },
+            },
+
+            // 메시지 시간 같고 생성일이 더 오래됨
+            {
+              lastMessageAt,
+
+              createdAt: {
+                $lt: createdAt,
+              },
+            },
+
+            // 메시지 시간 + 생성일 같음 -> id로 tie break
+            {
+              lastMessageAt,
+
+              createdAt,
+
+              _id: {
+                $lt: cursor.id,
+              },
+            },
+
+          ],
+
+        },
+
+      });
+
+    }
+
+    // =====================================================
+    // 메시지가 없는 방
+    // =====================================================
+
+    else {
+
+      pipeline.push({
+
+        $match: {
+
+          $or: [
+
+            {
+              lastMessageAt: null,
+
+              createdAt: {
+                $lt: createdAt,
+              },
+            },
+
+            {
+              lastMessageAt: null,
+
+              createdAt,
+
+              _id: {
+                $lt: cursor.id,
+              },
+            },
+
+          ],
+
+        },
+
+      });
+
+    }
+
+  }
+
+
+  // =========================================================
+  // 정렬
+  // =========================================================
+
+  pipeline.push({
+
+    $sort: {
+
+      lastMessageAt: -1,
+
+      createdAt: -1,
+
+      _id: -1,
+    },
+
+  });
+
+
+  // =========================================================
+  // 최대 30개
+  // =========================================================
+
+  pipeline.push({
+
+    $limit: 30,
+
+  });
+
+
+  // =========================================================
+  // MongoDB Aggregation
+  // =========================================================
+
+  const result =
+    await mongoPrisma.$runCommandRaw({
+
+      aggregate: "Conversation",
+
+      pipeline,
+
+      cursor: {},
+    });
+
+  const documents =
+    (result as any)
+      .cursor
+      ?.firstBatch ?? [];
+
+  // =========================================================
+  // 방장 ID 수집
+  // =========================================================
+
+  const ownerIds = [
+    ...new Set(
+
+      documents
+
+        .map(
+          (conversation: any) =>
+            conversation.ownerId
+        )
+
+        .filter(
+          (id: unknown): id is number =>
+            typeof id === "number"
+        )
+    ),
+  ];
+
+  // =========================================================
+  // PostgreSQL에서 방장 정보 조회
+  // =========================================================
+
+  const owners =
+    ownerIds.length > 0
+
+      ? await postgresPrisma.myProfile.findMany({
+
+          where: {
+
+            id: {
+              in: ownerIds,
+            },
+          },
+
+          select: {
+
+            id: true,
+
+            name: true,
+          },
+        })
+
+      : [];
+
+  // =========================================================
+  // 방장 Map
+  // =========================================================
+
+  const ownerMap =
+    new Map(
+
+      owners.map(
+        owner => [
+          owner.id,
+          owner.name,
+        ]
+      )
+
+    );
+
+  // =========================================================
+  // 다음 Cursor
+  // =========================================================
+
+  let nextCursor: MyCustomChatCursor | null = null;
+
+  if (documents.length === 30) {
+
+    const last =
+      documents[
+        documents.length - 1
+      ];
+
+    const lastMessageAt =
+      toISOStringSafe(
+        last.lastMessageAt
+      );
+
+    const createdAt =
+      toISOStringSafe(
+        last.createdAt
+      );
+
+    if (!createdAt) {
+
+      throw new Error(
+        "CUSTOM_CHAT_CURSOR_CREATE_FAILED"
+      );
+
+    }
+
+    nextCursor = {
+
+      lastMessageAt,
+
+      createdAt,
+
+      id:
+        String(last._id),
+
+    };
+
+  }
+
+  // =========================================================
+  // CustomRoom 형태로 변환
+  // =========================================================
+
+  const items: CustomRoom[] =
+    documents.map(
+      (conversation: any) => {
+
+        return {
+
+          id:
+            String(
+              conversation._id
+            ),
+
+          title:
+            conversation.name ??
+            "이름 없는 방",
+
+          desc:
+            conversation.description ??
+            "",
+
+          ownerId:
+            conversation.ownerId ??
+            0,
+
+          owner:
+            conversation.ownerId != null
+
+              ? ownerMap.get(
+                  conversation.ownerId
+                ) ??
+                "(알 수 없음)"
+
+              : "(알 수 없음)",
+
+          members:
+            conversation.memberCount ??
+            0,
+
+          isSecret:
+            !!conversation.isSecret,
+
+          type:
+            "CUSTOM",
+
+          lastMessageAt:
+            toISOStringSafe(
+              conversation.lastMessageAt
+            ),
+
+          createdAt:
+            toISOStringSafe(
+              conversation.createdAt
+            ) ?? "",
+        };
+      }
+    );
+
+  // =========================================================
+  // items + nextCursor 반환
+  // =========================================================
+
+  return {
+    items,
+    nextCursor,
+  };
 }
-s
+
 
 }
+
+
+
 
 
 export const chatRoomService =

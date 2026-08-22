@@ -27,6 +27,25 @@ export interface CustomRoom {
 
 
 // =========================================================
+// Conversation
+// =========================================================
+
+interface Conversation {
+  conversationId: string
+  name?: string | null
+  description?: string | null
+  isSecret?: boolean
+  lastMessageAt?: string | null
+  createdAt?: string
+  members?: {
+    userId: number
+    name?: string
+    role: 'OWNER' | 'MEMBER'
+  }[]
+}
+
+
+// =========================================================
 // Store
 // =========================================================
 
@@ -39,14 +58,22 @@ export const useCustomChatStore = defineStore(
     // =======================================================
 
     const customFilter =
-      ref<'all' | 'secret'>('all')
+      ref<'my' | 'all' | 'secret'>('all')
 
 
     // =======================================================
-    // CUSTOM 채팅방 목록
+    // 전체 CUSTOM 채팅방
     // =======================================================
 
     const customRooms =
+      ref<CustomRoom[]>([])
+
+
+    // =======================================================
+    // 내가 참여한 CUSTOM 채팅방
+    // =======================================================
+
+    const joinedCustomRooms =
       ref<CustomRoom[]>([])
 
 
@@ -56,6 +83,10 @@ export const useCustomChatStore = defineStore(
 
     const currentRoom =
       ref<CustomRoom | null>(null)
+
+
+    const password =
+      ref<string | undefined>(undefined)
 
 
     // =======================================================
@@ -70,6 +101,18 @@ export const useCustomChatStore = defineStore(
     }
 
 
+    const setPassword = (
+      passwordValue: string | null
+    ) => {
+
+      password.value =
+        passwordValue ?? undefined
+    }
+
+
+    // =======================================================
+    // Conversation -> CustomRoom
+    // =======================================================
 
     const setCurrentConversation = (
       conversation: Conversation
@@ -82,7 +125,8 @@ export const useCustomChatStore = defineStore(
 
       currentRoom.value = {
 
-        id: conversation.conversationId,
+        id:
+          conversation.conversationId,
 
         title:
           conversation.name ??
@@ -108,7 +152,8 @@ export const useCustomChatStore = defineStore(
           conversation.isSecret ??
           false,
 
-        type: 'CUSTOM',
+        type:
+          'CUSTOM',
 
         lastMessageAt:
           conversation.lastMessageAt ??
@@ -119,6 +164,7 @@ export const useCustomChatStore = defineStore(
           new Date().toISOString()
       }
     }
+
 
     // =======================================================
     // 현재 방 초기화
@@ -131,26 +177,48 @@ export const useCustomChatStore = defineStore(
 
 
     // =======================================================
-    // 전체 목록 교체
+    // 전체 방
     // =======================================================
 
     const setCustomRooms = (
       rooms: CustomRoom[]
     ) => {
 
-      customRooms.value = rooms
+      customRooms.value =
+        rooms
     }
 
-
-    // =======================================================
-    // 다음 페이지 추가
-    // =======================================================
 
     const addCustomRooms = (
       rooms: CustomRoom[]
     ) => {
 
-      customRooms.value.push(...rooms)
+      customRooms.value.push(
+        ...rooms
+      )
+    }
+
+
+    // =======================================================
+    // 내가 참여한 방
+    // =======================================================
+
+    const setJoinedCustomRooms = (
+      rooms: CustomRoom[]
+    ) => {
+
+      joinedCustomRooms.value =
+        rooms
+    }
+
+
+    const addJoinedCustomRooms = (
+      rooms: CustomRoom[]
+    ) => {
+
+      joinedCustomRooms.value.push(
+        ...rooms
+      )
     }
 
 
@@ -159,20 +227,31 @@ export const useCustomChatStore = defineStore(
     // =======================================================
 
     const changeCustomFilter = (
-      filter: 'all' | 'secret'
+      filter: 'my' | 'all' | 'secret'
     ) => {
 
-      customFilter.value = filter
+      customFilter.value =
+        filter
     }
 
 
     // =======================================================
-    // 필터링된 CUSTOM 채팅방
+    // 현재 화면에 표시할 방
     // =======================================================
 
     const filteredCustomRooms =
       computed(() => {
 
+        // 내가 참여한 방
+        if (
+          customFilter.value === 'my'
+        ) {
+
+          return joinedCustomRooms.value
+        }
+
+
+        // 전체 방
         if (
           customFilter.value === 'all'
         ) {
@@ -181,6 +260,7 @@ export const useCustomChatStore = defineStore(
         }
 
 
+        // 비밀방
         return customRooms.value.filter(
           room => room.isSecret
         )
@@ -188,7 +268,7 @@ export const useCustomChatStore = defineStore(
 
 
     // =======================================================
-    // CUSTOM 채팅방 클릭
+    // 방 클릭
     // =======================================================
 
     const handleCustomRoomClick = (
@@ -215,6 +295,7 @@ export const useCustomChatStore = defineStore(
         return
       }
 
+
       console.log(
         'CUSTOM 채팅방 입장:',
         room.id
@@ -222,50 +303,124 @@ export const useCustomChatStore = defineStore(
     }
 
 
+    // =======================================================
+    // 멤버 수 변경
+    // =======================================================
+
     const updateRoomMemberCount = (
       conversationId: string,
       memberCount: number
     ) => {
-      const room = customRooms.value.find(
-        room => room.id === conversationId
-      )
 
-      if (!room) {
-        return
+      const room =
+        customRooms.value.find(
+          room =>
+            room.id === conversationId
+        )
+
+      if (room) {
+        room.members =
+          memberCount
       }
 
-      room.members = memberCount
 
-      // 현재 열려있는 방이라면 같이 변경
-      if (currentRoom.value?.id === conversationId) {
-        currentRoom.value.members = memberCount
+      const joinedRoom =
+        joinedCustomRooms.value.find(
+          room =>
+            room.id === conversationId
+        )
+
+      if (joinedRoom) {
+        joinedRoom.members =
+          memberCount
+      }
+
+
+      if (
+        currentRoom.value?.id ===
+        conversationId
+      ) {
+
+        currentRoom.value.members =
+          memberCount
       }
     }
 
+
+    // =======================================================
+    // 방장 변경
+    // =======================================================
 
     const updateRoomOwner = (
       conversationId: string,
       ownerId: number,
       ownerName: string
     ) => {
-      const room = customRooms.value.find(
-        room => room.id === conversationId
-      )
 
-      if (!room) {
-        return
+      const room =
+        customRooms.value.find(
+          room =>
+            room.id === conversationId
+        )
+
+      if (room) {
+
+        room.ownerId =
+          ownerId
+
+        room.owner =
+          ownerName
       }
 
-      room.ownerId = ownerId
-      room.owner = ownerName
 
-      // 현재 열려있는 방이라면 같이 변경
-      if (currentRoom.value?.id === conversationId) {
-        currentRoom.value.ownerId = ownerId
-        currentRoom.value.owner = ownerName
+      const joinedRoom =
+        joinedCustomRooms.value.find(
+          room =>
+            room.id === conversationId
+        )
+
+      if (joinedRoom) {
+
+        joinedRoom.ownerId =
+          ownerId
+
+        joinedRoom.owner =
+          ownerName
+      }
+
+
+      if (
+        currentRoom.value?.id ===
+        conversationId
+      ) {
+
+        currentRoom.value.ownerId =
+          ownerId
+
+        currentRoom.value.owner =
+          ownerName
       }
     }
 
+
+    // =======================================================
+    // 방 조회
+    // =======================================================
+
+    const getCustomRoom = (
+      conversationId: string
+    ): CustomRoom | undefined => {
+
+      return customRooms.value.find(
+        room =>
+          room.id === conversationId
+      )
+    }
+
+
+    // =======================================================
+    // 반환
+    // =======================================================
 
     return {
 
@@ -273,24 +428,35 @@ export const useCustomChatStore = defineStore(
 
       customRooms,
 
+      joinedCustomRooms,
+
       currentRoom,
+
+      password,
 
       filteredCustomRooms,
 
       setCustomRooms,
-
       addCustomRooms,
+
+      setJoinedCustomRooms,
+      addJoinedCustomRooms,
 
       changeCustomFilter,
 
       setCurrentRoom,
-
       clearCurrentRoom,
 
-      handleCustomRoomClick,
       setCurrentConversation,
+
+      handleCustomRoomClick,
+
       updateRoomMemberCount,
-      updateRoomOwner
+      updateRoomOwner,
+
+      setPassword,
+
+      getCustomRoom
     }
   }
 )

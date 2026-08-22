@@ -6,6 +6,35 @@ import { chatRoomService as prevChatRoomSerive } from "../../chat/services/chatR
 import { kickedMemberProc, joinedConversation } from "../socket/customChatRoom.handler";
 import { transferredOwner } from "../socket/customChatRoom.handler";
 import { customBanChatService } from "../service/customBanChat.service";
+import argon2 from 'argon2';
+
+const verifyCustomChatPassword = async (
+  conversationId: string,
+  password?: string,
+): Promise<boolean> => {
+
+
+
+  const currentPassword =
+    await chatRoomService.getCustomChatPassword(
+      conversationId
+    )
+
+  // 공개방
+  if (currentPassword == null) {
+    return true
+  }
+
+  // 비밀번호가 필요한데 입력하지 않음
+  if (!password) {
+    return false
+  }
+
+  return await argon2.verify(
+    currentPassword,
+    password
+  )
+}
 
 export const joinConversation = async (
   req: Request,
@@ -14,9 +43,10 @@ export const joinConversation = async (
   try {
     console.log("[joinConversation] body:", req.body)
 
-    const { conversationId } = req.body
+    const { conversationId, password } = req.body
 
 
+    console.log("password 검증: ", password);
 
     // 1. conversationId 검증
     if (!conversationId) {
@@ -29,15 +59,22 @@ export const joinConversation = async (
     // 2. 로그인 사용자
     const ownId = await userService.findUserIdByAuthToken(req)
 
+    if (!await verifyCustomChatPassword(conversationId, password)) {
+      return res.status(403).json({
+        message: 'PASSWORD_INVALID'
+      })
+    }
 
 
+
+    //밴당한 유저 일 경우
     if (await customBanChatService.isBanned(conversationId, ownId)) {
       return res.status(403).json({
         message: 'REJOIN_RESTRICTED'
       })
     }
 
-    
+
     if (!ownId) {
       return res.status(401).json({
         success: false,
@@ -116,7 +153,7 @@ export const joinCustomChat = async (
 ) => {
   try {
     const userId = await userService.findUserIdByAuthToken(req)
-    const { conversationId } = req.body;
+    const { conversationId, password } = req.body;
 
     if (!conversationId) {
       return res.status(400).json({
@@ -128,6 +165,14 @@ export const joinCustomChat = async (
       return res.status(401).json({
         message: "인증된 사용자를 확인할 수 없습니다.",
       });
+    }
+
+
+
+    if (!await verifyCustomChatPassword(conversationId, password)) {
+      return res.status(403).json({
+        message: 'PASSWORD_INVALID'
+      })
     }
 
     const result =

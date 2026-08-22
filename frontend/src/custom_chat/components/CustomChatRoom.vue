@@ -161,7 +161,7 @@ const {
 
     uiStore.conversationId = null
 
-    uiStore.currentTab = 'groupChat'
+    uiStore.currentTab = 'customChat'
   }
 })
 
@@ -212,7 +212,7 @@ const enterCustomRoom = async () => {
       chatRoomStore.setConversationId(null)
 
       uiStore.conversationId = null
-      uiStore.currentTab = 'groupChat'
+      uiStore.currentTab = 'customChat'
 
       return
     }
@@ -249,12 +249,13 @@ const enterCustomRoom = async () => {
 // =========================================================
 
 watch(
-  () => uiStore.conversationId,
-  async (conversationId) => {
+  [
+    () => uiStore.conversationId,
+    () => uiStore.currentTab
+  ],
+  async ([conversationId, currentTab]) => {
 
-    if (
-      uiStore.currentTab !== 'customChatRoom'
-    ) {
+    if (currentTab !== 'customChatRoom') {
       return
     }
 
@@ -262,26 +263,31 @@ watch(
       return
     }
 
-    
-   
     try {
-      
-       
-       await customChatApi.joinConversation(conversationId)
-       await customChatApi.joinCustomChat(conversationId)
-       await enterCustomRoom() 
+      const password = customChatStore.password
+
+      await customChatApi.joinConversation(
+        conversationId,
+        password
+      )
+
+      await customChatApi.joinCustomChat(
+        conversationId,
+        password
+      )
+
+      await enterCustomRoom()
 
     } catch (error: any) {
 
       if (error.response?.status === 403) {
-
         window.alert(
           '이 채팅방에 입장할 수 없습니다.'
         )
 
         chatRoomStore.setConversationId(null)
         uiStore.conversationId = null
-        uiStore.currentTab = 'groupChat'
+        uiStore.currentTab = 'customChat'
 
         return
       }
@@ -296,7 +302,6 @@ watch(
     immediate: true
   }
 )
-
 // =========================================================
 // 메시지 전송
 // =========================================================
@@ -483,7 +488,7 @@ const goBack = () => {
   uiStore.conversationId = null
 
   uiStore.currentTab =
-    'groupChat'
+    'customChat'
 }
 
 </script>

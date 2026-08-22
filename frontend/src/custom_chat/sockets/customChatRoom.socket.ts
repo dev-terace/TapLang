@@ -52,7 +52,7 @@ export const registerKickedMemberProc = (socket: Socket) => {
 
         if(kicked)
         {
-            uiStore.changeTab('groupChat')
+            uiStore.changeTab('customChat')
             window.alert('채팅방에서 내보내졌습니다.')
             uiStore.conversationId = null
         }

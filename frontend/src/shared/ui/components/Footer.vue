@@ -60,11 +60,11 @@ onMounted(() => {
     <button
       :class="[
         'px-3 py-1.5 text-xs font-bold border-2 border-[#2d2b28] flex items-center gap-2 transition-all shrink-0',
-        uiStore.currentTab === 'groupChat'
+        uiStore.currentTab === 'customChat'
           ? 'bg-[#fbf9f5] shadow-inner translate-y-[1px] text-red-700'
           : 'bg-[#c5bfb6] shadow-[2px_2px_0px_0px_#2d2b28] text-[#2d2b28]'
       ]"
-      @click="uiStore.changeTab('groupChat')"
+      @click="uiStore.changeTab('customChat')"
     >
       <span class="font-pixel text-lg">🌐</span>
       <span>그룹 채팅방</span>
