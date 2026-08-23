@@ -6,7 +6,7 @@ export const readConversation = async (
   conversationId: string,
   ownIdInput: number
 ) => {
-  const ownId = Number(ownIdInput); // ★ 타입 강제 변환
+  const ownId = Number(ownIdInput);
 
   return mongoPrisma.conversationMember.updateMany({
     where: {
@@ -26,36 +26,29 @@ export const getMyConversations = async (
   cursor?: {
     lastMessageAt: Date | string;
     conversationId: string;
-  }
+  },
+  blockedUserIds: number[] = []
 ) => {
-  const userId = Number(userIdInput); // ★ 타입 강제 변환
+  const userId = Number(userIdInput);
   const db = await connectMongoDB();
 
-const pipeline: any[] = [
-  {
-    $match: {
-      userId,
-    },
-  },
-  {
-    $lookup: {
-      from: "Conversation",
-      localField: "conversationId",
-      foreignField: "_id",
-      as: "conversation",
-    },
-  },
-  {
-    $unwind: "$conversation",
-  },
-  {
-    $match: {
-      "conversation.type": {
-        $in: ["DIRECT", "GROUP"],
+  const pipeline: any[] = [
+    { $match: { userId } },
+    {
+      $lookup: {
+        from: "Conversation",
+        localField: "conversationId",
+        foreignField: "_id",
+        as: "conversation",
       },
     },
-  },
-];
+    { $unwind: "$conversation" },
+    {
+      $match: {
+        "conversation.type": { $in: ["DIRECT", "GROUP"] },
+      },
+    },
+  ];
 
   if (cursor) {
     const cursorDate = new Date(cursor.lastMessageAt);
@@ -71,6 +64,7 @@ const pipeline: any[] = [
       },
     });
   }
+  
 
   pipeline.push(
     {
@@ -84,6 +78,7 @@ const pipeline: any[] = [
                 $and: [
                   { $eq: ["$conversationId", "$$cid"] },
                   { $ne: ["$userId", userId] },
+                  { $not: [{ $in: ["$userId", blockedUserIds] }] },
                 ],
               },
             },
@@ -92,6 +87,21 @@ const pipeline: any[] = [
           { $project: { _id: 0, userId: 1, role: 1 } },
         ],
         as: "members",
+      },
+    },
+    {
+      $match: {
+        $expr: {
+          $or: [
+            { $eq: ["$conversation.type", "GROUP"] },
+            {
+              $and: [
+                { $eq: ["$conversation.type", "DIRECT"] },
+                { $gt: [{ $size: "$members" }, 0] },
+              ],
+            },
+          ],
+        },
       },
     },
     {
@@ -137,10 +147,14 @@ const pipeline: any[] = [
     }
   );
 
+  // ✅ 여기가 빠져있던 부분 — 실행 + 프로필 병합 + 반환
+
   const data = await db
     .collection("ConversationMember")
     .aggregate(pipeline)
     .toArray();
+
+ console.log(data.map(d => ({ id: d.conversationId, lastMessageAt: d.lastMessageAt })));
 
   const memberIds = [
     ...new Set([
@@ -175,7 +189,6 @@ const pipeline: any[] = [
       isLeft: false,
     }));
 
-    // 1:1 채팅 상대방 퇴장 처리
     if (room.type === "DIRECT" && formattedMembers.length === 0 && room.directKey) {
       const opponentId = room.directKey
         .split(":")
@@ -196,7 +209,6 @@ const pipeline: any[] = [
       }
     }
 
-    // ★ 그룹 채팅에서 혼자 남아 formattedMembers가 빈 경우 내 프로필 보완
     if (room.type === "GROUP" && formattedMembers.length === 0) {
       const myProfile = profileMap.get(userId);
       formattedMembers = [
@@ -237,23 +249,20 @@ const pipeline: any[] = [
         }
       : null,
   };
-}
+};
 
 export const getConversationUnreadCounts = async (userIdInput: number) => {
-  const userId = Number(userIdInput); // ★ 타입 강제 변환
+  const userId = Number(userIdInput);
   const db = await connectMongoDB();
 
   const result = await db
     .collection("ConversationMember")
     .aggregate([
-      // 1. 내가 속한 채팅방만 조회
       {
         $match: {
           userId,
         },
       },
-
-      // 2. Message 조회
       {
         $lookup: {
           from: "Message",
@@ -266,41 +275,24 @@ export const getConversationUnreadCounts = async (userIdInput: number) => {
               $match: {
                 $expr: {
                   $and: [
-                    {
-                      $eq: ["$conversationId", "$$conversationId"],
-                    },
-                    {
-                      $gt: ["$createdAt", "$$lastReadAt"],
-                    },
+                    { $eq: ["$conversationId", "$$conversationId"] },
+                    { $gt: ["$createdAt", "$$lastReadAt"] },
                   ],
                 },
               },
             },
-
-            // count만 가져오기
-            {
-              $count: "count",
-            },
+            { $count: "count" },
           ],
           as: "unread",
         },
       },
-
-      // 3. unread 배열 -> 숫자로 변환
       {
         $addFields: {
           unreadCount: {
-            $ifNull: [
-              {
-                $arrayElemAt: ["$unread.count", 0],
-              },
-              0,
-            ],
+            $ifNull: [{ $arrayElemAt: ["$unread.count", 0] }, 0],
           },
         },
       },
-
-      // 4. 필요한 데이터만 반환
       {
         $project: {
           _id: 0,
@@ -315,8 +307,13 @@ export const getConversationUnreadCounts = async (userIdInput: number) => {
   return result;
 };
 
+
+
+
+
 export const chatService = {
   getConversationUnreadCounts,
   getMyConversations,
   readConversation,
+
 };

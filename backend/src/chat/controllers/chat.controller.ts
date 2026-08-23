@@ -47,84 +47,53 @@ export const readConversation = async (
 
 export const getMyConversations = async (req: Request, res: Response) => {
   const ownId = await userService.findUserIdByAuthToken(req);
+  const { cursor, limit } = req.query;
 
-  const result = await chatService.getMyConversations(ownId);
-  
-  
-  const conversations = await Promise.all(
-  result.data.map(async (conversation) => {
-    const notification =
-      await chatRoomNotificationService.getChatRoomNotification(
-        ownId,
-        conversation.conversationId
-      );
+  // ✅ blocked 목록을 먼저 조회해서 서비스에 넘김
+  const blockedResult = await blockUserService.getBlockedUsers(ownId);
+  const blockedUserIds = blockedResult.blockedUsers.map((user) => user.id);
 
-    // 알림이 꺼진 경우에만 notification: false 추가
-    if (!notification.notificationEnabled) {
-      return {
-        ...conversation,
-        notification: false
-      };
-    }
-
-    return conversation;
-  })
-);  
-
-  const blockedResult =
-    await blockUserService.getBlockedUsers(ownId);
-
-  const blockedUserIds = new Set(
-    blockedResult.blockedUsers.map((user) => user.id)
+  const result = await chatService.getMyConversations(
+    ownId,
+    limit ? Number(limit) : 20,
+    cursor ? JSON.parse(cursor as string) : undefined,
+    blockedUserIds // ✅ 추가
   );
 
-  const filteredData = conversations
-    .map((conversation) => {
-      // 차단된 유저 제거
-      const members = conversation.members.filter(
-        (member) => !blockedUserIds.has(member.userId)
-      );
+  const conversations = await Promise.all(
+    result.data.map(async (conversation) => {
+      const notification =
+        await chatRoomNotificationService.getChatRoomNotification(
+          ownId,
+          conversation.conversationId
+        );
 
-      // 차단되지 않은 멤버가 하나도 없으면
-      // 해당 conversation 자체를 제거
-      if (members.length === 0) {
-        return null;
+      if (!notification.notificationEnabled) {
+        return { ...conversation, notification: false };
       }
-
-      // 나머지 key/value는 전부 원본 유지
-      return {
-        ...conversation,
-
-        // members만 필터링
-        members,
-
-        // 마지막 메시지 발신자가 차단 유저면 content만 ""
-        lastMessage:
-          conversation.lastMessage &&
-            blockedUserIds.has(conversation.lastMessage.senderId)
-            ? {
-              ...conversation.lastMessage,
-              content: "",
-            }
-            : conversation.lastMessage,
-      };
+      return conversation;
     })
-    .filter((conversation) => conversation !== null);
+  );
 
-  // ⭐ 최종 구조 유지
+  // ✅ 이제 members는 이미 서비스 단에서 차단 유저 없이 걸러져 왔으므로
+  //    여기서는 lastMessage content만 블라인드 처리하면 됨 (방 개수 필터링 X)
+  const blockedSet = new Set(blockedUserIds);
+  const finalData = conversations.map((conversation) => ({
+    ...conversation,
+    lastMessage:
+      conversation.lastMessage &&
+      blockedSet.has(conversation.lastMessage.senderId)
+        ? { ...conversation.lastMessage, content: "" }
+        : conversation.lastMessage,
+  }));
+
   const filteredResult = {
     ...result,
-    data: filteredData,
+    data: finalData,
   };
 
-  console.log(
-    "filteredResult:",
-    JSON.stringify(filteredResult, null, 2)
-  );
-
-
   return res.status(200).json(filteredResult);
-}
+};
 
 export const getConversationUnreadCounts = async (
   req: Request,

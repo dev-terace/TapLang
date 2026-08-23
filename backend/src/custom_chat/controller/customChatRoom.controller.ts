@@ -59,7 +59,8 @@ export const joinConversation = async (
     // 2. 로그인 사용자
     const ownId = await userService.findUserIdByAuthToken(req)
 
-    if (!await verifyCustomChatPassword(conversationId, password)) {
+    const isMember = await chatRoomService.isConversationMember(conversationId, ownId)
+    if ((!isMember) &&!await verifyCustomChatPassword(conversationId, password)) {
       return res.status(403).json({
         message: 'PASSWORD_INVALID'
       })
@@ -167,9 +168,9 @@ export const joinCustomChat = async (
       });
     }
 
-
-
-    if (!await verifyCustomChatPassword(conversationId, password)) {
+      console.log("joinCustom password", password)
+     const isMember = await chatRoomService.isConversationMember(conversationId, userId)
+    if ( (!isMember) && !await verifyCustomChatPassword(conversationId, password)) {
       return res.status(403).json({
         message: 'PASSWORD_INVALID'
       })

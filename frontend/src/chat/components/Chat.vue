@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatStore } from '@/chat/store/Chat'
-import { watch, computed } from 'vue'
+import { watch, computed, ref, onMounted, onBeforeUnmount } from 'vue'
 import { formatTime } from '@/shared/utils/DateUtils'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
-import { Conversation } from '@/chat/store/Chat'
 import { useChatRoomStore } from '../store/ChatRoom'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
 
@@ -15,55 +14,19 @@ const uiStore = useUIStore()
 const chatStore = useChatStore()
 const authStore = useAuthStore()
 const chatRoomStore = useChatRoomStore()
-const { userInfo } = storeToRefs(authStore) 
+const { userInfo } = storeToRefs(authStore)
 
-const conversations = computed(() => {
-  return chatStore.conversations?.data ?? []
-})
+// ✅ 스토어가 이미 배열을 들고 있으므로 그대로 사용
+const conversations = computed(() => chatStore.conversations)
 
 watch(
   () => authStore.userInfo,
   async (userInfo) => {
     if (!userInfo) return
-
     await chatStore.getMyConversations()
   },
   { immediate: true }
 )
-
-
-//   if (conversation.type === "DIRECT") {
-//     const otherMember = conversation.members.find(
-//       member => String(member.userId) !== String(userInfo.value?.id)
-//     );
-    
-//     // ❌ 기존: uiStore.conversationId = null; (이 부분 때문에 로딩이 안 되었음)
-//     // ✅ 수정: 목록에 존재하는 대화방의 ID를 정상 전달
-//     uiStore.conversationId = conversation.conversationId; 
-    
-//     const roomName = conversation?.name?.split('|').find(v => v !== userInfo.value?.name) ?? '1:1 채팅';
-
-//     uiStore.changeChatRoomTab(
-//       true,
-//       otherMember ? [Number(otherMember.userId)] : [],
-//       roomName,
-//       'chatRoom' 
-//     );
-//     return;
-//   }
-
-//   // GROUP 로직
-//   uiStore.conversationId = conversation.conversationId;
-
-//   uiStore.changeChatRoomTab(
-//     false,
-//     conversation.members
-//       .filter(member => String(member.userId) !== String(userInfo.value?.id))
-//       .map(member => member.userId),
-//     conversation.name ?? "",
-//     "inviteChatRoom"
-//   );
-// };
 
 watch(
   () => conversations.value,
@@ -75,6 +38,34 @@ watch(
   },
   { deep: true }
 )
+
+// ✅ 스크롤 하단 감지 → 자동 더보기
+const loadMoreTrigger = ref<HTMLElement | null>(null)
+let observer: IntersectionObserver | null = null
+
+onMounted(() => {
+  observer = new IntersectionObserver(
+    (entries) => {
+      if (
+        entries[0].isIntersecting &&
+        chatStore.hasMore &&
+        !chatStore.isLoadingMore
+      ) {
+        chatStore.loadMoreConversations()
+      }
+    },
+    {
+      root: null,
+      rootMargin: '150px', // 바닥 도달 전에 미리 로드 시작
+      threshold: 0,
+    }
+  )
+  if (loadMoreTrigger.value) observer.observe(loadMoreTrigger.value)
+})
+
+onBeforeUnmount(() => {
+  observer?.disconnect()
+})
 </script>
 
 <template>
@@ -95,7 +86,7 @@ watch(
       </span>
     </div>
 
-    <!-- 채팅방 목록 --> 
+    <!-- 채팅방 목록 -->
     <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
       <div
         v-for="conversation in conversations"
@@ -112,15 +103,15 @@ watch(
           <!-- 1:1 -->
           <div
             v-if="conversation.type === 'DIRECT'"
-            class="w-full h-full bg-[#2d2b28] text-white 
-                   flex items-center justify-center 
+            class="w-full h-full bg-[#2d2b28] text-white
+                   flex items-center justify-center
                    border-2 border-[#2d2b28] font-pixel text-lg"
           >
-            <img 
+            <img
               :src="`https://flagcdn.com/w40/${conversation.members[0]?.flag}.png`"
               alt=""
               class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"
-            /> 
+            />
           </div>
 
           <!-- 그룹 -->
@@ -129,17 +120,17 @@ watch(
             class="grid grid-cols-2 grid-rows-2 gap-[2px] w-full h-full"
           >
             <div
-              v-for="member in conversation.members.slice(0,4)"
+              v-for="member in conversation.members.slice(0, 4)"
               :key="member.userId"
-              class="bg-[#2d2b28] text-white 
-                     flex items-center justify-center 
+              class="bg-[#2d2b28] text-white
+                     flex items-center justify-center
                      border border-[#2d2b28] text-[10px]"
             >
-              <img 
+              <img
                 :src="`https://flagcdn.com/w40/${member?.flag}.png`"
                 alt=""
                 class="w-5 h-3.5 object-cover border border-[#2d2b28] flex-shrink-0"
-              /> 
+              />
             </div>
           </div>
         </div>
@@ -147,7 +138,6 @@ watch(
         <!-- 채팅 정보 -->
         <div class="flex-1 min-w-0">
           <div class="flex justify-between items-center gap-2">
-            <!-- 방 제목 + 알림 끔 이모티콘 영역 -->
             <div class="flex items-center gap-1 min-w-0">
               <span class="text-xs font-bold truncate">
                 {{
@@ -158,9 +148,8 @@ watch(
                 }}
               </span>
 
-              <!-- ⭐ notification이 false인 경우에만 표시되는 알림 끄기 이모티콘 -->
-              <span 
-                v-if="conversation.notification === false" 
+              <span
+                v-if="conversation.notification === false"
                 class="shrink-0 text-[10px] opacity-70 group-hover:opacity-100"
                 title="알림 꺼짐"
               >
@@ -169,7 +158,7 @@ watch(
             </div>
 
             <span
-              class="text-[10px] text-neutral-500 
+              class="text-[10px] text-neutral-500
                      group-hover:text-neutral-300 shrink-0"
             >
               {{ formatTime(conversation.lastMessageAt) }}
@@ -177,7 +166,7 @@ watch(
           </div>
 
           <div
-            class="text-[10px] text-neutral-500 
+            class="text-[10px] text-neutral-500
                    group-hover:text-neutral-300 truncate"
           >
             {{ conversation.lastMessage?.content ?? '' }}
@@ -188,7 +177,7 @@ watch(
         <div
           v-if="conversation.unreadCount > 0"
           class="w-5 h-5 rounded-full bg-red-500 text-white
-                 flex items-center justify-center 
+                 flex items-center justify-center
                  text-[10px] font-bold shrink-0"
         >
           {{
@@ -197,6 +186,19 @@ watch(
               : conversation.unreadCount
           }}
         </div>
+      </div>
+
+      <!-- ✅ 더보기 트리거 (스크롤 시 자동 로드 + 수동 클릭 겸용) -->
+      <div ref="loadMoreTrigger" class="flex justify-center py-3">
+        <button
+          v-if="chatStore.hasMore"
+          class="text-xs px-3 py-1 border-2 border-[#2d2b28] bg-[#f4f1eb]
+                 hover:bg-[#2d2b28] hover:text-[#fbf9f5] transition-colors"
+          :disabled="chatStore.isLoadingMore"
+          @click="chatStore.loadMoreConversations()"
+        >
+          {{ chatStore.isLoadingMore ? '불러오는 중...' : '더보기' }}
+        </button>
       </div>
     </div>
   </div>

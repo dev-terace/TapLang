@@ -3,7 +3,7 @@ import { computed, nextTick, ref } from 'vue'
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useChatStore } from '@/chat/store/Chat'
-import { useChatMessages } from './useChatMessages'
+import { useChatMessages } from './CustomChatRoom.vue/useChatMessages'
 
 
 import type { CustomRoom } from '../stores/CustomChatStore'

@@ -31,7 +31,7 @@ import { useChatTranslate } from '@/chat/composables/chatRoom.vue/useChatTransla
 import { useChatLeave } from '@/chat/composables/chatRoom.vue/useChatLeaves.js'
 
 import { useCustomChatStore } from '../stores/CustomChatStore'
-import { useChatMessages } from '../composable/useChatMessages'
+import { useChatMessages } from '../composable/CustomChatRoom.vue/useChatMessages'
 import { customChatApi } from '../api/customChat.api.js'
 import { customChatRoomApi } from '../api/customChatRoom.api'
 
@@ -249,58 +249,47 @@ const enterCustomRoom = async () => {
 // =========================================================
 
 watch(
-  [
-    () => uiStore.conversationId,
-    () => uiStore.currentTab
-  ],
+  [() => uiStore.conversationId, () => uiStore.currentTab],
   async ([conversationId, currentTab]) => {
-
-    if (currentTab !== 'customChatRoom') {
-      return
-    }
-
-    if (!conversationId) {
-      return
-    }
+    if (currentTab !== 'customChatRoom' || !conversationId) return
 
     try {
       const password = customChatStore.password
-
-      await customChatApi.joinConversation(
-        conversationId,
-        password
+      const isAlreadyJoined = customChatStore.joinedCustomRooms.some(
+        (room) => room.id === conversationId
       )
 
-      await customChatApi.joinCustomChat(
-        conversationId,
-        password
-      )
+      // 1. 미가입 유저일 경우 DB 멤버 등록(joinCustomChat) 먼저 진행
+      if (!isAlreadyJoined) {
+        await customChatApi.joinCustomChat(conversationId, password)
+      }
+
+      // 2. 가입 여부와 상관없이 밴 검증 및 소켓 연결을 위해 joinConversation 필수 호출
+      await customChatApi.joinConversation(conversationId, password)
 
       await enterCustomRoom()
-
     } catch (error: any) {
-
       if (error.response?.status === 403) {
-        window.alert(
-          '이 채팅방에 입장할 수 없습니다.'
-        )
+        const message = error.response?.data?.message
+        
+        if (message === 'REJOIN_RESTRICTED') {
+          window.alert('강퇴/제재 처리되어 입장할 수 없는 채팅방입니다.')
+        } else if (message === 'PASSWORD_INVALID') {
+          window.alert('비밀번호가 올바르지 않습니다.')
+        } else {
+          window.alert('이 채팅방에 입장할 수 없습니다.')
+        }
 
         chatRoomStore.setConversationId(null)
         uiStore.conversationId = null
         uiStore.currentTab = 'customChat'
-
         return
       }
 
-      console.error(
-        'CUSTOM 채팅방 입장 실패:',
-        error
-      )
+      console.error('CUSTOM 채팅방 입장 실패:', error)
     }
   },
-  {
-    immediate: true
-  }
+  { immediate: true }
 )
 // =========================================================
 // 메시지 전송

@@ -14,13 +14,14 @@ export async function getConversationUnreadCounts()
 
 
 
-export async function getMyConversations(){
-   const response = await api.get("/api/chat");
-
-   console.log("getConvUnreadCount  response : ", response.data);
-
-   return response.data;
-}
+ export async function getMyConversations(cursor?: { lastMessageAt: string; conversationId: string }) {
+    const response = await api.get("/api/chat", {
+      params: cursor
+        ? { cursor: JSON.stringify(cursor) }
+        : undefined
+    });
+    return response.data;
+  }
 
 export async function readConversation(conversationId: string)
 {

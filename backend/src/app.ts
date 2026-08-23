@@ -15,6 +15,8 @@ import imageRouter from "./image/router/image.router"
 import customChatRouter from "./custom_chat/router/customChat_router"
 import customChatRoomRouter from "./custom_chat/router/customChatRoom.router"
 import './image/service/uploadCleanUp.service'
+import './chat/services/cleanupScheduler.service'
+
 const app: Application = express();
 
 app.use(cors({
