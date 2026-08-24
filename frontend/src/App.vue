@@ -43,7 +43,7 @@
            <ChatRoom />
           <!-- <InviteChatRoom /> -->
           <GroupChat />
-          <TransTag />
+          <Quiz />
           <CustomChatRoom />
          
         </div>
@@ -89,7 +89,7 @@ import Footer from './shared/ui/components/Footer.vue'
 import Chat from './chat/components/Chat.vue'
 import ChatRoom from './chat/components/ChatRoom.vue'
 import GroupChat from './custom_chat/components/CustomChat.vue'
-import TransTag from './trans_tag/components/TransTag.vue'
+import Quiz from './quiz/components/Quiz.vue'
 import ViewPort from './shared/ui/components/ViewPort.vue'
 import FriendSidebar from './friends/components/FriendSidebar.vue'
 import InviteChatRoom from './chat/components/InviteChatRoom.vue'

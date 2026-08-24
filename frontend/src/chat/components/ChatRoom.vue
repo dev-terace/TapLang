@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
@@ -21,6 +21,7 @@ import { useChatRoom } from '../composables/chatRoom.vue/useChatRoom.js'
 import { useChatImage } from '../composables/chatRoom.vue/useChatImage.js'
 import { useChatTranslate } from '../composables/chatRoom.vue/useChatTranslate.js'
 import { useChatLeave } from '../composables/chatRoom.vue/useChatLeaves.js'
+import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll.js'
 
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
@@ -45,6 +46,8 @@ const isGroupChat = computed(() => {
 
 // DOM Ref & 스크롤 Composable 적용
 const messageContainer = ref<HTMLElement | null>(null)
+const topSentinel = ref<HTMLElement | null>(null)
+
 const filteredMessages = computed(() =>
   chatRoomStore.messages.filter(
     m => m.conversationId === chatRoomStore.conversationId
@@ -53,10 +56,44 @@ const filteredMessages = computed(() =>
 const { scrollToBottom } = useChatScroll(messageContainer, () => filteredMessages.value)
 
 const {
-  createRoom
+  createRoom,
+  loadOlderMessages
 } = useChatRoom({
   scrollToBottom
 })
+
+
+
+const { setup: setupTopObserver, teardown: teardownTopObserver } = useInfiniteScroll({
+  container: messageContainer,
+  sentinel: topSentinel,
+  hasMore: () => chatRoomStore.hasMoreMessages,
+  isLoading: () => chatRoomStore.isLoadingMoreMessages,
+  loadMore: () => loadOlderMessages(),
+  preserveScroll: true,
+  debugLabel: 'chatRoomTop',
+})
+
+
+let topObserver: IntersectionObserver | null = null
+
+
+
+watch(
+  () => chatRoomStore.conversationId,
+  (id) => {
+    if (id) {
+      setupTopObserver()
+    } else {
+      teardownTopObserver()
+    }
+  },
+  { immediate: true }
+)
+
+
+
+
 
 const {
   fileInputRef,
@@ -71,6 +108,9 @@ const {
 } = useChatImage({
   scrollToBottom
 })
+
+
+
 
 
 const conversationId = computed(
@@ -195,25 +235,15 @@ console.log("formatDate", formatDate(new Date()))
 </script>
 
 <template>
-  <div
-    v-if="uiStore.currentTab === 'chatRoom' || uiStore.currentTab === 'inviteChatRoom'"
-    class="flex h-screen min-h-0 flex-col bg-[#dfdad1] relative"
-  >
+  <div v-if="uiStore.currentTab === 'chatRoom' || uiStore.currentTab === 'inviteChatRoom'"
+    class="flex h-screen min-h-0 flex-col bg-[#dfdad1] relative">
     <!-- 숨겨진 이미지 File Input -->
-    <input
-      ref="fileInputRef"
-      type="file"
-      accept="image/*"
-      class="hidden"
-      @change="handleFileChange"
-    />
+    <input ref="fileInputRef" type="file" accept="image/*" class="hidden" @change="handleFileChange" />
 
     <!-- 헤더 -->
     <div class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center">
-      <button 
-        @click="uiStore.currentTab = 'chat'"
-        class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1"
-      >
+      <button @click="uiStore.currentTab = 'chat'"
+        class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
         <span>&lt;</span> 뒤로
       </button>
 
@@ -222,14 +252,11 @@ console.log("formatDate", formatDate(new Date()))
       </span>
 
       <div class="flex items-center gap-3">
-        <button 
-          v-if="isGroupChat"
-          @click="isMembersModalOpen = true"
-          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center"
-          title="대화 상대 목록"
-        >
+        <button v-if="isGroupChat" @click="isMembersModalOpen = true"
+          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" title="대화 상대 목록">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
-            <path d="M5.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM2.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM18.75 7.5a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM21 18.75a.75.75 0 0 0-.42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0 5.06-1.01Z" />
+            <path
+              d="M5.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM2.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM18.75 7.5a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM21 18.75a.75.75 0 0 0-.42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0 5.06-1.01Z" />
           </svg>
         </button>
 
@@ -237,30 +264,30 @@ console.log("formatDate", formatDate(new Date()))
           <Settings class="w-5 h-5 stroke-[2.5]" />
         </button>
 
-         <button
-        type="button"
-        @click="leaveChatRoom"
-        class="text-[#2d2b28]
+        <button type="button" @click="leaveChatRoom" class="text-[#2d2b28]
               hover:text-red-600
               transition-colors
               flex
               items-center
-              justify-center"
-        title="채팅방 나가기"
-      >
-        <X class="w-5 h-5 stroke-[2.5]" />
-      </button>
+              justify-center" title="채팅방 나가기">
+          <X class="w-5 h-5 stroke-[2.5]" />
+        </button>
       </div>
     </div>
 
     <!-- 채팅 메시지 목록 영역 -->
     <div ref="messageContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col">
+      
+      <div ref="topSentinel" class="flex justify-center py-2">
+        <span v-if="chatRoomStore.isLoadingMoreMessages" class="text-[10px] text-[#726e67]">
+          이전 메시지 불러오는 중...
+        </span>
+      </div>
+
       <div v-for="(message, index) in filteredMessages" :key="message.id">
         <!-- 날짜 구분선 -->
-        <div
-          v-if="index === 0 || !isSameDate(filteredMessages[index - 1].createdAt, message.createdAt)"
-          class="flex justify-center my-3"
-        >
+        <div v-if="index === 0 || !isSameDate(filteredMessages[index - 1].createdAt, message.createdAt)"
+          class="flex justify-center my-3">
           <span class="text-[10px] bg-[#c5bfb6] px-2 py-1 border-2 border-[#2d2b28] font-bold text-[#2d2b28]">
             {{ formatDate(message.createdAt) }}
           </span>
@@ -273,23 +300,14 @@ console.log("formatDate", formatDate(new Date()))
     <!-- 하단 입력창 영역 -->
     <div class="relative shrink-0 bg-[#c5bfb6] p-3 border-t-2 border-[#2d2b28]">
       <div class="flex gap-2 items-center">
-        <ChatFeatureModal
-          :loading="translatorStore.isInputTranslating"
-          @select="selectFeature"
-        />
+        <ChatFeatureModal :loading="translatorStore.isInputTranslating" @select="selectFeature" />
 
-        <input
-          v-model="newMessage"
-          type="text"
-          placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
+        <input v-model="newMessage" type="text" placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
           @keyup.enter="sendMessage"
-          class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9"
-        />
+          class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9" />
 
-        <button
-          @click="sendMessage"
-          class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all"
-        >
+        <button @click="sendMessage"
+          class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
           전송
         </button>
       </div>
@@ -297,13 +315,11 @@ console.log("formatDate", formatDate(new Date()))
 
     <!-- 🖼️ 이미지 미리보기 및 설명 입력 모달 -->
     <Teleport to="body">
-      <div
-        v-if="isImageModalOpen"
-        class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
-        @click.self="closeImageModal"
-      >
-        <div class="w-full max-w-md bg-[#e6e2db] border-4 border-[#2d2b28] shadow-[8px_8px_0px_0px_#121315] flex flex-col overflow-hidden">
-          
+      <div v-if="isImageModalOpen" class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
+        @click.self="closeImageModal">
+        <div
+          class="w-full max-w-md bg-[#e6e2db] border-4 border-[#2d2b28] shadow-[8px_8px_0px_0px_#121315] flex flex-col overflow-hidden">
+
           <!-- 모달 헤더 -->
           <div class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold">
             <span>// 이미지_전송_프로토콜.img</span>
@@ -314,39 +330,24 @@ console.log("formatDate", formatDate(new Date()))
 
           <!-- 미리보기 영역 -->
           <div class="p-4 flex flex-col gap-3">
-            <div class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
-              <img
-                :src="imagePreviewUrl"
-                alt="미리보기"
-                class="max-w-full max-h-[290px] object-contain"
-              />
+            <div
+              class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
+              <img :src="imagePreviewUrl" alt="미리보기" class="max-w-full max-h-[290px] object-contain" />
             </div>
 
             <!-- 설명 입력창 -->
-            <input
-              v-model="imageCaption"
-              type="text"
-              placeholder="이미지에 대한 설명을 입력하세요 (선택)"
+            <input v-model="imageCaption" type="text" placeholder="이미지에 대한 설명을 입력하세요 (선택)"
               @keyup.enter="sendImageMessage"
-              class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]"
-            />
+              class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]" />
 
             <!-- 버튼 영역 -->
             <div class="flex justify-end gap-2 mt-2">
-              <button
-                type="button"
-                @click="closeImageModal"
-                :disabled="isUploadingImage"
-                class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]"
-              >
+              <button type="button" @click="closeImageModal" :disabled="isUploadingImage"
+                class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
                 취소
               </button>
-              <button
-                type="button"
-                @click="sendImageMessage"
-                :disabled="isUploadingImage"
-                class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2"
-              >
+              <button type="button" @click="sendImageMessage" :disabled="isUploadingImage"
+                class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2">
                 <span v-if="isUploadingImage" class="animate-spin text-xs">🌀</span>
                 <span>{{ isUploadingImage ? '업로드 중...' : '전송' }}</span>
               </button>
@@ -357,13 +358,8 @@ console.log("formatDate", formatDate(new Date()))
     </Teleport>
 
     <!-- 그룹 채팅 모달 등 나머지 유지 -->
-    <GroupChatMembersModal
-      v-if="isGroupChat"
-      :is-open="isMembersModalOpen"
-      @close="isMembersModalOpen = false"
-      @invite="handleInvite"
-      @member-action="handleMemberAction"
-    />
+    <GroupChatMembersModal v-if="isGroupChat" :is-open="isMembersModalOpen" @close="isMembersModalOpen = false"
+      @invite="handleInvite" @member-action="handleMemberAction" />
     <ChatSettingsModal />
     <StickerModal @select="handleStickerSelect" />
   </div>

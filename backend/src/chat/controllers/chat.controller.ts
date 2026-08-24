@@ -55,7 +55,7 @@ export const getMyConversations = async (req: Request, res: Response) => {
 
   const result = await chatService.getMyConversations(
     ownId,
-    limit ? Number(limit) : 20,
+    limit ? Number(limit) : 10,
     cursor ? JSON.parse(cursor as string) : undefined,
     blockedUserIds // ✅ 추가
   );

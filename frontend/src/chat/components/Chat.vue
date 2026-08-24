@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatStore } from '@/chat/store/Chat'
-import { watch, computed, ref, onMounted, onBeforeUnmount } from 'vue'
+import { watch, computed, ref, onBeforeUnmount, nextTick } from 'vue'
 import { formatTime } from '@/shared/utils/DateUtils'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
 import { useChatRoomStore } from '../store/ChatRoom'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
-
+import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll'
 const { openConversation } = useChatNavigation()
 
 const uiStore = useUIStore()
@@ -39,33 +39,36 @@ watch(
   { deep: true }
 )
 
-// ✅ 스크롤 하단 감지 → 자동 더보기
+// ✅ 스크롤 하단 감지 → 자동 더보기 (버튼 없이 무한 스크롤)
 const loadMoreTrigger = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
+const scrollContainer = ref<HTMLElement | null>(null)
 
-onMounted(() => {
-  observer = new IntersectionObserver(
-    (entries) => {
-      if (
-        entries[0].isIntersecting &&
-        chatStore.hasMore &&
-        !chatStore.isLoadingMore
-      ) {
-        chatStore.loadMoreConversations()
-      }
-    },
-    {
-      root: null,
-      rootMargin: '150px', // 바닥 도달 전에 미리 로드 시작
-      threshold: 0,
+
+
+const { setup: setupObserver, teardown: teardownObserver } = useInfiniteScroll({
+  container: scrollContainer,
+  sentinel: loadMoreTrigger,
+  hasMore: () => chatStore.hasMore,
+  isLoading: () => chatStore.isLoadingMore,
+  loadMore: () => chatStore.loadMoreConversations(),
+  preserveScroll: false,
+  debugLabel: 'chatList',
+})
+
+
+watch(
+  () => uiStore.currentTab,
+  (tab) => {
+    if (tab === 'chat') {
+      setupObserver()
+    } else {
+      teardownObserver()
     }
-  )
-  if (loadMoreTrigger.value) observer.observe(loadMoreTrigger.value)
-})
+  },
+  { immediate: true }
+)
 
-onBeforeUnmount(() => {
-  observer?.disconnect()
-})
+
 </script>
 
 <template>
@@ -86,8 +89,8 @@ onBeforeUnmount(() => {
       </span>
     </div>
 
-    <!-- 채팅방 목록 -->
-    <div class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
+    <!-- 채팅방 목록 (스크롤 컨테이너는 이거 하나뿐) -->
+    <div ref="scrollContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
       <div
         v-for="conversation in conversations"
         :key="conversation.conversationId"
@@ -188,17 +191,14 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- ✅ 더보기 트리거 (스크롤 시 자동 로드 + 수동 클릭 겸용) -->
+      <!-- 무한 스크롤 트리거 (버튼 없음, 로딩 중일 때만 텍스트 표시) -->
       <div ref="loadMoreTrigger" class="flex justify-center py-3">
-        <button
-          v-if="chatStore.hasMore"
-          class="text-xs px-3 py-1 border-2 border-[#2d2b28] bg-[#f4f1eb]
-                 hover:bg-[#2d2b28] hover:text-[#fbf9f5] transition-colors"
-          :disabled="chatStore.isLoadingMore"
-          @click="chatStore.loadMoreConversations()"
+        <span
+          v-if="chatStore.isLoadingMore"
+          class="text-[10px] text-[#726e67]"
         >
-          {{ chatStore.isLoadingMore ? '불러오는 중...' : '더보기' }}
-        </button>
+          불러오는 중...
+        </span>
       </div>
     </div>
   </div>

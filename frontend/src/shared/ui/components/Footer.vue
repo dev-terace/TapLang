@@ -73,14 +73,14 @@ onMounted(() => {
     <button
       :class="[
         'px-3 py-1.5 text-xs font-bold border-2 border-[#2d2b28] flex items-center gap-2 transition-all shrink-0',
-        uiStore.currentTab === 'transTag'
+        uiStore.currentTab === 'quiz'
           ? 'bg-[#fbf9f5] shadow-inner translate-y-[1px] text-emerald-700'
           : 'bg-[#c5bfb6] shadow-[2px_2px_0px_0px_#2d2b28] text-[#2d2b28]'
       ]"
-      @click="uiStore.changeTab('transTag')"
+      @click="uiStore.changeTab('quiz')"
     >
-      <span class="font-pixel text-lg">🏷️</span>
-      <span>번역 태그 등록</span>
+      <span class="font-pixel text-lg">⁉️</span>
+      <span>퀴즈 맞추기</span>
     </button>
   </footer>
 </template>

@@ -129,11 +129,11 @@ export const getChatMessages = async (
   createdAt?: string
 ) => {
   const response = await api.get(
-    `/api/chat-room/message/${conversationId}/${createdAt}`,
+    `/api/chat-room/message/${conversationId}`,
+    { params: createdAt ? { createdAt } : {} }
   );
 
-
-   console.log("getChatMessages: ", response.data)
+  console.log("getChatMessages: ", response.data)
 
   return response.data;
 };

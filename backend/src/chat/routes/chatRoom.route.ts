@@ -13,7 +13,7 @@ router.post("/invite", inviteMembers);
 router.get("/group/:conversationId", getGroupChatMembers)
 
 router.get(
-  "/message/:conversationId/:createdAt?",
+  "/message/:conversationId",
   getMessages
 );
 

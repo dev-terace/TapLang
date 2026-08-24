@@ -17,178 +17,87 @@ export interface Message {
 export const useChatRoomStore = defineStore(
   'chatRoom',
   () => {
+    const conversationId = ref<string | null>(null)
+    const messages = ref<Message[]>([])
+    const messageCache = ref<Map<string, string>>(new Map())
 
-    /*
-     * 현재 열려 있는 채팅방
-     */
-    const conversationId =
-      ref<string | null>(null)
+    // ✅ 추가: 과거 메시지가 더 있는지 여부 (방별로 관리하면 더 정확하지만, 우선 단순하게)
+    const hasMoreMessages = ref(true)
+    const isLoadingMoreMessages = ref(false)
 
-    /*
-     * 현재 채팅방의 메시지만 저장
-     */
-    const messages =
-      ref<Message[]>([])
-
-    /*
-     * 방별 마지막 메시지 캐시
-     */
-    const messageCache =
-      ref<Map<string, string>>(new Map())
-
-
-    /**
-     * 현재 채팅방 변경
-     */
-    const setConversationId = (
-      id: string | null
-    ) => {
-
+    const setConversationId = (id: string | null) => {
       conversationId.value = id
-
-      /*
-       * 다른 방으로 이동하면
-       * 현재 메시지 초기화
-       */
       messages.value = []
+      hasMoreMessages.value = true   // ✅ 방 바뀌면 초기화
     }
 
-
-    /**
-     * 메시지 추가
-     */
-    const addMessage = (
-      message: Message
-    ) => {
-
-      /*
-       * 현재 방 메시지가 아니면 무시
-       */
+    const addMessage = (message: Message) => {
       if (
         conversationId.value &&
-        message.conversationId !==
-          conversationId.value
+        message.conversationId !== conversationId.value
       ) {
         return
       }
 
-      /*
-       * 중복 메시지 방지
-       */
-      const exists =
-        messages.value.some(
-          m => m.id === message.id
-        )
-
-      if (exists) {
-        return
-      }
+      const exists = messages.value.some(m => m.id === message.id)
+      if (exists) return
 
       messages.value.push(message)
-
       addMessageCache(message)
     }
 
+    // ✅ 추가: 과거 메시지를 맨 앞에 붙이기 (중복 제거 + 정렬 유지)
+    const prependMessages = (olderMessages: Message[]) => {
+      const existingIds = new Set(messages.value.map(m => m.id))
+      const newOnes = olderMessages.filter(m => !existingIds.has(m.id))
 
-    /**
-     * 메시지 캐시 추가
-     */
-    const addMessageCache = (
-      message: Message
-    ) => {
+      // olderMessages는 이미 과거→현재 순으로 정렬되어 들어온다고 가정
+      messages.value = [...newOnes, ...messages.value]
+    }
 
-      const oldDate =
-        messageCache.value.get(
-          message.conversationId
-        )
-
+    const addMessageCache = (message: Message) => {
+      const oldDate = messageCache.value.get(message.conversationId)
       if (
         !oldDate ||
-        new Date(
-          message.createdAt
-        ).getTime() >
-        new Date(oldDate).getTime()
+        new Date(message.createdAt).getTime() > new Date(oldDate).getTime()
       ) {
-
-        messageCache.value.set(
-          message.conversationId,
-          message.createdAt
-        )
+        messageCache.value.set(message.conversationId, message.createdAt)
       }
     }
 
-
-    /**
-     * 현재 방 메시지 전체 교체
-     */
-    const setMessages = (
-      newMessages: Message[]
-    ) => {
-
-      const currentId =
-        conversationId.value
-
+    const setMessages = (newMessages: Message[]) => {
+      const currentId = conversationId.value
       if (!currentId) {
         messages.value = []
         return
       }
-
-      messages.value =
-        newMessages.filter(
-          message =>
-            message.conversationId ===
-            currentId
-        )
-
-      messages.value.forEach(
-        addMessageCache
+      messages.value = newMessages.filter(
+        message => message.conversationId === currentId
       )
+      messages.value.forEach(addMessageCache)
     }
 
+    const hasMessageCache = (id: string) => messageCache.value.has(id)
 
-    /**
-     * 메시지 캐시 존재 여부
-     */
-    const hasMessageCache = (
-      id: string
-    ) => {
-
-      return messageCache.value.has(id)
-    }
-
-
-    /*
-     * API
-     */
-    const createChat =
-      ChatRoomApi.createChat
-
-    const createMessage =
-      ChatRoomApi.createMessage
-
-    const getChatMessages =
-      ChatRoomApi.getChatMessages
-
-    const existsConversation =
-      ChatRoomApi.existsConversation
-
-   
-
-    const getGroupChatMembers =
-      ChatRoomApi.getGroupChatMembers
-
-    const getConversationInfo =
-      ChatRoomApi.getConversationInfo
-
+    const createChat = ChatRoomApi.createChat
+    const createMessage = ChatRoomApi.createMessage
+    const getChatMessages = ChatRoomApi.getChatMessages
+    const existsConversation = ChatRoomApi.existsConversation
+    const getGroupChatMembers = ChatRoomApi.getGroupChatMembers
+    const getConversationInfo = ChatRoomApi.getConversationInfo
+    const joinConversation = ChatRoomApi.joinConversation
+    const leaveConversation = ChatRoomApi.leaveConversation
 
     return {
       conversationId,
       messages,
       messageCache,
+      hasMoreMessages,        // ✅
+      isLoadingMoreMessages,  // ✅
 
       setConversationId,
-
       addMessage,
+      prependMessages,        // ✅
       setMessages,
       addMessageCache,
       hasMessageCache,
@@ -198,7 +107,9 @@ export const useChatRoomStore = defineStore(
       getChatMessages,
       existsConversation,
       getGroupChatMembers,
-      getConversationInfo
+      getConversationInfo,
+      joinConversation,
+      leaveConversation
     }
   }
 )

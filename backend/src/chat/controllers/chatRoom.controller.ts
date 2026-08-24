@@ -258,9 +258,8 @@ export const existsConversation = async (
 
 export const getMessages = async (req: Request, res: Response) => {
   try {
-    const { conversationId, createdAt } = req.params;
-
-
+    const { conversationId } = req.params;
+    const { createdAt } = req.query;   // ← params → query
 
     const messages = await chatRoomService.getMessages(
       conversationId,
@@ -268,7 +267,6 @@ export const getMessages = async (req: Request, res: Response) => {
     );
 
     const blockerId = await userService.findUserIdByAuthToken(req);
-
     const result = await blockUserService.getBlockedUsers(Number(blockerId));
 
     const blockedUserIds = new Set(
@@ -279,17 +277,13 @@ export const getMessages = async (req: Request, res: Response) => {
       (message) => !blockedUserIds.has(Number(message.senderId))
     );
 
-
-
-
-
     return res.status(200).json({
       success: true,
       data: filteredMessages,
+      hasMore: filteredMessages.length === 30,   // ← 프론트가 "더 있는지" 판단하기 쉽게 추가
     });
   } catch (error) {
     console.error(error);
-
     return res.status(500).json({
       success: false,
       message: "메시지를 불러오는데 실패했습니다.",

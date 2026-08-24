@@ -16,20 +16,60 @@ export function useChatRoom(options: UseChatRoomOptions) {
   const isProcessing = ref(false)
 
   /**
-   * 메시지 조회
+   * 메시지 조회 (최초 진입 시 — 최신 메시지부터)
    */
   const loadMessages = async (id: string) => {
     console.log('[LOAD MESSAGES]', id)
     if (!id) return
 
     try {
-      const { data } = await chatRoomStore.getChatMessages(id)
+      const { data, hasMore } = await chatRoomStore.getChatMessages(id)
 
-      data.reverse().forEach(msg => {
+      // 서버는 최신순(desc)으로 내려줌 → 화면 표시는 과거→최신이어야 하므로 reverse
+      const sorted = [...data].reverse()
+
+      sorted.forEach(msg => {
         chatRoomStore.addMessage(msg)
       })
+
+      chatRoomStore.hasMoreMessages = hasMore ?? (data.length === 30)
     } catch (error) {
       console.error('메시지 조회 실패:', error)
+    }
+  }
+
+  /**
+   * ✅ 추가: 과거 메시지 더 불러오기 (커서 = 현재 가진 메시지 중 가장 오래된 것의 createdAt)
+   */
+  const loadOlderMessages = async () => {
+    const id = chatRoomStore.conversationId
+    if (!id) return
+    if (chatRoomStore.isLoadingMoreMessages) return
+    if (!chatRoomStore.hasMoreMessages) return
+
+    const oldestMessage = chatRoomStore.messages[0]
+    if (!oldestMessage) return
+
+    chatRoomStore.isLoadingMoreMessages = true
+
+    try {
+      const { data, hasMore } = await chatRoomStore.getChatMessages(
+        id,
+        oldestMessage.createdAt   // ← 커서
+      )
+
+      // 서버는 최신순(desc)으로 내려줌 → 과거→최신 순으로 뒤집어서 prepend
+      const sorted = [...data].reverse()
+
+      chatRoomStore.prependMessages(sorted)
+      chatRoomStore.hasMoreMessages = hasMore ?? (data.length === 30)
+
+      return sorted.length
+    } catch (error) {
+      console.error('과거 메시지 조회 실패:', error)
+      return 0
+    } finally {
+      chatRoomStore.isLoadingMoreMessages = false
     }
   }
 
@@ -164,6 +204,7 @@ export function useChatRoom(options: UseChatRoomOptions) {
 
   return {
     createRoom,
-    loadMessages
+    loadMessages,
+    loadOlderMessages
   }
 }

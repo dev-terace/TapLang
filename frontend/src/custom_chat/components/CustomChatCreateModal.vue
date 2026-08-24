@@ -4,7 +4,7 @@ import { ref, computed } from 'vue'
 import { useModalStore } from '@/shared/modal/ModalStore'
 import { useCustomChatStore } from '../stores/CustomChatStore'
 import { customChatApi } from '../api/customChat.api'
-
+import { useCustomChatList } from '../composable/CustomChat.vue/useCustomChatList'
 
 const modalStore = useModalStore()
 const customChatStore = useCustomChatStore()
@@ -21,10 +21,13 @@ const isOpen = computed(() => {
 })
 
 
-const closeModal = () => {
-  if (isCreating.value) return
+
+
+
+const closeModal = async () => {
 
   modalStore.closeModal()
+
 
   title.value = ''
   description.value = ''
@@ -77,11 +80,15 @@ const createRoom = async () => {
       })
 
     console.log(
-      '생성된 conversationId:',
-      response.conversationId
+      '생성된 createRoom response:',
+      response
     )
 
-    closeModal()
+
+   
+    
+
+    await closeModal()
 
     window.alert('사설 대화방이 생성되었습니다.')
 

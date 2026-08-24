@@ -110,69 +110,69 @@ export function useCustomChatList() {
   // =========================================================
   // 채팅방 입장 로직
   // =========================================================
-// =========================================================
-// 채팅방 입장 로직
-// =========================================================
-const enterCustomRoom = async (
-  room: ReturnType<typeof customChatStore.filteredCustomRooms>[0],
-  password?: string
-) => {
-  if (isLoading.value) return false
+  // =========================================================
+  // 채팅방 입장 로직
+  // =========================================================
+  const enterCustomRoom = async (
+    room: ReturnType<typeof customChatStore.filteredCustomRooms>[0],
+    password?: string
+  ) => {
+    if (isLoading.value) return false
 
-  try {
-    isLoading.value = true
+    try {
+      isLoading.value = true
+
+      // 이미 가입되어 있는 방인지 확인
+      const isAlreadyJoined = customChatStore.joinedCustomRooms.some(
+        (joinedRoom) => joinedRoom.id === room.id
+      )
+
+      // 비밀방이고 비밀번호가 없는데, 내 가입 방도 아니고 'my' 탭도 아닌 경우 진입 막음
+      if (room.isSecret && !password && roomListMode.value !== 'my' && !isAlreadyJoined) {
+        return false
+      }
+
+      customChatStore.setCurrentRoom(room)
+
+      if (password) {
+        customChatStore.setPassword(password)
+      }
+
+      uiStore.conversationId = room.id
+      uiStore.currentTab = 'customChatRoom'
+
+      return true
+    } catch (error) {
+      console.error('[CUSTOM ROOM] 입장 실패:', error)
+      return false
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const handleCustomRoomClick = async (
+    room: ReturnType<typeof customChatStore.filteredCustomRooms>[0]
+  ) => {
+    let password: string | undefined
+
+    console.log("handleCustomRoomClick room id", room.id)
 
     // 이미 가입되어 있는 방인지 확인
     const isAlreadyJoined = customChatStore.joinedCustomRooms.some(
       (joinedRoom) => joinedRoom.id === room.id
     )
 
-    // 비밀방이고 비밀번호가 없는데, 내 가입 방도 아니고 'my' 탭도 아닌 경우 진입 막음
-    if (room.isSecret && !password && roomListMode.value !== 'my' && !isAlreadyJoined) {
-      return false
+    // 비밀방이더라도 (내 참여 방 탭이거나 || 이미 가입된 방이면) prompt를 띄우지 않음
+    if (room.isSecret && roomListMode.value !== 'my' && !isAlreadyJoined) {
+      password = window.prompt(
+        `[${room.title}] 은(는) 비밀 대화방입니다.\n입장 비밀번호를 입력하세요:`
+      ) ?? undefined
+
+      if (!password) return
     }
 
-    customChatStore.setCurrentRoom(room)
-
-    if (password) {
-      customChatStore.setPassword(password)
-    }
-
-    uiStore.conversationId = room.id
-    uiStore.currentTab = 'customChatRoom'
-
-    return true
-  } catch (error) {
-    console.error('[CUSTOM ROOM] 입장 실패:', error)
-    return false
-  } finally {
-    isLoading.value = false
+    await enterCustomRoom(room, password)
   }
-}
-
-const handleCustomRoomClick = async (
-  room: ReturnType<typeof customChatStore.filteredCustomRooms>[0]
-) => {
-  let password: string | undefined
-
-  console.log("handleCustomRoomClick room id", room.id)
-
-  // 이미 가입되어 있는 방인지 확인
-  const isAlreadyJoined = customChatStore.joinedCustomRooms.some(
-    (joinedRoom) => joinedRoom.id === room.id
-  )
-
-  // 비밀방이더라도 (내 참여 방 탭이거나 || 이미 가입된 방이면) prompt를 띄우지 않음
-  if (room.isSecret && roomListMode.value !== 'my' && !isAlreadyJoined) {
-    password = window.prompt(
-      `[${room.title}] 은(는) 비밀 대화방입니다.\n입장 비밀번호를 입력하세요:`
-    ) ?? undefined
-
-    if (!password) return
-  }
-
-  await enterCustomRoom(room, password)
-}
 
   // =========================================================
   // groupChat 탭이 열릴 때 자동 조회
@@ -194,6 +194,25 @@ const handleCustomRoomClick = async (
     { immediate: true }
   )
 
+
+
+  const refreshCustomChats = async () => {
+    if (isLoading.value) return
+
+    nextCursor.value = null
+    myNextCursor.value = null
+
+    if (roomListMode.value === 'my') {
+      customChatStore.setJoinedCustomRooms([])
+      await loadMyCustomChats()
+      return
+    }
+
+    customChatStore.setCustomRooms([])
+    await loadCustomChats()
+  }
+
+
   return {
     isLoading,
     nextCursor,
@@ -202,6 +221,7 @@ const handleCustomRoomClick = async (
     changeRoomListMode,
     loadMoreCustomChats,
     enterCustomRoom,
-    handleCustomRoomClick
+    handleCustomRoomClick,
+    refreshCustomChats
   }
 }

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick } from 'vue'
+import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
@@ -29,6 +29,7 @@ import { useChatScroll } from '@/chat/composables/chatRoom.vue/useChatScroll.js'
 import { useChatImage } from '@/chat/composables/chatRoom.vue/useChatImage.js'
 import { useChatTranslate } from '@/chat/composables/chatRoom.vue/useChatTranslate.js'
 import { useChatLeave } from '@/chat/composables/chatRoom.vue/useChatLeaves.js'
+import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll.js'
 
 import { useCustomChatStore } from '../stores/CustomChatStore'
 import { useChatMessages } from '../composable/CustomChatRoom.vue/useChatMessages'
@@ -49,7 +50,7 @@ const translatorStore = useTranslatorStore()
 const customChatStore = useCustomChatStore()
 
 const { translate } = useChatTranslate()
-const { loadMessages } = useChatMessages()
+const { loadMessages, loadOlderMessages } = useChatMessages()
 
 // =========================================================
 // 기본 상태
@@ -107,15 +108,27 @@ const filteredMessages = computed(() => {
 const messageContainer =
   ref<HTMLElement | null>(null)
 
+const topSentinel = ref<HTMLElement | null>(null)
+
 const { scrollToBottom } =
   useChatScroll(
     messageContainer,
     () => filteredMessages.value
   )
 
-// =========================================================
-// 이미지
-// =========================================================
+
+
+
+
+const { setup: setupTopObserver, teardown: teardownTopObserver } = useInfiniteScroll({
+  container: messageContainer,
+  sentinel: topSentinel,
+  hasMore: () => chatRoomStore.hasMoreMessages,
+  isLoading: () => chatRoomStore.isLoadingMoreMessages,
+  loadMore: () => loadOlderMessages(),
+  preserveScroll: true,
+  debugLabel: 'customChatTop',
+})
 
 const {
   fileInputRef,
@@ -170,79 +183,47 @@ const {
 // =========================================================
 
 const enterCustomRoom = async () => {
-
-  const roomId =
-    uiStore.conversationId
-
-  if (!roomId) {
-    return
-  }
-
-  if (isEntering.value) {
-    return
-  }
+  const roomId = uiStore.conversationId
+  if (!roomId) return
+  if (isEntering.value) return
 
   isEntering.value = true
 
   try {
-
-    // 이미 같은 방이면 다시 로드하지 않음
-    if (
-      chatRoomStore.conversationId !== roomId
-    ) {
-
-      chatRoomStore.setConversationId(
-        roomId
-      )
+    if (chatRoomStore.conversationId !== roomId) {
+      chatRoomStore.setConversationId(roomId)
     }
 
-    // 방 존재 여부 확인
-    const exists =
-      await chatRoomStore.existsConversation(
-        roomId
-      )
-
+    const exists = await chatRoomStore.existsConversation(roomId)
     if (!exists) {
-
-      console.warn(
-        '[CUSTOM ROOM] 존재하지 않는 방:',
-        roomId
-      )
-
+      console.warn('[CUSTOM ROOM] 존재하지 않는 방:', roomId)
       chatRoomStore.setConversationId(null)
-
       uiStore.conversationId = null
       uiStore.currentTab = 'customChat'
-
       return
     }
 
-    // 메시지 조회
     await loadMessages(roomId)
 
-    // 읽음 처리
-    // 프로젝트에서 필요하면 사용
-    //
-    // await chatStore.readConversation(roomId)
+    // ✅ 먼저 로딩 상태를 해제해서 v-else 블록이 렌더링되게 함
+    isEntering.value = false
 
-    await nextTick()
+    await nextTick()          // DOM에 messageContainer / topSentinel 마운트 대기
+    await setupTopObserver()  // 이제 정상적으로 관측 대상이 잡힘
 
     requestAnimationFrame(() => {
       scrollToBottom()
     })
 
   } catch (error) {
-
-    console.error(
-      '[CUSTOM ROOM] 입장 실패:',
-      error
-    )
-
+    console.error('[CUSTOM ROOM] 입장 실패:', error)
   } finally {
-
+    // isEntering이 이미 false로 세팅되지 않은 예외 상황(에러 등) 대비
     isEntering.value = false
   }
 }
+
+
 
 // =========================================================
 // CUSTOM 방 진입 감지
@@ -271,7 +252,7 @@ watch(
     } catch (error: any) {
       if (error.response?.status === 403) {
         const message = error.response?.data?.message
-        
+
         if (message === 'REJOIN_RESTRICTED') {
           window.alert('강퇴/제재 처리되어 입장할 수 없는 채팅방입니다.')
         } else if (message === 'PASSWORD_INVALID') {
@@ -606,6 +587,13 @@ const goBack = () => {
     <!-- ================================================= -->
 
     <div v-else ref="messageContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col">
+
+
+      <div ref="topSentinel" class="flex justify-center py-2">
+        <span v-if="chatRoomStore.isLoadingMoreMessages" class="text-[10px] text-[#726e67]">
+          이전 메시지 불러오는 중...
+        </span>
+      </div>
 
       <div v-for="(message, index) in filteredMessages" :key="message.id">
 
