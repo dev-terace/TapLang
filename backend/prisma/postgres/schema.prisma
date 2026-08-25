@@ -46,6 +46,8 @@ model MyProfile {
 
   chatRoomNotifications ChatRoomNotification[]
 
+  quizCollections QuizCollection[]
+
   sentFriendRequests     FriendRequest[] @relation("FriendRequestSender")
   receivedFriendRequests FriendRequest[] @relation("FriendRequestReceiver")
 
@@ -178,4 +180,37 @@ model ChatRoomNotification {
 
   // 한 유저가 동일한 채팅방에 대해 중복 레코드를 갖지 않도록 설정
   @@unique([profileId, conversationId])
+}
+
+
+// 2. 퀴즈 컬렉션 모델
+model QuizCollection {
+  id          Int            @id @default(autoincrement())
+  title       String
+  description String?        @db.Text
+  isShared    Boolean        @default(false)
+  learnerCount Int           @default(0) // 학습 중인 인원 (인기순 정렬 기준)
+  
+  // 작성자 관계 설정 (MyProfile 삭제 시 컬렉션도 함께 삭제)
+  authorId    Int
+  author      MyProfile      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  // 컬렉션에 포함된 문장 목록
+  sentences   QuizSentence[]
+
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+}
+
+// 3. 퀴즈 문장 모델
+model QuizSentence {
+  id               Int            @id @default(autoincrement())
+  translatedText   String         @db.Text
+  voiceText        String         @db.Text
+
+  // 소속 컬렉션 관계 설정 (컬렉션 삭제 시 문장도 함께 삭제)
+  quizCollectionId Int
+  quizCollection   QuizCollection @relation(fields: [quizCollectionId], references: [id], onDelete: Cascade)
+
+  createdAt        DateTime       @default(now())
 }

@@ -14,6 +14,7 @@ import chatNotificationRouter from "./chat/routes/chatRoomNotification.router"
 import imageRouter from "./image/router/image.router"
 import customChatRouter from "./custom_chat/router/customChat_router"
 import customChatRoomRouter from "./custom_chat/router/customChatRoom.router"
+import quizRouter from "./quiz/router/quiz.router"
 import './image/service/uploadCleanUp.service'
 import './chat/services/cleanupScheduler.service'
 
@@ -48,6 +49,7 @@ app.use("/api/chat-room-notification", requireApiAuth, chatNotificationRouter)
 app.use("/api/image", requireApiAuth, imageRouter)
 app.use("/api/custom-chat", requireApiAuth, customChatRouter)
 app.use("/api/custom-chat-room", requireApiAuth, customChatRoomRouter)
+app.use("/api/quiz", requireApiAuth, quizRouter)
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({
