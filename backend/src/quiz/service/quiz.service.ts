@@ -13,12 +13,26 @@ interface GetSharedParams {
   limit: number;
 }
 
+
+interface GetMyCollectionsParams {
+  userId: number
+  cursor?: string | null
+  limit?: number
+}
+
+
 export class QuizService {
   // 1. 내 학습 컬렉션 목록 조회
-  async getMyCollections(ownId: number) {
-    return await postgresPrisma.quizCollection.findMany({
+async getMyCollections(params: GetMyCollectionsParams) {
+    const { userId, cursor, limit = 10 } = params
+
+    let prismaQuery: any = {
       where: {
-        authorId: ownId,
+        authorId: userId,
+      },
+      take: limit + 1,
+      orderBy: {
+        id: 'desc',
       },
       include: {
         sentences: true,
@@ -29,10 +43,29 @@ export class QuizService {
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
-    })
+    }
+
+    if (cursor) {
+      prismaQuery.cursor = { id: parseInt(cursor, 10) }
+      prismaQuery.skip = 1
+    }
+
+    const collections = await postgresPrisma.quizCollection.findMany(prismaQuery)
+
+    let nextCursor: string | null = null
+
+    if (collections.length > limit) {
+      collections.pop() // 초과 조회된 데이터 제거
+      const lastItem = collections[collections.length - 1]
+      if (lastItem) {
+        nextCursor = String(lastItem.id)
+      }
+    }
+
+    return {
+      items: collections,
+      nextCursor,
+    }
   }
 
   // 2. 공유 게시판 컬렉션 목록 조회

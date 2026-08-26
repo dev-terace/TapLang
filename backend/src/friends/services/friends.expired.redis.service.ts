@@ -4,7 +4,7 @@ import { redisSubscriber } from "../../lib/redisSubscriber";
 import { friendsRedisService } from "./friends.redis.service";
 import { friendsService } from "./friends.service";
 import { getSocketIO } from "../../socket/socket";
-
+import { postgresPrisma } from "../../lib/prisma";
 
 const PREFIX = "online:";
 
@@ -55,6 +55,21 @@ async()=>{
        */
 
       console.log("friend.expired.redis service  offlineUserId",  offlineUserId)
+
+
+      try {
+      await postgresPrisma.myProfile.update({
+        where: { id: offlineUserId },
+        data: {
+          lastLoginAt: new Date(),
+        },
+      });
+      
+      console.log(`[Presence] 유저(${offlineUserId}) lastLoginAt 업데이트 완료`);
+    } catch (error) {
+      console.error(`[Presence] 유저(${offlineUserId}) lastLoginAt 업데이트 실패:`, error);
+    }
+
       const friends =
         await friendsService.getFriends(
           offlineUserId

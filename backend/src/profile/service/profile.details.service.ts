@@ -101,7 +101,7 @@ export async function getUserProfileDetails(profileId: number) {
     stats: {
       attendanceDays: details.attendanceDays ?? 0,
       aiTranslationCount: details.aiTranslationCount ?? 0,
-      translationTagCount: details.translationTagCount ?? 0,
+      MyLearningCollectionCount: details.MyLearningCollectionCount ?? 0,
     },
     ...formatProfileDetails(details),
   };

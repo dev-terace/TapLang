@@ -3,7 +3,7 @@ import { ref } from 'vue'
 
 export const useUIStore = defineStore('ui', () => {
 
-  const currentTab = ref('memo')
+  const currentTab = ref('chat')
 
   const isChatRoomCreate = ref(false)
 

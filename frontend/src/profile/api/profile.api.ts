@@ -27,7 +27,7 @@ export namespace ProfileApi {
   export interface ProfileStats {
   attendanceDays: number
   aiTranslationCount: number
-  translationTagCount: number
+  MyLearningCollectionCount: number
 }
 
   // 프로필 조회 응답

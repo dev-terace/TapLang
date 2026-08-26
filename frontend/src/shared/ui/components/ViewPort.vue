@@ -5,7 +5,7 @@ import { computed} from 'vue'
 const uiStore = useUIStore();
 
 
- const isTopTab = computed(() => ['memo', 'findPeople', 'notice'].includes(uiStore.currentTab ));
+ const isTopTab = computed(() => ['ad', 'findPeople', 'notice'].includes(uiStore.currentTab ));
 </script>
 
 <template>

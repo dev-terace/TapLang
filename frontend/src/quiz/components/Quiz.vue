@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { ref, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, watch, onMounted, nextTick } from 'vue'
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useQuizStore } from '@/quiz/stores/QuizStore'
 import type { Collection } from '@/quiz/api/quiz.api'
 import { useTTS } from '@/quiz/composables/useTTS'
 import { usePractice } from '@/quiz/composables/usePractice'
+import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll'
 
 const uiStore = useUIStore()
 const quizStore = useQuizStore()
@@ -13,54 +14,82 @@ const { userAnswer, resultState, resetPracticeState, checkAnswer, showAnswer } =
 
 const subView = ref<'menu' | 'practice' | 'shared' | 'generator'>('menu')
 
-// --- 무한 스크롤 옵저버 관련 상태 및 설정 ---
+// --- 무한 스크롤 참조(Ref) ---
 const scrollContainer = ref<HTMLElement | null>(null)
-const scrollSentinel = ref<HTMLElement | null>(null)
-let observer: IntersectionObserver | null = null
+const mySentinel = ref<HTMLElement | null>(null)
+const sharedSentinel = ref<HTMLElement | null>(null)
 
-const setupObserver = () => {
-  if (observer) observer.disconnect()
-
-  observer = new IntersectionObserver(
-    async ([entry]) => {
-      if (entry.isIntersecting && quizStore.sharedHasMore && !quizStore.isLoading) {
-        await quizStore.fetchSharedCollections(true)
-      }
-    },
-    { root: scrollContainer.value, rootMargin: '100px', threshold: 0.1 }
-  )
-
-  if (scrollSentinel.value) {
-    observer.observe(scrollSentinel.value)
-  }
-}
-
-// 공유 게시판 진입 시 무한 스크롤 옵저버 바인딩
-watch(subView, async (newView) => {
-  if (newView === 'shared') {
-    await nextTick()
-    setupObserver()
-  } else {
-    if (observer) observer.disconnect()
-  }
+// 1. 내 컬렉션 무한 스크롤 옵저버
+const myScroll = useInfiniteScroll({
+  container: scrollContainer,
+  sentinel: mySentinel,
+  hasMore: () => quizStore.myHasMore,
+  isLoading: () => quizStore.isLoading,
+  loadMore: () => quizStore.fetchMyCollections(true),
+  rootMargin: '200px',
+  debugLabel: 'MY_COLLECTIONS'
 })
 
-// 초기 DB 데이터 조회
-onMounted(() => {
+// 2. 공유 게시판 무한 스크롤 옵저버
+const sharedScroll = useInfiniteScroll({
+  container: scrollContainer,
+  sentinel: sharedSentinel,
+  hasMore: () => quizStore.sharedHasMore,
+  isLoading: () => quizStore.isLoading,
+  loadMore: () => quizStore.fetchSharedCollections(true),
+  rootMargin: '200px',
+  debugLabel: 'SHARED_COLLECTIONS'
+})
+
+// 💡 핵심 수정: v-if 조건(currentTab)과 뷰 전환, 로딩 상태를 모두 감지
+watch(
+  () => [uiStore.currentTab, subView.value, quizStore.isLoading],
+  async ([tab, newView, isLoading]) => {
+    await nextTick() // DOM 업데이트 100% 보장 대기
+
+    // 퀴즈 탭이 아니면 모든 옵저버 해제
+    if (tab !== 'quiz') {
+      myScroll.teardown()
+      sharedScroll.teardown()
+      return
+    }
+
+    // 뷰(menu, shared) 전환에 맞게 setup 호출
+    // 로딩 중(isLoading: true)에는 이전 옵저버를 건드리지 않음
+    if (newView === 'menu') {
+      sharedScroll.teardown()
+      if (!isLoading) myScroll.setup() // 로딩 종료 후 옵저버 리셋 (교착 방지)
+    } else if (newView === 'shared') {
+      myScroll.teardown()
+      if (!isLoading) sharedScroll.setup()
+    } else {
+      myScroll.teardown()
+      sharedScroll.teardown()
+    }
+  }
+  // immediate: true 제거됨! (컴포넌트 렌더링 전 DOM Ref Null 에러 방지)
+)
+
+// 초기 마운트 시 데이터 호출 및 옵저버 수동 바인딩
+onMounted(async () => {
+  // DB에서 데이터 최초 로드 시도 (이때 isLoading이 true -> false로 변함)
   quizStore.loadCollections()
+  
+  await nextTick()
+  // 만약 시작부터 로딩 상태가 아니라면 즉시 옵저버 세팅
+  if (uiStore.currentTab === 'quiz' && !quizStore.isLoading) {
+    if (subView.value === 'menu') myScroll.setup()
+    else if (subView.value === 'shared') sharedScroll.setup()
+  }
 })
 
-onUnmounted(() => {
-  if (observer) observer.disconnect()
-})
+// --- 이하 기존 핸들러 동일하게 유지 ---
 
-// 작성자 이름 추출 헬퍼 (문자열 또는 객체 대응)
 const getAuthorName = (author: any) => {
   if (!author) return '익명'
   return typeof author === 'object' ? author.name : author
 }
 
-// 정렬 변경 핸들러
 const handleSortChange = async (e: Event) => {
   const target = e.target as HTMLSelectElement
   await quizStore.changeSharedSort(target.value as 'recent' | 'popular')
@@ -77,7 +106,6 @@ const handleSentenceChange = (idx: number) => {
   resetPracticeState()
 }
 
-// 폼 상태
 const newColTitle = ref('')
 const newColDesc = ref('')
 const isNewColShared = ref(true)
@@ -136,7 +164,7 @@ const handleSave = async () => {
 </script>
 
 <template>
- <div ref="scrollContainer" v-if="uiStore.currentTab === 'quiz'" class="flex-1 h-screen overflow-y-auto p-6 md:p-10 bg-[#f7f5ed] text-slate-800">
+  <div ref="scrollContainer" v-if="uiStore.currentTab === 'quiz'" class="flex-1 h-screen overflow-y-auto p-6 md:p-10 bg-[#f7f5ed] text-slate-800">
 
     <!-- 로딩 오버레이 -->
     <div v-if="quizStore.isLoading && quizStore.sharedCollections.length === 0 && quizStore.myCollections.length === 0" 
@@ -204,6 +232,12 @@ const handleSave = async () => {
           </div>
         </div>
       </div>
+
+      <!-- 내 학습 컬렉션 센티널 -->
+      <div ref="mySentinel" class="h-16 mt-6 flex justify-center items-center text-xs font-bold text-slate-500">
+        <span v-if="quizStore.isLoading && quizStore.myCollections.length > 0">목록을 불러오는 중...</span>
+        <span v-else-if="!quizStore.myHasMore && quizStore.myCollections.length > 0">마지막 컬렉션입니다.</span>
+      </div>
     </div>
 
     <!-- 2. Listen & Type 연습 -->
@@ -241,7 +275,6 @@ const handleSave = async () => {
             <span class="text-xs font-bold text-slate-900">🔊 {{ isPlaying ? '재생 중...' : '문장 듣기' }}</span>
           </div>
 
-          <!-- voiceText로 정답 바인딩 수정 -->
           <input type="text" v-model="userAnswer" @keydown.enter="checkAnswer(quizStore.currentSentence.voiceText)"
             placeholder="Type here..." class="w-full bg-slate-50 border-2 border-slate-800 rounded-xl p-3 text-sm font-mono mb-3 outline-none" />
           
@@ -265,7 +298,6 @@ const handleSave = async () => {
         <h3 class="text-xl font-bold text-slate-900">🌐 공유 게시판</h3>
         
         <div class="flex items-center space-x-2">
-          <!-- 정렬 박스 추가 -->
           <select :value="quizStore.sharedSortType" @change="handleSortChange" class="bg-white border-2 border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none shadow-[2px_2px_0px_0px_#1e293b]">
             <option value="recent">최신순</option>
             <option value="popular">학습자 많은 순</option>
@@ -298,8 +330,8 @@ const handleSave = async () => {
         </div>
       </div>
 
-      <!-- 무한 스크롤 감지용 Sentinel -->
-      <div ref="scrollSentinel" class="h-16 mt-6 flex justify-center items-center text-xs font-bold text-slate-500">
+      <!-- 공유 게시판 센티널 -->
+      <div ref="sharedSentinel" class="h-16 mt-6 flex justify-center items-center text-xs font-bold text-slate-500">
         <span v-if="quizStore.isLoading && quizStore.sharedCollections.length > 0">목록을 불러오는 중...</span>
         <span v-else-if="!quizStore.sharedHasMore && quizStore.sharedCollections.length > 0">마지막 컬렉션입니다.</span>
       </div>

@@ -25,19 +25,26 @@ export class QuizController {
   }
 
 
-  getMyCollections = async (req: Request, res: Response) => {
-    try {
-      const userId = await userService.findUserIdByAuthToken(req)
-      const collections = await this.quizService.getMyCollections(userId)
+getMyCollections = async (req: Request, res: Response) => {
+  try {
+    const userId = await userService.findUserIdByAuthToken(req)
+    const { cursor, limit } = req.query
 
+    const parsedLimit = limit ? parseInt(limit as string, 10) : 10
+    const parsedCursor = cursor ? String(cursor) : null
 
-      console.log("getMyCollections", collections)
-      return res.status(200).json(collections)
-    } catch (error) {
-      console.error('내 컬렉션 조회 실패:', error)
-      return res.status(500).json({ message: '서버 에러가 발생했습니다.' })
-    }
+    const result = await this.quizService.getMyCollections({
+      userId,
+      cursor: parsedCursor,
+      limit: parsedLimit,
+    })
+
+    return res.status(200).json(result)
+  } catch (error) {
+    console.error('내 컬렉션 조회 실패:', error)
+    return res.status(500).json({ message: '서버 에러가 발생했습니다.' })
   }
+}
 
 
   updateCollection = async (req: Request, res: Response) => {

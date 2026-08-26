@@ -36,10 +36,12 @@ model MyProfile {
   flag       String
   statusMsg  String?
   createdAt  DateTime @default(now())
-
+  
   allowGroupInvite Boolean @default(true)
   showOnlineStatus Boolean @default(true)
   
+  lastLoginAt DateTime @default(now())
+
   profileDetails     MyProfileDetails?
 
   chatSettings ChatSettings?
@@ -67,7 +69,7 @@ model MyProfileDetails {
 
   attendanceDays      Int       @default(0)
   aiTranslationCount  Int       @default(0)
-  translationTagCount Int       @default(0)
+  MyLearningCollectionCount Int       @default(0)
 
   bio                 String?   @db.Text 
 

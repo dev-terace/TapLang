@@ -24,34 +24,51 @@ export interface CreateCollectionDto {
     sentences: Array<{ translatedText: string; voiceText: string }>
 }
 
+// 💡 내 학습 컬렉션 요청/응답 타입 추가
+export interface MyCollectionQueryParams {
+    cursor?: string | number | null;
+    limit?: number;
+}
 
+export interface MyCollectionResponse {
+    items: Collection[];
+    nextCursor: string | number | null;
+}
 
-// 요청 파라미터 타입
+// 공유 게시판 요청/응답 타입
 export interface SharedCollectionQueryParams {
     cursor?: string | number | null;
     sort?: 'recent' | 'popular';
     limit?: number;
 }
 
-// 백엔드 응답 타입
 export interface SharedCollectionResponse {
     items: Collection[];
     nextCursor: string | number | null;
 }
 
-
-// REST API 통신 모듈 (Axios 또는 fetch 기반 백엔드 연동)
+// REST API 통신 모듈
 export const quizApi = {
-    // 내 학습 컬렉션 목록 조회
-    async getMyCollections(): Promise<Collection[]> {
-        const response = await api.get('/api/quiz/me')
-        const list = response.data
+    // 💡 내 학습 컬렉션 목록 조회 (페이지네이션 파라미터 지원 및 매핑)
+    async getMyCollections(
+        params?: MyCollectionQueryParams
+    ): Promise<MyCollectionResponse> {
+        const response = await api.get('/api/quiz/me', {
+            params: {
+                cursor: params?.cursor,
+                limit: params?.limit || 10,
+            },
+        })
 
-        return list.map((col: any) => ({
+        const data = response.data
+        const rawItems = Array.isArray(data) ? data : data.items || []
+        const nextCursor = Array.isArray(data) ? null : data.nextCursor ?? null
+
+        const mappedItems: Collection[] = rawItems.map((col: any) => ({
             id: col.id,
             title: col.title,
             description: col.description || '',
-            author: col.author?.name || '나',
+            author: typeof col.author === 'object' ? col.author?.name || '나' : col.author || '나',
             isShared: col.isShared,
             isMine: true,
             sentences: (col.sentences || []).map((s: any) => ({
@@ -60,6 +77,11 @@ export const quizApi = {
                 translatedText: s.translatedText,
             })),
         }))
+
+        return {
+            items: mappedItems,
+            nextCursor,
+        }
     },
 
     // 공유 게시판 컬렉션 목록 조회
@@ -74,7 +96,6 @@ export const quizApi = {
             },
         })
 
-        // 💡 백엔드 응답 데이터를 프론트엔드 Collection 구조에 맞게 매핑
         return {
             nextCursor: response.data.nextCursor,
             items: (response.data.items || []).map((col: any) => ({
@@ -96,13 +117,9 @@ export const quizApi = {
 
     // 새 컬렉션 생성
     async createCollection(dto: CreateCollectionDto): Promise<Collection> {
-
-
         console.log("createCollection ", dto)
         const response = await api.post("/api/quiz", dto);
-
         const data = response.data
-
 
         return {
             id: data.id,
@@ -117,7 +134,6 @@ export const quizApi = {
                 translatedText: s.translatedText,
             })),
         }
-
     },
 
     // 컬렉션 수정
@@ -129,7 +145,6 @@ export const quizApi = {
             id: data.id,
             title: data.title,
             description: data.description || '',
-            // 기존 작성자명에 '(가져옴)'이 포함되어 있으면 그대로 유지, 없으면 DB 반환값 사용
             author: existingAuthor || data.author?.name || '나',
             isShared: data.isShared,
             isMine: true,
@@ -147,13 +162,13 @@ export const quizApi = {
         return true
     },
 
-    // 2. 특정 문장 삭제
+    // 특정 문장 삭제
     async deleteSentence(collectionId: number, sentenceId: number): Promise<boolean> {
         await api.delete(`/api/quiz/${collectionId}/sentences/${sentenceId}`)
         return true
     },
 
-    // 3. 공유 상태 토글
+    // 공유 상태 토글
     async toggleShare(id: number, isShared: boolean): Promise<boolean> {
         await api.patch(`/api/quiz/${id}/share`, { isShared })
         return true
@@ -168,7 +183,7 @@ export const quizApi = {
             id: data.id,
             title: data.title,
             description: data.description || '',
-            author: data.author?.name || '공유 작성자', // 백엔드에서 전달된 원작자 이름 적용
+            author: data.author?.name || '공유 작성자',
             isShared: data.isShared,
             isMine: true,
             sentences: (data.sentences || []).map((s: any) => ({

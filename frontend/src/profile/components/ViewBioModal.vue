@@ -126,13 +126,13 @@ const openEditModal = () => {
                   {{ profileStore.userProfileDetails.stats?.aiTranslationCount ?? 0 }} <span class="text-xs">회</span>
                 </div>
               </div>
-              <!-- 번역 태그 사용 -->
+           
               <div
                 class="bg-[#f4f1eb] border-2 border-[#2d2b28] p-3 text-center shadow-[2px_2px_0px_0px_#a39b90]"
               >
-                <div class="text-[10px] text-neutral-500 font-bold mb-1">번역 태그 사용</div>
+                <div class="text-[10px] text-neutral-500 font-bold mb-1">나의 퀴즈 컬렉션 갯수</div>
                 <div class="text-lg font-bold text-[#2d2b28]">
-                  {{ profileStore.userProfileDetails.stats?.translationTagCount ?? 0 }} <span class="text-xs">회</span>
+                  {{ profileStore.userProfileDetails.stats?.MyLearningCollectionCount ?? 0 }} <span class="text-xs">회</span>
                 </div>
               </div>
             </div>
