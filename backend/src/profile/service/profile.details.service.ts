@@ -78,19 +78,28 @@ export async function checkUsernameTag(username: string) {
  */
 export async function getUserProfileDetails(profileId: number) {
   const numericId = Number(profileId);
+
   if (isNaN(numericId)) {
     throw new Error('유효하지 않은 프로필 ID입니다.');
   }
 
-  const details = await postgresPrisma.myProfileDetails.findUnique({
-    where: { profileId: numericId },
-    include: {
-      profile: true,
-      spokenLangs: true,
-      learningLangs: true,
-      snsLinks: true,
-    },
-  });
+  const [details, collectionCount] = await Promise.all([
+    postgresPrisma.myProfileDetails.findUnique({
+      where: { profileId: numericId },
+      include: {
+        profile: true,
+        spokenLangs: true,
+        learningLangs: true,
+        snsLinks: true,
+      },
+    }),
+
+    postgresPrisma.quizCollection.count({
+      where: {
+        authorId: numericId,
+      },
+    }),
+  ]);
 
   if (!details) {
     throw new Error('프로필 정보를 찾을 수 없습니다.');
@@ -98,11 +107,13 @@ export async function getUserProfileDetails(profileId: number) {
 
   return {
     nickname: details.profile?.name ?? '익명 유저',
+
     stats: {
       attendanceDays: details.attendanceDays ?? 0,
       aiTranslationCount: details.aiTranslationCount ?? 0,
-      MyLearningCollectionCount: details.MyLearningCollectionCount ?? 0,
+       MyLearningCollectionCount: collectionCount ?? 0,
     },
+
     ...formatProfileDetails(details),
   };
 }
@@ -209,9 +220,66 @@ export async function upsertMyProfileDetails(
   });
 }
 
+
+
+export const checkDailyAttendance = async (userId: number) => {
+  const now = new Date();
+
+  // 1. 유저의 마지막 출석 기록만 조회
+  const details = await postgresPrisma.myProfileDetails.findUnique({
+    where: { profileId: userId },
+    select: { id: true, attendanceDays: true, lastAttendanceAt: true }
+  });
+
+  if (!details) return;
+
+  // 2. 오늘 이미 출석했는지 날짜(YYYY-MM-DD) 단위 비교
+  const lastDate = details.lastAttendanceAt ? details.lastAttendanceAt.toISOString().slice(0, 10) : null;
+  const todayDate = now.toISOString().slice(0, 10);
+
+  if (lastDate === todayDate) {
+    return; // 오늘 이미 출석 처리됨
+  }
+
+  // 3. 오늘 첫 방문인 경우 출석 일수 +1 및 출석 시각 갱신
+  return postgresPrisma.myProfileDetails.update({
+    where: { profileId: userId },
+    data: {
+      attendanceDays: { increment: 1 },
+      lastAttendanceAt: now
+    }
+  });
+};
+
+
+export const incrementAiTranslationCount = async (
+  userId: number
+) => {
+
+  return await postgresPrisma.myProfileDetails.upsert({
+    where: {
+      profileId: userId,
+    },
+
+    update: {
+      aiTranslationCount: {
+        increment: 1,
+      },
+    },
+
+    create: {
+      profileId: userId,
+      aiTranslationCount: 1,
+    },
+  });
+};
+
+
 export const profileDetailService = {
   checkUsernameTag,
   getUserProfileDetails,
   getMyProfileDetails,
   upsertMyProfileDetails,
+  checkDailyAttendance,
+  incrementAiTranslationCount
 };

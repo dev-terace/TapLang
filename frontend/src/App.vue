@@ -58,7 +58,7 @@
               <ChatRoom />
               <!-- <InviteChatRoom /> -->
               <GroupChat />
-              <Quiz />
+              <QuizStudio/>
               <CustomChatRoom />
 
             </div>
@@ -93,7 +93,7 @@ import FriendList from './friends/components/FriendList.vue'
 import Header from './shared/ui/components/Header.vue'
 import Ad from './ad/Ad.vue'
 import FindPeople from './find_people/components/FindPeople.vue'
-import Notice from './notice/Notice.vue'
+import Notice from './notice/components/Notice.vue'
 import Footer from './shared/ui/components/Footer.vue'
 import Chat from './chat/components/Chat.vue'
 import ChatRoom from './chat/components/ChatRoom.vue'
@@ -108,6 +108,7 @@ import { storeToRefs } from 'pinia'
 import { useSocketRegister } from '@/shared/socket/socket.register.js'
 import ChatNotification from './shared/notification/components/chatNotification.vue'
 import CustomChatRoom from './custom_chat/components/CustomChatRoom.vue'
+import QuizStudio from './quiz/components/QuizStudio.vue'
 
 const socketRegister = useSocketRegister()
 

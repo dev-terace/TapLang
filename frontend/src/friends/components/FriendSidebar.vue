@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue' // onMounted 추가
+import { ref, computed, onMounted, watch } from 'vue'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
@@ -33,23 +33,18 @@ const profileStore = useProfileStore()
 const isMyOnlineStatus = ref<boolean | null>(null)
 const chatStore = useChatStore()
 
-
 const socket = useSocketRegister()
 const alertFunc = (msg: string) => alert(msg)
 
-// 컴포넌트 마운트 시 차단 목록 불러오기 (초기 데이터 세팅)
 watch(
   () => authStore.userInfo,
   (userInfo) => {
     if (!userInfo) return
-
     isMyOnlineStatus.value = userInfo.showOnlineStatus
     blockStore.getBlockedUsers()
   },
   { immediate: true }
 )
-
-
 
 // 드롭다운 메뉴 상태
 const activeMenuId = ref<string | null>(null)
@@ -58,35 +53,38 @@ const closeMenu = () => activeMenuId.value = null
 
 // 메뉴 핸들러 통합
 const handleMenuAction = async (action: string, friendId: string) => {
-  
   closeMenu()
   if (['editBio', 'editStatus', 'goOffline', 'goOnline'].includes(action)) {
     if (action === 'editBio') modalStore.openModal('editBio')
     if (action === 'editStatus') modalStore.openModal('updateStatus')
     if (action === 'goOffline') {
-        await profileStore.updateOnlineStatusVisibility(false)
-        isMyOnlineStatus.value = false 
-        socket.socket.emit("friend:own:init");
+      await profileStore.updateOnlineStatusVisibility(false)
+      isMyOnlineStatus.value = false 
+      socket.socket.emit("friend:own:init");
     }
-    if (action === 'goOnline')
-    {
+    if (action === 'goOnline') {
       await profileStore.updateOnlineStatusVisibility(true)
       isMyOnlineStatus.value = true
-       socket.socket.emit("friend:own:init");
+      socket.socket.emit("friend:own:init");
     }
   } else {
     uiStore.profileMenuFriendId = friendId
+
+    // 💡 서브메뉴에서 채팅하기 클릭 시 처리
+    if (action === 'chat') {
+      const allFriends = [...onlineList.value, ...friendStore.offlineFriends]
+      const targetFriend = allFriends.find(f => String(f.id) === String(friendId))
+      if (targetFriend) {
+        openDirectChatWithUser(targetFriend.id, targetFriend.name)
+      }
+    }
+
     if (action === 'viewBio') modalStore.openModal('viewBio')
     if (action === 'block') {
-        // 비동기 처리(await)와 오타 수정(getBlockedUsers) 적용
-        await blockStore.requestBlockUser(Number(friendId)) // string -> number 타입 캐스팅 필요 시 적용
-        // await friendStore.fetchFriends() // 친구 목록 최신화
-        // await blockStore.getBlockedUsers() // 차단 목록 최신화
+      await blockStore.requestBlockUser(Number(friendId))
     }
-    if(action === 'unblock')
-    {
-        await blockStore.unBlockedUser(Number(friendId))
-        // await blockStore.getBlockedUsers() 
+    if (action === 'unblock') {
+      await blockStore.unBlockedUser(Number(friendId))
     }
     if (action === 'delete' && confirm('정말 삭제하시겠습니까?')) {
       friendStore.deleteFriend(Number(friendId))
@@ -94,38 +92,12 @@ const handleMenuAction = async (action: string, friendId: string) => {
   }
 }
 
-// 더블클릭 채팅 진입 핸들러
-// const handleDoubleClick = async (friend: any) => {
-//   // 1. 최신 대화 목록 확인
-//   await chatStore.getMyConversations()
 
-//   // 2. 해당 친구와의 기존 1:1 채팅방 검색
-//   const existingRoom = chatStore.conversations?.data?.find((c: any) => 
-//     c.type === 'DIRECT' && 
-//     c.members.some((m: any) => String(m.userId) === String(friend.id))
-//   )
-
-//   if (existingRoom) {
-//     // 기존 방이 존재하면 ID 세팅 (메시지 내역 바로 로드)
-//     uiStore.conversationId = existingRoom.conversationId
-//     uiStore.isChatRoomCreate = false
-//   } else {
-//     // 신규 방인 경우 null 처리 및 생성 플래그 true
-//     uiStore.conversationId = null
-//     uiStore.isChatRoomCreate = true
-//   }
-
-//   uiStore.changeChatRoomTab(true, [Number(friend.id)], friend.name, 'chatRoom')
-// }
-const handleDoubleClick = async (friend: any) => {
-  openDirectChatWithUser(friend.id, friend.name)
-}
 
 // 검색 및 초대 모드 관련 상태
 const searchQuery = ref('')
 const isInviteMode = ref(false)
 const selectedFriends = ref<string[]>([])
-
 
 const startInviteMode = () => {
   isInviteMode.value = true
@@ -165,15 +137,14 @@ const filteredOfflineFriends = computed(() =>
 
 const reqFriends = computed(() => friendStore.reqFriends)
 
-// ====== 💡 새로 추가: 차단된 유저 목록 ======
 const filteredBlockedUsers = computed(() => {
-  const users = blockStore.blockedUsers || [] // undefined 방어
+  const users = blockStore.blockedUsers || []
   return searchQuery.value 
     ? users.filter(f => f.name.toLowerCase().includes(searchQuery.value.toLowerCase())) 
     : users
 })
 
-// ====== 채팅방 이름 모달 관련 로직 ======
+// 채팅방 생성 모달
 const isCreateRoomModalOpen = ref(false)
 
 const selectedFriendNames = computed(() => {
@@ -251,7 +222,6 @@ const handleCreateChatRoom = (roomName: string) => {
 
             @toggle-menu="toggleMenu"
             @toggle-select="toggleSelection"
-            @double-click="handleDoubleClick"
             @menu-action="handleMenuAction"
             @open-country-modal="modalStore.openModal('selectCountry')"
           />
@@ -279,12 +249,12 @@ const handleCreateChatRoom = (roomName: string) => {
         </div>
       </div>
 
-      <!-- 💡 새로 추가: 차단된 인맥 (초대 모드가 아닐 때만 렌더링) -->
+      <!-- 차단된 인맥 -->
       <div v-if="filteredBlockedUsers.length > 0 && !isInviteMode">
         <div class="text-[10px] font-bold text-red-700/70 tracking-widest border-b border-red-700/30 pb-1 mt-5 mb-2">
           ■ 차단된 인맥
         </div>
-        <div class="space-y-2 opacity-50 grayscale"> <!-- 차단된 유저 시각적 효과 부여 -->
+        <div class="space-y-2 opacity-50 grayscale">
           <FriendListItem
             v-for="friend in filteredBlockedUsers"
             :key="'block-' + friend.id"

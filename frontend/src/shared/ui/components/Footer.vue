@@ -36,13 +36,7 @@ onMounted(() => {
   <footer
     class="h-14 bg-[#dfdad1] border-t-4 border-[#2d2b28] flex items-center px-4 shrink-0 overflow-x-auto gap-3"
   >
-    <button
-      class="bg-[#2d2b28] text-yellow-400 font-bold px-3 py-1.5 text-xs flex items-center gap-2 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#a39b90] shrink-0 mr-2"
-      @click="uiStore.changeTab('settings')"
-    >
-      <span class="font-pixel text-base">⚙️</span>
-      <span>설정</span>
-    </button>
+
 
     <button
       :class="[

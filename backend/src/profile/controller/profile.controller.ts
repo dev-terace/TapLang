@@ -182,3 +182,40 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
     res.status(500).json({ success: false, message: '서버 오류가 발생했습니다.' });
   }
 };
+
+
+export const checkAttendance = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const userId = await userService.findUserIdByAuthToken(req);
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "인증되지 않은 사용자입니다.",
+      });
+    }
+
+    const result =
+      await profileDetailService.checkDailyAttendance(userId);
+
+    return res.status(200).json({
+      success: true,
+      checked: true,
+      data: result ?? null,
+    });
+
+  } catch (error) {
+    console.error(
+      "[checkAttendance] 출석 체크 오류:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message: "출석 체크에 실패했습니다.",
+    });
+  }
+};

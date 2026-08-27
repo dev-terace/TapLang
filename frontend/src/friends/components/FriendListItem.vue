@@ -7,18 +7,18 @@ const props = defineProps<{
   isInviteMode: boolean
   isSelected: boolean
   isActiveMenu: boolean
-  isBlocked?: boolean // 차단 여부 prop 추가
+  isBlocked?: boolean
   isMyOnlineStatus: boolean
 }>()
 
 const emit = defineEmits<{
   (e: 'toggle-menu', id: string): void
   (e: 'toggle-select', id: string): void
-  (e: 'double-click', friend: any): void
   (e: 'menu-action', action: string, friendId: string): void
   (e: 'open-country-modal'): void
 }>()
 
+// 💡 항목 클릭 시: 초대 모드면 선택, 일반 모드면 메뉴 열기/닫기
 const handleClick = () => {
   if (props.isInviteMode && !props.friend.isMe) {
     emit('toggle-select', props.friend.id)
@@ -46,7 +46,7 @@ const containerClass = computed(() => {
   <div :class="containerClass">
     <div 
       @click="handleClick"
-      @dblclick="!friend.isMe && !isInviteMode && emit('double-click', friend)"
+      @dblclick="!friend.isMe && !isInviteMode "
       class="group flex items-center gap-2.5 p-2 cursor-pointer transition-colors relative"
       :class="isActiveMenu ? 'bg-[#3d3a36] text-[#fbf9f5]' : (isOffline ? 'hover:bg-[#e8e3d8] text-[#5c5851]' : 'hover:bg-[#e8e3d8] text-[#2d2b28]')"
     >
@@ -98,7 +98,7 @@ const containerClass = computed(() => {
       </div>
 
       <!-- 토글 화살표 표시 -->
-      <div v-if="!isInviteMode" class="text-[8px] opacity-60 px-1">
+      <div v-if="!isInviteMode" class="text-[8px] opacity-60 px-1 shrink-0">
         <span v-if="isActiveMenu">▲</span>
         <span v-else class="group-hover:translate-y-0.5 inline-block transition-transform">▼</span>
       </div>
@@ -110,6 +110,7 @@ const containerClass = computed(() => {
         v-if="isActiveMenu && !isInviteMode"
         class="flex bg-[#2d2b28] text-[#fbf9f5] text-[10px] font-bold border-t-2 border-[#2d2b28] divide-x divide-[#4a4641]"
       >
+        <!-- 내 계정일 때 메뉴 -->
         <template v-if="friend.isMe">
           <button @click.stop="emit('menu-action', 'editBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
             <span>✎</span> 소개글
@@ -131,9 +132,15 @@ const containerClass = computed(() => {
           >
             <span>☀️</span> 온라인
           </button>
-
         </template>
+
+        <!-- 친구 계정일 때 메뉴 -->
         <template v-else>
+          <!-- 💡 새로 추가: 서브메뉴 내 채팅하기 버튼 -->
+          <button @click.stop="emit('menu-action', 'chat', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
+            <span>💬</span> 채팅
+          </button>
+
           <button @click.stop="emit('menu-action', 'viewBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
             <span>📄</span> 소개글
           </button>

@@ -39,4 +39,42 @@ export const findPeopleController = {
       });
     }
   },
+
+
+
+  // 💡 비공개 상태 조회
+  async getPrivacyStatus(req: Request, res: Response) {
+    try {
+      const currentUserId = await userService.findUserIdByAuthToken(req);
+      if (!currentUserId) {
+        return res.status(401).json({ message: "인증되지 않은 사용자입니다." });
+      }
+
+      const isPrivate = await findPeopleService.getPrivacyStatus(currentUserId);
+      return res.status(200).json({ success: true, isPrivate });
+    } catch (error) {
+      return res.status(500).json({ message: "상태 조회 중 오류가 발생했습니다." });
+    }
+  },
+
+  // 💡 비공개 상태 변경
+  async updatePrivacyStatus(req: Request, res: Response) {
+    try {
+      const currentUserId = await userService.findUserIdByAuthToken(req);
+      if (!currentUserId) {
+        return res.status(401).json({ message: "인증되지 않은 사용자입니다." });
+      }
+
+      const { isPrivate } = req.body;
+      await findPeopleService.updatePrivacyStatus(currentUserId, Boolean(isPrivate));
+
+      return res.status(200).json({
+        success: true,
+        message: `내 정보 숨기기 설정이 ${isPrivate ? '활성화' : '비활성화'}되었습니다.`,
+      });
+    } catch (error) {
+      return res.status(500).json({ message: "상태 업데이트 중 오류가 발생했습니다." });
+    }
+  },
+  
 };

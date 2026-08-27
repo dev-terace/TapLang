@@ -129,4 +129,17 @@ export const findPeopleApi = {
                 : undefined,
         }
     },
+
+
+    // 💡 내 비공개 상태 조회
+  async getPrivacyStatus(): Promise<boolean> {
+    const response = await api.get('/api/find-people/privacy')
+    return response.data.isPrivate || false
+  },
+
+  // 💡 내 비공개 상태 토글
+  async updatePrivacyStatus(isPrivate: boolean): Promise<void> {
+    await api.patch('/api/find-people/privacy', { isPrivate })
+  },
+  
 }

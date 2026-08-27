@@ -16,6 +16,8 @@ import customChatRouter from "./custom_chat/router/customChat_router"
 import customChatRoomRouter from "./custom_chat/router/customChatRoom.router"
 import quizRouter from "./quiz/router/quiz.router"
 import findPeopleRouter from "./find_people/router/findPeople.router"
+import noticeRouter from "./notice/router/notice.router"
+
 import './image/service/uploadCleanUp.service'
 import './chat/services/cleanupScheduler.service'
 
@@ -52,7 +54,7 @@ app.use("/api/custom-chat", requireApiAuth, customChatRouter)
 app.use("/api/custom-chat-room", requireApiAuth, customChatRoomRouter)
 app.use("/api/quiz", requireApiAuth, quizRouter)
 app.use("/api/find-people", requireApiAuth, findPeopleRouter);
-
+app.use("/api/notices", noticeRouter);
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

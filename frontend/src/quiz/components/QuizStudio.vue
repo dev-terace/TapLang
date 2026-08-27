@@ -41,49 +41,35 @@ const sharedScroll = useInfiniteScroll({
   debugLabel: 'SHARED_COLLECTIONS'
 })
 
-// 💡 핵심 수정: v-if 조건(currentTab)과 뷰 전환, 로딩 상태를 모두 감지
+// 💡 탭, 뷰, 로딩 상태 변경에 따른 Observer 단일 감시 로직
 watch(
-  () => [uiStore.currentTab, subView.value, quizStore.isLoading],
-  async ([tab, newView, isLoading]) => {
-    await nextTick() // DOM 업데이트 100% 보장 대기
-
-    // 퀴즈 탭이 아니면 모든 옵저버 해제
+  [() => uiStore.currentTab, subView, () => quizStore.isLoading],
+  async ([tab, view, loading]) => {
     if (tab !== 'quiz') {
       myScroll.teardown()
       sharedScroll.teardown()
       return
     }
 
-    // 뷰(menu, shared) 전환에 맞게 setup 호출
-    // 로딩 중(isLoading: true)에는 이전 옵저버를 건드리지 않음
-    if (newView === 'menu') {
+    await nextTick()
+
+    if (view === 'menu') {
       sharedScroll.teardown()
-      if (!isLoading) myScroll.setup() // 로딩 종료 후 옵저버 리셋 (교착 방지)
-    } else if (newView === 'shared') {
+      if (!loading) myScroll.setup()
+    } else if (view === 'shared') {
       myScroll.teardown()
-      if (!isLoading) sharedScroll.setup()
+      if (!loading) sharedScroll.setup()
     } else {
       myScroll.teardown()
       sharedScroll.teardown()
     }
-  }
-  // immediate: true 제거됨! (컴포넌트 렌더링 전 DOM Ref Null 에러 방지)
+  },
+  { immediate: true }
 )
 
-// 초기 마운트 시 데이터 호출 및 옵저버 수동 바인딩
-onMounted(async () => {
-  // DB에서 데이터 최초 로드 시도 (이때 isLoading이 true -> false로 변함)
+onMounted(() => {
   quizStore.loadCollections()
-
-  await nextTick()
-  // 만약 시작부터 로딩 상태가 아니라면 즉시 옵저버 세팅
-  if (uiStore.currentTab === 'quiz' && !quizStore.isLoading) {
-    if (subView.value === 'menu') myScroll.setup()
-    else if (subView.value === 'shared') sharedScroll.setup()
-  }
 })
-
-// --- 이하 기존 핸들러 동일하게 유지 ---
 
 const getAuthorName = (author: any) => {
   if (!author) return '익명'
@@ -162,16 +148,9 @@ const handleSave = async () => {
   subView.value = 'menu'
 }
 
-
 const handleRefreshShared = async () => {
   if (quizStore.isLoading) return
-
-  // store에 refresh 전용 메서드가 있다면 호출하고, 없다면 fetchSharedCollections(false) 호출
-  if (typeof quizStore.refreshSharedCollections === 'function') {
-    await quizStore.refreshSharedCollections()
-  } else {
-    await quizStore.fetchSharedCollections(false) // false: append가 아닌 초기화 후 재조회
-  }
+  await quizStore.refreshSharedCollections()
 }
 </script>
 
@@ -327,14 +306,11 @@ const handleRefreshShared = async () => {
         <h3 class="text-xl font-bold text-slate-900">🌐 공유 게시판</h3>
 
         <div class="flex items-center space-x-2">
-
           <button @click="handleRefreshShared" :disabled="quizStore.isLoading"
             class="bg-white hover:bg-slate-50 border-2 border-slate-800 rounded-lg px-3 py-1.5 text-xs font-bold shadow-[2px_2px_0px_0px_#1e293b] flex items-center space-x-1 active:translate-x-[1px] active:translate-y-[1px] active:shadow-none disabled:opacity-50 transition-all">
             <span :class="{ 'animate-spin': quizStore.isLoading }">🔄</span>
             <span>새로고침</span>
           </button>
-
-
 
           <select :value="quizStore.sharedSortType" @change="handleSortChange"
             class="bg-white border-2 border-slate-800 rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none shadow-[2px_2px_0px_0px_#1e293b]">

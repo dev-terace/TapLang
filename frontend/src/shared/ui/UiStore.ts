@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
-
+import api from '../auth/api.config'
 export const useUIStore = defineStore('ui', () => {
 
   const currentTab = ref('chat')
@@ -15,10 +15,39 @@ export const useUIStore = defineStore('ui', () => {
   const conversationId = ref<string | null>(null)
 
   const profileMenuFriendId = ref<number | null>(null)
+  const attendanceCheckedDate = ref<string | null>(null)
 
+
+const getToday = (): string => {
+  const now = new Date()
+
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+}
+
+const checkAttendance = async (): Promise<boolean> => {
+  const today = getToday()
+
+  // 오늘 이미 체크했다면 API 요청하지 않음
+  if (attendanceCheckedDate.value === today) {
+    return false
+  }
+
+  try {
+    await api.post('/api/profile/attendence')
+
+    attendanceCheckedDate.value = today
+
+    return true
+
+  } catch (error) {
+    console.error('출석 체크 실패:', error)
+    return false
+  }
+}
 
   const changeTab = (tab: string) => {
     currentTab.value = tab
+    void checkAttendance()
   }
 
 
@@ -29,6 +58,7 @@ export const useUIStore = defineStore('ui', () => {
     currentTabVal: string
   ) => {
 
+    void checkAttendance()
     currentTab.value =
       currentTabVal || 'chatRoom'
 

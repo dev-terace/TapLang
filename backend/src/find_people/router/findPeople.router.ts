@@ -13,5 +13,6 @@ const router = Router();
  */
 
 router.get("/",  findPeopleController.getPeopleList);
-
+router.get("/privacy", findPeopleController.getPrivacyStatus)
+router.patch("/privacy", findPeopleController.updatePrivacyStatus)
 export default router;

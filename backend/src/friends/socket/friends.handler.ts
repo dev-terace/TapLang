@@ -52,7 +52,7 @@ export const registerFriendEvents = (io: Server, socket: Socket) => {
     // 반드시 먼저 등록
     const ownUser = await userService.findUserById(ownId)
 
-
+    
     if (ownUser?.showOnlineStatus) {
       await friendsRedisService.addOnlineUser(
         ownId,

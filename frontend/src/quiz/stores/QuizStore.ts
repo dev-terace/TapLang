@@ -5,7 +5,6 @@ import { quizApi, Collection, Sentence, CreateCollectionDto } from '@/quiz/api/q
 const IMPORTED_AUTHORS_KEY = 'quiz_imported_authors'
 
 export const useQuizStore = defineStore('quiz', () => {
-  // --- 상태 (State) ---
   const myCollections = ref<Collection[]>([])
   const sharedCollections = ref<Collection[]>([])
   const isLoading = ref<boolean>(false)
@@ -14,7 +13,6 @@ export const useQuizStore = defineStore('quiz', () => {
   const selectedSentenceIndex = ref<number>(0)
   const editingCollectionId = ref<number | null>(null)
 
-  // --- 무한 스크롤 및 정렬 상태 ---
   const sharedSortType = ref<'recent' | 'popular'>('recent')
   const sharedCursor = ref<string | number | null>(null)
   const sharedHasMore = ref<boolean>(true)
@@ -22,7 +20,6 @@ export const useQuizStore = defineStore('quiz', () => {
   const myCursor = ref<string | number | null>(null)
   const myHasMore = ref<boolean>(true)
 
-  // --- LocalStorage 헬퍼 함수 ---
   const getImportedMap = (): Record<number, string> => {
     try {
       return JSON.parse(localStorage.getItem(IMPORTED_AUTHORS_KEY) || '{}')
@@ -43,58 +40,48 @@ export const useQuizStore = defineStore('quiz', () => {
     localStorage.setItem(IMPORTED_AUTHORS_KEY, JSON.stringify(map))
   }
 
-  // --- 게터 (Getters) ---
   const activeCollection = computed(() => {
-    return myCollections.value.find(c => c.id === selectedCollectionId.value) || 
-           sharedCollections.value.find(c => c.id === selectedCollectionId.value) || 
-           myCollections.value[0] || 
-           { id: 0, title: '', description: '', author: '', isShared: false, isMine: false, sentences: [] }
+    return (
+      myCollections.value.find(c => c.id === selectedCollectionId.value) ||
+      sharedCollections.value.find(c => c.id === selectedCollectionId.value) ||
+      myCollections.value[0] ||
+      { id: 0, title: '', description: '', author: '', isShared: false, isMine: false, sentences: [] }
+    )
   })
 
   const currentSentence = computed<Sentence>(() => {
-    if (!activeCollection.value || !activeCollection.value.sentences.length) {
+    if (!activeCollection.value || !activeCollection.value.sentences?.length) {
       return { id: 0, translatedText: '등록된 문장이 없습니다.', voiceText: '' }
     }
     return activeCollection.value.sentences[selectedSentenceIndex.value] || activeCollection.value.sentences[0]
   })
 
-  // --- 액션 (Actions) ---
-
-  // 💡 1. 내 컬렉션 커서 페이징 조회
   const fetchMyCollections = async (isLoadMore = false) => {
-    // 이미 로딩 중이면 중복 요청 방지
     if (isLoading.value) return 0
-
     if (!isLoadMore) {
       myCursor.value = null
       myHasMore.value = true
       myCollections.value = []
     }
-
     if (!myHasMore.value) return 0
 
     isLoading.value = true
     try {
-      const res = await quizApi.getMyCollections({
-        cursor: myCursor.value,
-        limit: 10,
-      })
-
+      const res = await quizApi.getMyCollections({ cursor: myCursor.value, limit: 10 })
       const importedMap = getImportedMap()
       const items = Array.isArray(res) ? res : res.items || []
       const nextCursor = Array.isArray(res) ? null : res.nextCursor
 
-      const mappedItems = items.map(col => {
-        if (importedMap[col.id]) {
-          return { ...col, author: importedMap[col.id] }
-        }
-        return col
-      })
+      const mappedItems = items.map(col => ({
+        ...col,
+        author: importedMap[col.id] || col.author
+      }))
 
       myCollections.value.push(...mappedItems)
       myCursor.value = nextCursor
-      myHasMore.value = !!nextCursor
 
+      // 💡 배열 응답인 경우 요청 limit(10개) 수신 여부로 다음 페이지 유무 판단
+      myHasMore.value = Array.isArray(res) ? items.length === 10 : !!nextCursor
       return mappedItems.length
     } catch (error) {
       console.error('내 컬렉션 로드 실패:', error)
@@ -104,17 +91,15 @@ export const useQuizStore = defineStore('quiz', () => {
     }
   }
 
-  // 💡 2. 공유 게시판 데이터 커서 페이징 조회
-  const fetchSharedCollections = async (isLoadMore = false) => {
-    // 이미 로딩 중이면 중복 요청 방지
-    if (isLoading.value) return 0
+  const refreshMyCollections = async () => fetchMyCollections(false)
 
+  const fetchSharedCollections = async (isLoadMore = false) => {
+    if (isLoading.value) return 0
     if (!isLoadMore) {
       sharedCursor.value = null
       sharedHasMore.value = true
       sharedCollections.value = []
     }
-
     if (!sharedHasMore.value) return 0
 
     isLoading.value = true
@@ -124,12 +109,13 @@ export const useQuizStore = defineStore('quiz', () => {
         sort: sharedSortType.value,
         limit: 10,
       })
+      const items = Array.isArray(res) ? res : res.items || []
+      const nextCursor = Array.isArray(res) ? null : res.nextCursor
 
-      sharedCollections.value.push(...res.items)
-      sharedCursor.value = res.nextCursor
-      sharedHasMore.value = !!res.nextCursor
-
-      return res.items.length
+      sharedCollections.value.push(...items)
+      sharedCursor.value = nextCursor
+      sharedHasMore.value = Array.isArray(res) ? items.length === 10 : !!nextCursor
+      return items.length
     } catch (error) {
       console.error('공유 컬렉션 로드 실패:', error)
       return 0
@@ -138,21 +124,19 @@ export const useQuizStore = defineStore('quiz', () => {
     }
   }
 
-  // 3. 공유 게시판 정렬 변경
+  const refreshSharedCollections = async () => fetchSharedCollections(false)
+
   const changeSharedSort = async (sortType: 'recent' | 'popular') => {
     sharedSortType.value = sortType
     await fetchSharedCollections(false)
   }
 
-  // 💡 4. 초기 DB 데이터 조회
   const loadCollections = async () => {
     try {
       await fetchMyCollections(false)
-
       if (myCollections.value.length > 0) {
         selectedCollectionId.value = myCollections.value[0].id
       }
-
       await fetchSharedCollections(false)
     } catch (error) {
       console.error('컬렉션 로드 실패:', error)
@@ -173,9 +157,7 @@ export const useQuizStore = defineStore('quiz', () => {
     isLoading.value = true
     try {
       await quizApi.deleteCollection(col.id)
-      
       removeImportedAuthor(col.id)
-
       myCollections.value = myCollections.value.filter(c => c.id !== col.id)
       if (selectedCollectionId.value === col.id && myCollections.value.length > 0) {
         selectedCollectionId.value = myCollections.value[0].id
@@ -193,20 +175,17 @@ export const useQuizStore = defineStore('quiz', () => {
     isLoading.value = true
     try {
       const imported = await quizApi.importCollection(col.id)
-      
       const rawAuthor = typeof col.author === 'object' ? (col.author as any)?.name : col.author
       const originalAuthor = rawAuthor || '익명'
       const displayAuthor = originalAuthor.includes('(가져옴)') ? originalAuthor : `${originalAuthor} (가져옴)`
-      
+
       saveImportedAuthor(imported.id, displayAuthor)
       imported.author = displayAuthor
-
       col.learnerCount = (col.learnerCount || 0) + 1
 
       myCollections.value.unshift(imported)
       selectedCollectionId.value = imported.id
       selectedSentenceIndex.value = 0
-
       alert(`'${imported.title}' 컬렉션을 내 학습장에 가져왔습니다!`)
     } catch (error) {
       console.error('컬렉션 가져오기 실패:', error)
@@ -253,31 +232,11 @@ export const useQuizStore = defineStore('quiz', () => {
   }
 
   return {
-    // 상태
-    myCollections,
-    sharedCollections,
-    isLoading,
-    selectedCollectionId,
-    selectedSentenceIndex,
-    editingCollectionId,
-    sharedSortType,
-    sharedCursor,
-    sharedHasMore,
-    myCursor,
-    myHasMore,
-    // 게터
-    activeCollection,
-    currentSentence,
-    // 액션
-    loadCollections,
-    fetchMyCollections,
-    fetchSharedCollections,
-    changeSharedSort,
-    changeCollection,
-    selectSentence,
-    deleteCollection,
-    importCollection,
-    toggleShare,
-    saveCollection
+    myCollections, sharedCollections, isLoading, selectedCollectionId,
+    selectedSentenceIndex, editingCollectionId, sharedSortType, sharedCursor,
+    sharedHasMore, myCursor, myHasMore, activeCollection, currentSentence,
+    loadCollections, fetchMyCollections, refreshMyCollections, fetchSharedCollections,
+    refreshSharedCollections, changeSharedSort, changeCollection, selectSentence,
+    deleteCollection, importCollection, toggleShare, saveCollection
   }
 })

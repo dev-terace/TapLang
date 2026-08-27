@@ -3,7 +3,7 @@ import { chatRoomService } from "../services/chatRoom.service";
 import { userService } from "../../users/services/user.service";
 import { joinConversationMembers, emitNewMessage } from "../socket/chat.handler"
 import { blockUserService } from "../../block/service/block.service";
-
+import { chatRedisService } from "../services/chat.redis.service";
 export const leaveConversation = async (req: Request, res: Response) => {
   try {
     const { conversationId } = req.params
@@ -158,8 +158,8 @@ export const joinConversation = async (
     }
 
     // 2. memberIds 가 없거나 비어있는 경우 본인 ID를 기본 배열로 사용 (400 에러 방지)
-    const rawMemberIds = Array.isArray(memberIds) && memberIds.length > 0 
-      ? memberIds 
+    const rawMemberIds = Array.isArray(memberIds) && memberIds.length > 0
+      ? memberIds
       : [ownId];
 
     // 본인도 멤버 목록에 포함 및 숫자 타입 보장
@@ -399,13 +399,16 @@ export const createMessage = async (
     // 로그인 유저
     const ownId = await userService.findUserIdByAuthToken(req);
 
-    console.log(
-      "[createMessage] conversationId:", conversationId);
+    const allowed =
+      await chatRedisService.checkMessageRateLimit(ownId);
 
-    console.log(
-      "[createMessage] ownId:",
-      ownId
-    );
+    if (!allowed) {
+      return res.status(429).json({
+        code: "MESSAGE_RATE_LIMIT",
+        message: "메시지를 너무 빠르게 보내고 있습니다."
+      });
+    }
+
     if (content == null) {
       return res.status(400).json({
         message: "메시지를 입력해주세요!"
@@ -515,7 +518,7 @@ export const inviteMembers = async (req: Request, res: Response) => {
         result.conversationName || "그룹 채팅"
       );
     }
-    
+
     return res.status(200).json({
       success: true,
       message: "멤버가 성공적으로 초대되었습니다.",

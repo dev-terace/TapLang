@@ -42,6 +42,8 @@ model MyProfile {
   
   lastLoginAt DateTime @default(now())
 
+  isPrivate   Boolean  @default(false)
+
   profileDetails     MyProfileDetails?
 
   chatSettings ChatSettings?
@@ -69,9 +71,10 @@ model MyProfileDetails {
 
   attendanceDays      Int       @default(0)
   aiTranslationCount  Int       @default(0)
-  MyLearningCollectionCount Int       @default(0)
 
   bio                 String?   @db.Text 
+
+  lastAttendanceAt          DateTime?
 
   spokenLangs         SpokenLanguage[]
   learningLangs       LearningLanguage[]
@@ -215,4 +218,14 @@ model QuizSentence {
   quizCollection   QuizCollection @relation(fields: [quizCollectionId], references: [id], onDelete: Cascade)
 
   createdAt        DateTime       @default(now())
+}
+
+
+model Notice {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String   @db.Text
+  isUrgent  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }

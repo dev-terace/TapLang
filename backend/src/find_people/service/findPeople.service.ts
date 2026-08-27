@@ -16,13 +16,22 @@ export const findPeopleService = {
   /**
    * 1,000명의 후보 유저 ID 추출 (70% 온라인 / 30% 오프라인 비율)
    */
-  async generateCandidateIds(
+async generateCandidateIds(
     currentUserId: number,
     targetTotal = 1000
   ): Promise<number[]> {
-    // 1. 온라인 유저 ID 조회 및 자기 자신 제외
+    // 💡 0. 비공개(isPrivate: true)로 설정한 모든 유저 ID 미리 조회
+    const privateUsers = await prisma.myProfile.findMany({
+      where: { isPrivate: true },
+      select: { id: true },
+    });
+    const privateUserIds = privateUsers.map((u) => u.id);
+
+    // 1. 온라인 유저 ID 조회 (자기 자신 및 비공개 유저 제외)
     const allOnlineIds = await friendsRedisService.getOnlineUsers();
-    const filteredOnlineIds = allOnlineIds.filter((id) => id !== currentUserId);
+    const filteredOnlineIds = allOnlineIds.filter(
+      (id) => id !== currentUserId && !privateUserIds.includes(id)
+    );
 
     // 2. 온라인 유저 최대 700명(70%) 추출 후 셔플
     const targetOnlineCount = Math.min(
@@ -34,18 +43,18 @@ export const findPeopleService = {
       targetOnlineCount
     );
 
-    // 3. 모자란 인원은 오프라인 유저 할당량으로 이월 (목표: 총 1,000명)
+    // 3. 모자란 인원은 오프라인 유저 할당량으로 이월
     const targetOfflineCount = targetTotal - selectedOnlineIds.length;
-    const excludeIds = [currentUserId, ...selectedOnlineIds];
+    const excludeIds = [currentUserId, ...selectedOnlineIds, ...privateUserIds];
 
-    // 3일 전 시각 계산
     const threeDaysAgo = new Date();
     threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
-    // 4. 3일 이내 오프라인 유저 조회 및 셔플
+    // 4. 3일 이내 오프라인 유저 조회 (비공개 유저 제외)
     const recentOfflineDb = await prisma.myProfile.findMany({
       where: {
         id: { notIn: excludeIds },
+        isPrivate: false, // 💡 비공개 유저 제외
         lastLoginAt: { gte: threeDaysAgo },
       },
       select: { id: true },
@@ -54,12 +63,13 @@ export const findPeopleService = {
 
     let selectedOfflineIds = recentOfflineIds.slice(0, targetOfflineCount);
 
-    // 5. 3일 이내 오프라인 유저로 부족할 경우, 3일 초과 유저 최근 접속순 채우기
+    // 5. 3일 초과 유저 최근 접속순 채우기 (비공개 유저 제외)
     if (selectedOfflineIds.length < targetOfflineCount) {
       const remainingNeeded = targetOfflineCount - selectedOfflineIds.length;
       const olderOfflineDb = await prisma.myProfile.findMany({
         where: {
           id: { notIn: [...excludeIds, ...selectedOfflineIds] },
+          isPrivate: false, // 💡 비공개 유저 제외
           lastLoginAt: { lt: threeDaysAgo },
         },
         orderBy: { lastLoginAt: "desc" },
@@ -73,7 +83,6 @@ export const findPeopleService = {
       ];
     }
 
-    // 6. 온라인(70%) + 오프라인(30%) 최종 셔플하여 반환
     return [...selectedOnlineIds, ...selectedOfflineIds];
   },
 
@@ -129,4 +138,27 @@ async getPeopleList(
       hasMore: page < totalPages,
     };
   },
+
+
+  /**
+   * 💡 내 프로필 비공개 상태 변경
+   */
+  async updatePrivacyStatus(userId: number, isPrivate: boolean) {
+    return await prisma.myProfile.update({
+      where: { id: userId },
+      data: { isPrivate },
+    });
+  },
+
+  /**
+   * 💡 내 프로필 비공개 상태 조회
+   */
+  async getPrivacyStatus(userId: number) {
+    const profile = await prisma.myProfile.findUnique({
+      where: { id: userId },
+      select: { isPrivate: true },
+    });
+    return profile?.isPrivate ?? false;
+  },
+  
 };
