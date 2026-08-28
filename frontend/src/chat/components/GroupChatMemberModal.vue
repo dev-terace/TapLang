@@ -14,8 +14,9 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   (e: 'close'): void
-  (e: 'invite-submit', memberIds: number[]): void
-  (e: 'member-action', action: string, memberId: number): void
+  (e: 'invite'): void
+  (e: 'invite-submit', friendIds: number[]): void
+  (e: 'member-action', action: string, member: GroupChatMember): void
 }>()
 
 // API 응답 데이터 타입

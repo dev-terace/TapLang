@@ -19,6 +19,17 @@ export const emitReloadFriendsInfo = (senderId: number, receiverId: number) => {
     });
 
 }
+export const emitReloadFriendsInfoForReceiver = (receiverId: number) => {
+  const io = getSocketIO()
+
+  io.to(`user:${receiverId}`)
+    .emit("friend:reload", {
+      reload: true,
+    });
+
+}
+
+
 export const emitReloadReceiverInfo = (receiverId: number) => {
   const io = getSocketIO()
 

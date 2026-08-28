@@ -13,6 +13,7 @@ export namespace FriendApi {
         name: string;
         flag: string;
         statusMsg?: string;
+        online?: boolean
     }
 
 
@@ -32,7 +33,7 @@ export namespace FriendApi {
         id: number;
         name: string;
         flag: string;
-
+        status: "SENT" | "RECEIVED";
     }
 
     interface FindReqFriendsResponse {

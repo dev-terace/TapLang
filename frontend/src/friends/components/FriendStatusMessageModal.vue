@@ -16,15 +16,21 @@ const statusFormData = ref({
 const handleConfirm = async () => {
   try {
     // TODO: 스토어의 상태 메시지 업데이트 API 호출 로직 연결
-    
+    const userInfo = authStore.userInfo
+
+    if (!userInfo) {
+      console.error('사용자 정보를 찾을 수 없습니다.')
+      return
+    }
+
     await friendStore.updateStatusMessage({
       message: statusFormData.value.message
     })
     
     await authStore.syncAndAssignUser({
             provider: 'clerk',
-            email: authStore.userInfo.email,
-            name: authStore.userInfo.name,
+            email: userInfo.email,
+            name: userInfo.name,
     })
    
     modalStore.closeModal()

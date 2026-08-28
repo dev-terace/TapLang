@@ -21,8 +21,16 @@ export async function translate(
     // 인증된 사용자라고 가정
     const userId = await userService.findUserIdByAuthToken(req);
 
+
+
+    if (!userId) {
+      return res.status(401).json({
+        error: "Unauthorized",
+      });
+    }
+
     // IP
-    const ip = req.ip;
+    const ip = req.ip ?? 'unknown';
 
     const rateLimit =
       await translatorRedisService.checkRateLimit(

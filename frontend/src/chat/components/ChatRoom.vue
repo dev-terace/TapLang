@@ -33,7 +33,9 @@ const blockStore = useBlockStore()
 const translatorStore = useTranslatorStore()
 
 
-const ownId = computed(() => authStore.userInfo?.id)
+const ownId = computed<number | null>(
+  () => authStore.userInfo?.id ?? null
+)
 const newMessage = ref('')
 
 
@@ -75,7 +77,6 @@ const { setup: setupTopObserver, teardown: teardownTopObserver } = useInfiniteSc
 })
 
 
-let topObserver: IntersectionObserver | null = null
 
 
 
@@ -277,7 +278,7 @@ console.log("formatDate", formatDate(new Date()))
 
     <!-- 채팅 메시지 목록 영역 -->
     <div ref="messageContainer" class="flex-1 min-h-0 overflow-y-auto p-4 space-y-4 flex flex-col">
-      
+
       <div ref="topSentinel" class="flex justify-center py-2">
         <span v-if="chatRoomStore.isLoadingMoreMessages" class="text-[10px] text-[#726e67]">
           이전 메시지 불러오는 중...
@@ -332,7 +333,8 @@ console.log("formatDate", formatDate(new Date()))
           <div class="p-4 flex flex-col gap-3">
             <div
               class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
-              <img :src="imagePreviewUrl" alt="미리보기" class="max-w-full max-h-[290px] object-contain" />
+              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="미리보기"
+                class="max-w-full max-h-[290px] object-contain" />
             </div>
 
             <!-- 설명 입력창 -->

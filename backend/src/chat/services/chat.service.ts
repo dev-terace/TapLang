@@ -2,6 +2,37 @@ import { connectMongoDB } from "../../lib/mongo";
 import { postgresPrisma } from "../../lib/prisma";
 import { mongoPrisma } from "../../lib/prisma";
 
+
+
+interface ConversationMemberResponse {
+  userId: number;
+  role: string;
+  name: string;
+  flag: string;
+  isLeft: boolean;
+}
+
+interface MyConversationResponse {
+  conversationId: string;
+  type: "DIRECT" | "GROUP";
+  name: string | null;
+  directKey: string | null;
+  unreadCount: number;
+  members: ConversationMemberResponse[];
+  activeMemberCount: number;
+  lastMessage: {
+    id: string;
+    senderId: number;
+    content: string;
+    attachments?: unknown;
+    createdAt: Date;
+  } | null;
+  lastMessageId: string | null;
+  lastMessageAt: Date | null;
+}
+
+
+
 export const readConversation = async (
   conversationId: string,
   ownIdInput: number
@@ -28,7 +59,13 @@ export const getMyConversations = async (
     conversationId: string;
   },
   blockedUserIds: number[] = []
-) => {
+): Promise<{
+  data: MyConversationResponse[];
+  nextCursor: {
+    lastMessageAt: Date | null;
+    conversationId: string;
+  } | null;
+}> => {
   const userId = Number(userIdInput);
   const db = await connectMongoDB();
 
@@ -64,7 +101,7 @@ export const getMyConversations = async (
       },
     });
   }
-  
+
 
   pipeline.push(
     {
@@ -154,7 +191,7 @@ export const getMyConversations = async (
     .aggregate(pipeline)
     .toArray();
 
- console.log(data.map(d => ({ id: d.conversationId, lastMessageAt: d.lastMessageAt })));
+  console.log(data.map(d => ({ id: d.conversationId, lastMessageAt: d.lastMessageAt })));
 
   const memberIds = [
     ...new Set([
@@ -180,14 +217,15 @@ export const getMyConversations = async (
 
   const profileMap = new Map(profiles.map((p) => [p.id, p]));
 
-  const result = data.map((room) => {
-    let formattedMembers = room.members.map((member: any) => ({
-      userId: member.userId,
-      role: member.role,
-      name: profileMap.get(member.userId)?.name ?? "(퇴장한 사용자)",
-      flag: profileMap.get(member.userId)?.flag ?? "",
-      isLeft: false,
-    }));
+  const result: MyConversationResponse[] = data.map((room: any) => {
+    let formattedMembers: ConversationMemberResponse[] =
+      room.members.map((member: any) => ({
+        userId: member.userId,
+        role: member.role,
+        name: profileMap.get(member.userId)?.name ?? "(퇴장한 사용자)",
+        flag: profileMap.get(member.userId)?.flag ?? "",
+        isLeft: false,
+      }));
 
     if (room.type === "DIRECT" && formattedMembers.length === 0 && room.directKey) {
       const opponentId = room.directKey
@@ -244,9 +282,9 @@ export const getMyConversations = async (
     data: result,
     nextCursor: last
       ? {
-          lastMessageAt: last.lastMessageAt,
-          conversationId: last.conversationId,
-        }
+        lastMessageAt: last.lastMessageAt,
+        conversationId: last.conversationId,
+      }
       : null,
   };
 };

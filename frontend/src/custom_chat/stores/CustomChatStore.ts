@@ -58,7 +58,7 @@ export const useCustomChatStore = defineStore(
     // =======================================================
 
     const customFilter =
-      ref<'my' | 'all' | 'secret'>('all')
+      ref<'my' | 'all' | 'secret'>('my')
 
 
     // =======================================================

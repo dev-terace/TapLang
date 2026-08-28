@@ -2,8 +2,9 @@ import { Request, Response } from "express";
 import { profileDetailService } from "../service/profile.details.service";
 import { profileService } from "../service/profile.service";
 import { userService } from "../../users/services/user.service";
-
-
+import { friendsService } from "../../friends/services/friends.service";
+import { userSockets } from "../../socket/socket";
+import { emitReloadFriendsInfoForReceiver } from "../../friends/socket/friends.handler";
 
 
 
@@ -171,6 +172,23 @@ export const getUserProfileDetails = async (req: Request, res: Response) => {
 
     // 상태 메시지 업데이트 실행 (메시지가 빈 문자열이면 지우는 것으로 처리)
     const updatedProfile = await profileService.updateStatusMessage(userId, message || null);
+
+
+        const friends = await friendsService.getFriends(userId);
+        
+        for (const friend of friends) {
+            const socketId = userSockets.get(friend.id)
+    
+            if(!socketId)
+            {
+              continue
+            }
+    
+            emitReloadFriendsInfoForReceiver(friend.id);
+    
+            
+        }
+
 
     res.status(200).json({ 
       success: true, 

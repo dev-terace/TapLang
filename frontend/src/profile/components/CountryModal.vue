@@ -35,11 +35,12 @@ const filteredCountries = computed(() => {
 
 
 // 국가 선택
-const selectCountry = (country: Country) => {
+const selectCountry = async (country: Country) => {
 
-  const updateInfo = countryStore.updateCountryFlag(country.flag)
+  const updateInfo = await countryStore.updateCountryFlag(country.flag)
 
-  if(updateInfo)
+
+  if(updateInfo && authStore.userInfo)
   {
     authStore.userInfo.flag = country.flag
   }

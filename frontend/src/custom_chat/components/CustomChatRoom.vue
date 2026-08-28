@@ -8,8 +8,10 @@ import { useModalStore } from '@/shared/modal/ModalStore'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useBlockStore } from '@/block/store/BlockStore.js'
 import { useTranslatorStore } from '@/chat/store/AiTransStore.js'
-
+import { GroupChatMember } from './CustomChatMemberModal.vue'
 import ChatRoomMessage from '@/chat/components/ChatRoomMessage.vue'
+import { MemberActionMode } from './CustomChatFeatureMemberModal.vue'
+
 import ChatFeatureModal, {
   type Feature
 } from '@/chat/components/ChatFeatureModel.vue'
@@ -56,8 +58,8 @@ const { loadMessages, loadOlderMessages } = useChatMessages()
 // 기본 상태
 // =========================================================
 
-const ownId = computed(
-  () => authStore.userInfo?.id
+const ownId = computed<number | null>(
+  () => authStore.userInfo?.id ?? null
 )
 
 const newMessage = ref('')
@@ -235,32 +237,41 @@ watch(
     if (currentTab !== 'customChatRoom' || !conversationId) return
 
     try {
-      const password = customChatStore.password
+      const password = customChatStore.password ?? null
       const isAlreadyJoined = customChatStore.joinedCustomRooms.some(
         (room) => room.id === conversationId
       )
 
-      // 1. 미가입 유저일 경우 DB 멤버 등록(joinCustomChat) 먼저 진행
+      // 1. 미가입 유저일 경우 DB 멤버 등록
       if (!isAlreadyJoined) {
         await customChatApi.joinCustomChat(conversationId, password)
       }
 
-      // 2. 가입 여부와 상관없이 밴 검증 및 소켓 연결을 위해 joinConversation 필수 호출
+      // 2. 밴 검증 및 입장 권한 확인
       await customChatApi.joinConversation(conversationId, password)
 
       await enterCustomRoom()
     } catch (error: any) {
-      if (error.response?.status === 403) {
-        const message = error.response?.data?.message
+      // AxiosError 구조와 일반 Error(rethrow) 구조를 모두 고려하여 상태값 및 메시지 추출
+      const status = error.response?.status
+      const rawMessage = error.response?.data?.message || error.message || ''
 
-        if (message === 'REJOIN_RESTRICTED') {
+      // 403 상태코드이거나 에러 메시지에 특정 키워드가 포함되어 있는지 확인
+      const isForbidden =
+        status === 403 ||
+        rawMessage.includes('REJOIN_RESTRICTED') ||
+        rawMessage.includes('PASSWORD_INVALID')
+
+      if (isForbidden) {
+        if (rawMessage.includes('REJOIN_RESTRICTED')) {
           window.alert('강퇴/제재 처리되어 입장할 수 없는 채팅방입니다.')
-        } else if (message === 'PASSWORD_INVALID') {
+        } else if (rawMessage.includes('PASSWORD_INVALID')) {
           window.alert('비밀번호가 올바르지 않습니다.')
         } else {
           window.alert('이 채팅방에 입장할 수 없습니다.')
         }
 
+        // 입장 거부 시 상태 리셋 및 목록으로 강제 이동
         chatRoomStore.setConversationId(null)
         uiStore.conversationId = null
         uiStore.currentTab = 'customChat'
@@ -268,6 +279,12 @@ watch(
       }
 
       console.error('CUSTOM 채팅방 입장 실패:', error)
+      window.alert(typeof rawMessage === 'string' && rawMessage ? rawMessage : '채팅방 입장에 실패했습니다.')
+
+      // 기타 네트워크/서버 에러 시에도 안전하게 목록 화면으로 복귀
+      chatRoomStore.setConversationId(null)
+      uiStore.conversationId = null
+      uiStore.currentTab = 'customChat'
     }
   },
   { immediate: true }
@@ -703,7 +720,8 @@ const goBack = () => {
             <div
               class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
 
-              <img :src="imagePreviewUrl" alt="미리보기" class="max-w-full max-h-[290px] object-contain" />
+              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="미리보기"
+                class="max-w-full max-h-[290px] object-contain" />
 
             </div>
 

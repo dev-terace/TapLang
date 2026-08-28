@@ -110,10 +110,14 @@ services:
       MONGODB_DATABASE_URL: "mongodb://${DB_USER}:${DB_PASSWORD}@mongodb:27017/${DB_NAME}?authSource=admin&replicaSet=rs0"
       REDIS_HOST: redis
       REDIS_PORT: 6379
+      environment:
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      UPLOAD_DIR: ${UPLOAD_DIR}
     depends_on:
       - postgres
       - redis
-      
+    volumes:
+      - ${UPLOAD_HOST_DIR}:${UPLOAD_DIR}  
     command: sh -c "npm start"
 
     networks:

@@ -96,8 +96,6 @@ export function useOpenConversation() {
               value !== userName
           )
         ??
-        otherMember?.name
-        ??
         '1:1 채팅'
 
 

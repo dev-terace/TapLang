@@ -276,281 +276,300 @@ export class CustomChatRoomService {
   // Complex Query Methods (Aggregation List)
   // -------------------------------------------------------
 
-// -------------------------------------------------------
-// Helper Utilities 추가
-// -------------------------------------------------------
+  // -------------------------------------------------------
+  // Helper Utilities 추가
+  // -------------------------------------------------------
 
 
-// -------------------------------------------------------
-// Service Implementation 내 수정
-// -------------------------------------------------------
+  // -------------------------------------------------------
+  // Service Implementation 내 수정
+  // -------------------------------------------------------
 
-async getCustomChats(cursor?: CustomChatCursor): Promise<{
-  items: CustomRoom[];
-  nextCursor: CustomChatCursor | null;
-}> {
-  const pipeline: any[] = [
-    { $match: { type: "CUSTOM" } },
-    {
-      $lookup: {
-        from: "ConversationMember",
-        localField: "_id",
-        foreignField: "conversationId",
-        as: "members",
+  async getCustomChats(cursor?: CustomChatCursor): Promise<{
+    items: CustomRoom[];
+    nextCursor: CustomChatCursor | null;
+  }> {
+    const pipeline: any[] = [
+      { $match: { type: "CUSTOM" } },
+      {
+        $lookup: {
+          from: "ConversationMember",
+          localField: "_id",
+          foreignField: "conversationId",
+          as: "members",
+        },
       },
-    },
-    {
-      $addFields: {
-        memberCount: { $size: "$members" },
-        ownerId: {
-          $let: {
-            vars: {
-              owner: {
-                $arrayElemAt: [
-                  {
-                    $filter: {
-                      input: "$members",
-                      as: "member",
-                      cond: { $eq: ["$$member.role", "OWNER"] },
+      {
+        $addFields: {
+          memberCount: { $size: "$members" },
+          ownerId: {
+            $let: {
+              vars: {
+                owner: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$members",
+                        as: "member",
+                        cond: { $eq: ["$$member.role", "OWNER"] },
+                      },
                     },
-                  },
-                  0,
-                ],
+                    0,
+                  ],
+                },
               },
+              in: "$$owner.userId",
             },
-            in: "$$owner.userId",
           },
         },
       },
-    },
-    {
-      $addFields: {
-        isSecret: {
-          $and: [
-            { $ne: ["$password", null] },
-            { $ne: ["$password", ""] },
-          ],
+      {
+        $addFields: {
+          isSecret: {
+            $and: [
+              { $ne: ["$password", null] },
+              { $ne: ["$password", ""] },
+            ],
+          },
         },
       },
-    },
-    { $project: { members: 0, password: 0 } },
-  ];
+      { $project: { members: 0, password: 0 } },
+    ];
 
-  if (cursor) {
-    const createdAtIso = toISOStringSafe(cursor.createdAt);
-    const lastMessageAtIso = cursor.lastMessageAt ? toISOStringSafe(cursor.lastMessageAt) : null;
+    if (cursor) {
+      const createdAtIso = toISOStringSafe(cursor.createdAt);
+      const lastMessageAtIso = cursor.lastMessageAt ? toISOStringSafe(cursor.lastMessageAt) : null;
 
-    if (!createdAtIso || (cursor.lastMessageAt && !lastMessageAtIso)) {
-      throw new Error("INVALID_CURSOR");
+      if (!createdAtIso || (cursor.lastMessageAt && !lastMessageAtIso)) {
+        throw new Error("INVALID_CURSOR");
+      }
+
+      // Extended JSON {$date: ...} 형태로 변환하여 BSON Date 비교 보장
+      const createdAtBson = toBsonDate(createdAtIso);
+      const lastMessageAtBson = lastMessageAtIso ? toBsonDate(lastMessageAtIso) : null;
+
+      if (lastMessageAtBson) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { lastMessageAt: { $lt: lastMessageAtBson } },
+              { lastMessageAt: lastMessageAtBson, memberCount: { $lt: cursor.memberCount } },
+              { lastMessageAt: lastMessageAtBson, memberCount: cursor.memberCount, createdAt: { $lt: createdAtBson } },
+              { lastMessageAt: lastMessageAtBson, memberCount: cursor.memberCount, createdAt: createdAtBson, _id: { $lt: cursor.id } },
+            ],
+          },
+        });
+      } else {
+        pipeline.push({
+          $match: {
+            $or: [
+              { lastMessageAt: null, memberCount: { $lt: cursor.memberCount } },
+              { lastMessageAt: null, memberCount: cursor.memberCount, createdAt: { $lt: createdAtBson } },
+              { lastMessageAt: null, memberCount: cursor.memberCount, createdAt: createdAtBson, _id: { $lt: cursor.id } },
+            ],
+          },
+        });
+      }
     }
 
-    // Extended JSON {$date: ...} 형태로 변환하여 BSON Date 비교 보장
-    const createdAtBson = toBsonDate(createdAtIso);
-    const lastMessageAtBson = lastMessageAtIso ? toBsonDate(lastMessageAtIso) : null;
+    pipeline.push(
+      { $sort: { lastMessageAt: -1, memberCount: -1, createdAt: -1, _id: -1 } },
+      { $limit: 30 }
+    );
 
-    if (lastMessageAtBson) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { lastMessageAt: { $lt: lastMessageAtBson } },
-            { lastMessageAt: lastMessageAtBson, memberCount: { $lt: cursor.memberCount } },
-            { lastMessageAt: lastMessageAtBson, memberCount: cursor.memberCount, createdAt: { $lt: createdAtBson } },
-            { lastMessageAt: lastMessageAtBson, memberCount: cursor.memberCount, createdAt: createdAtBson, _id: { $lt: cursor.id } },
-          ],
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          $or: [
-            { lastMessageAt: null, memberCount: { $lt: cursor.memberCount } },
-            { lastMessageAt: null, memberCount: cursor.memberCount, createdAt: { $lt: createdAtBson } },
-            { lastMessageAt: null, memberCount: cursor.memberCount, createdAt: createdAtBson, _id: { $lt: cursor.id } },
-          ],
-        },
-      });
+    const result = await mongoPrisma.$runCommandRaw({
+      aggregate: "Conversation",
+      pipeline,
+      cursor: {},
+    });
+
+    const documents = (result as any).cursor?.firstBatch ?? [];
+
+    const ownerIds = [
+      ...new Set<number>(
+        documents
+          .map((d: any) => d.ownerId)
+          .filter(
+            (id: unknown): id is number =>
+              typeof id === "number"
+          )
+      )
+    ];
+
+    const ownerMap = await this.fetchOwnerMap(ownerIds);
+
+    let nextCursor: CustomChatCursor | null = null;
+    if (documents.length === 30) {
+      const last = documents[documents.length - 1];
+      const lastCreatedAt = toISOStringSafe(last.createdAt);
+      if (!lastCreatedAt) throw new Error("CUSTOM_CHAT_CURSOR_CREATE_FAILED");
+
+      nextCursor = {
+        lastMessageAt: toISOStringSafe(last.lastMessageAt),
+        memberCount: last.memberCount ?? 0,
+        createdAt: lastCreatedAt,
+        id: String(last._id),
+      };
     }
-  }
 
-  pipeline.push(
-    { $sort: { lastMessageAt: -1, memberCount: -1, createdAt: -1, _id: -1 } },
-    { $limit: 30 }
-  );
-
-  const result = await mongoPrisma.$runCommandRaw({
-    aggregate: "Conversation",
-    pipeline,
-    cursor: {},
-  });
-
-  const documents = (result as any).cursor?.firstBatch ?? [];
-
-  const ownerIds = [...new Set(documents.map((d: any) => d.ownerId).filter((id: unknown): id is number => typeof id === "number"))];
-  const ownerMap = await this.fetchOwnerMap(ownerIds);
-
-  let nextCursor: CustomChatCursor | null = null;
-  if (documents.length === 30) {
-    const last = documents[documents.length - 1];
-    const lastCreatedAt = toISOStringSafe(last.createdAt);
-    if (!lastCreatedAt) throw new Error("CUSTOM_CHAT_CURSOR_CREATE_FAILED");
-
-    nextCursor = {
-      lastMessageAt: toISOStringSafe(last.lastMessageAt),
-      memberCount: last.memberCount ?? 0,
-      createdAt: lastCreatedAt,
-      id: String(last._id),
+    return {
+      items: documents.map((doc: any) => this.mapToCustomRoom(doc, ownerMap)),
+      nextCursor,
     };
   }
 
-  return {
-    items: documents.map((doc: any) => this.mapToCustomRoom(doc, ownerMap)),
-    nextCursor,
-  };
-}
+  async getMyCustomChats(
+    userId: number,
+    cursor?: MyCustomChatCursor
+  ): Promise<{
+    items: CustomRoom[];
+    nextCursor: MyCustomChatCursor | null;
+  }> {
+    if (!userId) throw new Error("USER_ID_REQUIRED");
 
-async getMyCustomChats(
-  userId: number,
-  cursor?: MyCustomChatCursor
-): Promise<{
-  items: CustomRoom[];
-  nextCursor: MyCustomChatCursor | null;
-}> {
-  if (!userId) throw new Error("USER_ID_REQUIRED");
-
-  const pipeline: any[] = [
-    { $match: { type: "CUSTOM" } },
-    {
-      $lookup: {
-        from: "ConversationMember",
-        let: { conversationId: "$_id" },
-        pipeline: [
-          {
-            $match: {
-              $expr: {
-                $and: [
-                  { $eq: ["$conversationId", "$$conversationId"] },
-                  { $eq: ["$userId", userId] },
-                ],
+    const pipeline: any[] = [
+      { $match: { type: "CUSTOM" } },
+      {
+        $lookup: {
+          from: "ConversationMember",
+          let: { conversationId: "$_id" },
+          pipeline: [
+            {
+              $match: {
+                $expr: {
+                  $and: [
+                    { $eq: ["$conversationId", "$$conversationId"] },
+                    { $eq: ["$userId", userId] },
+                  ],
+                },
               },
             },
-          },
-        ],
-        as: "myMembership",
+          ],
+          as: "myMembership",
+        },
       },
-    },
-    { $match: { "myMembership.0": { $exists: true } } },
-    {
-      $lookup: {
-        from: "ConversationMember",
-        localField: "_id",
-        foreignField: "conversationId",
-        as: "members",
+      { $match: { "myMembership.0": { $exists: true } } },
+      {
+        $lookup: {
+          from: "ConversationMember",
+          localField: "_id",
+          foreignField: "conversationId",
+          as: "members",
+        },
       },
-    },
-    {
-      $addFields: {
-        memberCount: { $size: "$members" },
-        ownerId: {
-          $let: {
-            vars: {
-              owner: {
-                $arrayElemAt: [
-                  {
-                    $filter: {
-                      input: "$members",
-                      as: "member",
-                      cond: { $eq: ["$$member.role", "OWNER"] },
+      {
+        $addFields: {
+          memberCount: { $size: "$members" },
+          ownerId: {
+            $let: {
+              vars: {
+                owner: {
+                  $arrayElemAt: [
+                    {
+                      $filter: {
+                        input: "$members",
+                        as: "member",
+                        cond: { $eq: ["$$member.role", "OWNER"] },
+                      },
                     },
-                  },
-                  0,
-                ],
+                    0,
+                  ],
+                },
               },
+              in: "$$owner.userId",
             },
-            in: "$$owner.userId",
           },
         },
       },
-    },
-    {
-      $addFields: {
-        isSecret: {
-          $and: [
-            { $ne: ["$password", null] },
-            { $ne: ["$password", ""] },
-          ],
+      {
+        $addFields: {
+          isSecret: {
+            $and: [
+              { $ne: ["$password", null] },
+              { $ne: ["$password", ""] },
+            ],
+          },
         },
       },
-    },
-    { $project: { members: 0, myMembership: 0, password: 0 } },
-  ];
+      { $project: { members: 0, myMembership: 0, password: 0 } },
+    ];
 
-  if (cursor) {
-    const createdAtIso = toISOStringSafe(cursor.createdAt);
-    const lastMessageAtIso = cursor.lastMessageAt ? toISOStringSafe(cursor.lastMessageAt) : null;
+    if (cursor) {
+      const createdAtIso = toISOStringSafe(cursor.createdAt);
+      const lastMessageAtIso = cursor.lastMessageAt ? toISOStringSafe(cursor.lastMessageAt) : null;
 
-    if (!createdAtIso || (cursor.lastMessageAt && !lastMessageAtIso)) {
-      throw new Error("INVALID_CURSOR");
+      if (!createdAtIso || (cursor.lastMessageAt && !lastMessageAtIso)) {
+        throw new Error("INVALID_CURSOR");
+      }
+
+      // Extended JSON {$date: ...} 형태로 변환하여 BSON Date 비교 보장
+      const createdAtBson = toBsonDate(createdAtIso);
+      const lastMessageAtBson = lastMessageAtIso ? toBsonDate(lastMessageAtIso) : null;
+
+      if (lastMessageAtBson) {
+        pipeline.push({
+          $match: {
+            $or: [
+              { lastMessageAt: { $lt: lastMessageAtBson } },
+              { lastMessageAt: lastMessageAtBson, createdAt: { $lt: createdAtBson } },
+              { lastMessageAt: lastMessageAtBson, createdAt: createdAtBson, _id: { $lt: cursor.id } },
+            ],
+          },
+        });
+      } else {
+        pipeline.push({
+          $match: {
+            $or: [
+              { lastMessageAt: null, createdAt: { $lt: createdAtBson } },
+              { lastMessageAt: null, createdAt: createdAtBson, _id: { $lt: cursor.id } },
+            ],
+          },
+        });
+      }
     }
 
-    // Extended JSON {$date: ...} 형태로 변환하여 BSON Date 비교 보장
-    const createdAtBson = toBsonDate(createdAtIso);
-    const lastMessageAtBson = lastMessageAtIso ? toBsonDate(lastMessageAtIso) : null;
+    pipeline.push(
+      { $sort: { lastMessageAt: -1, createdAt: -1, _id: -1 } },
+      { $limit: 30 }
+    );
 
-    if (lastMessageAtBson) {
-      pipeline.push({
-        $match: {
-          $or: [
-            { lastMessageAt: { $lt: lastMessageAtBson } },
-            { lastMessageAt: lastMessageAtBson, createdAt: { $lt: createdAtBson } },
-            { lastMessageAt: lastMessageAtBson, createdAt: createdAtBson, _id: { $lt: cursor.id } },
-          ],
-        },
-      });
-    } else {
-      pipeline.push({
-        $match: {
-          $or: [
-            { lastMessageAt: null, createdAt: { $lt: createdAtBson } },
-            { lastMessageAt: null, createdAt: createdAtBson, _id: { $lt: cursor.id } },
-          ],
-        },
-      });
+    const result = await mongoPrisma.$runCommandRaw({
+      aggregate: "Conversation",
+      pipeline,
+      cursor: {},
+    });
+
+    const documents = (result as any).cursor?.firstBatch ?? [];
+    const ownerIds = [
+      ...new Set<number>(
+        documents
+          .map((d: any) => d.ownerId)
+          .filter(
+            (id: unknown): id is number =>
+              typeof id === "number"
+          )
+      )
+    ];
+    const ownerMap = await this.fetchOwnerMap(ownerIds);
+
+    let nextCursor: MyCustomChatCursor | null = null;
+    if (documents.length === 30) {
+      const last = documents[documents.length - 1];
+      const lastCreatedAt = toISOStringSafe(last.createdAt);
+      if (!lastCreatedAt) throw new Error("CUSTOM_CHAT_CURSOR_CREATE_FAILED");
+
+      nextCursor = {
+        lastMessageAt: toISOStringSafe(last.lastMessageAt),
+        createdAt: lastCreatedAt,
+        id: String(last._id),
+      };
     }
-  }
 
-  pipeline.push(
-    { $sort: { lastMessageAt: -1, createdAt: -1, _id: -1 } },
-    { $limit: 30 }
-  );
-
-  const result = await mongoPrisma.$runCommandRaw({
-    aggregate: "Conversation",
-    pipeline,
-    cursor: {},
-  });
-
-  const documents = (result as any).cursor?.firstBatch ?? [];
-  const ownerIds = [...new Set(documents.map((d: any) => d.ownerId).filter((id: unknown): id is number => typeof id === "number"))];
-  const ownerMap = await this.fetchOwnerMap(ownerIds);
-
-  let nextCursor: MyCustomChatCursor | null = null;
-  if (documents.length === 30) {
-    const last = documents[documents.length - 1];
-    const lastCreatedAt = toISOStringSafe(last.createdAt);
-    if (!lastCreatedAt) throw new Error("CUSTOM_CHAT_CURSOR_CREATE_FAILED");
-
-    nextCursor = {
-      lastMessageAt: toISOStringSafe(last.lastMessageAt),
-      createdAt: lastCreatedAt,
-      id: String(last._id),
+    return {
+      items: documents.map((doc: any) => this.mapToCustomRoom(doc, ownerMap)),
+      nextCursor,
     };
   }
-
-  return {
-    items: documents.map((doc: any) => this.mapToCustomRoom(doc, ownerMap)),
-    nextCursor,
-  };
-}
 }
 
 export const chatRoomService = new CustomChatRoomService();

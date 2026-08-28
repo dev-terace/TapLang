@@ -52,7 +52,7 @@ export function useChatNavigation() {
     await chatStore.getMyConversations()
 
     // 내 목록 중 해당 유저와의 DIRECT 방 검색
-    const existingRoom = chatStore.conversations?.data?.find((c: Conversation) =>
+    const existingRoom = chatStore.conversations?.find((c: Conversation) =>
       c.type === 'DIRECT' &&
       c.members.some(m => String(m.userId) === String(targetUserId))
     )

@@ -2,6 +2,7 @@ import { mongoPrisma, postgresPrisma } from "../../lib/prisma";
 import { v7 as uuidv7 } from "uuid";
 import { ConversationMemberRole } from "../../../generated/mongo";
 
+
 export const leaveConversation = async (
   conversationId: string,
   userId: number
@@ -473,10 +474,11 @@ export const createMessage = async (
         conversationId,
         senderId,
         content,
-        attachments: attachments ?? null,
+        attachments: attachments
+          ? JSON.parse(JSON.stringify(attachments))
+          : null,
       },
     });
-
     // 2. 마지막 메시지 갱신
     await tx.conversation.update({
       where: {
@@ -531,7 +533,7 @@ export const createMessage = async (
 export const createChatInfo = async (
   memberIds: number[],
   ownId: number,
-  chatType: "DIRECT" | "GROUP" ,
+  chatType: "DIRECT" | "GROUP",
   name: string
 ) => {
   let conversation;
@@ -824,7 +826,7 @@ export const getMyConversationIds = async (
 
 
 export const getMembers = async (conversationId: string) => {
-  return await prisma.conversationMember.findMany({
+  return await mongoPrisma.conversationMember.findMany({
     where: { conversationId },
     select: {
       id: true,

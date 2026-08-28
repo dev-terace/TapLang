@@ -1,20 +1,21 @@
 import cron from 'node-cron'
 import fs from 'fs/promises'
 import path from 'path'
-import { mongoPrisma } from "../../lib/prisma";
+import { mongoPrisma } from '../../lib/prisma'
 
-const prisma = mongoPrisma
-
-const UPLOAD_DIR = process.env.UPLOAD_DIR
-
-if (!UPLOAD_DIR) {
-  throw new Error('UPLOAD_DIR 환경변수가 설정되지 않았습니다.')
-}
-
-const MAX_AGE = 60 * 1000 * 60 * 24 * 30// 30일
+const MAX_AGE = 1000 * 60 * 60 * 24 * 30 // 30일
 
 async function cleanupUploads() {
   try {
+    const UPLOAD_DIR = process.env.UPLOAD_DIR
+
+    if (!UPLOAD_DIR) {
+      throw new Error('UPLOAD_DIR 환경변수가 설정되지 않았습니다.')
+    }
+
+    // 없으면 생성
+    await fs.mkdir(UPLOAD_DIR, { recursive: true })
+
     const files = await fs.readdir(UPLOAD_DIR, {
       withFileTypes: true,
     })
@@ -36,22 +37,19 @@ async function cleanupUploads() {
           continue
         }
 
-        // 확장자를 제외한 파일명 = guid
         const guid = path.parse(file.name).name
 
         console.log(
           `[Upload Cleanup] 만료 파일 발견: ${file.name}, guid=${guid}`
         )
 
-        // DB attachment 처리
+        // TODO: DB attachment 처리
 
-        // 실제 파일 삭제
         await fs.unlink(filePath)
 
         console.log(
           `[Upload Cleanup] 삭제됨: ${file.name}`
         )
-
       } catch (error) {
         console.error(
           `[Upload Cleanup] 파일 처리 실패: ${filePath}`,
@@ -67,15 +65,7 @@ async function cleanupUploads() {
   }
 }
 
-
-
-
-// 매 1분마다 실행
 cron.schedule('* * * * *', () => {
   console.log('[Upload Cleanup] 파일 검사 시작')
   cleanupUploads()
 })
-
-console.log(
-  `[Upload Cleanup] 스케줄러 시작 - ${UPLOAD_DIR}`
-)

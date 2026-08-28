@@ -10,7 +10,7 @@ export interface ChatSettingsInput {
 
   originalVoiceLanguage?: string
   translatedVoiceLanguage?: string
-
+  notificationEnabled?: boolean
 }
 
 

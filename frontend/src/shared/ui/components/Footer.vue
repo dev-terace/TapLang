@@ -1,34 +1,9 @@
 <script setup lang="ts">
 import { useUIStore } from '@/shared/ui/UiStore'
-import { onMounted } from 'vue'
-import { useChatStore } from '@/chat/store/Chat'
 
 const uiStore = useUIStore()
 
 
-const chatstore = useChatStore()
-
-const loadUnreadCounts = async () => {
-  
-
-  const result = await chatstore.getConvUnreadCounts()
-    console.log("======================================")
-  const totalUnreadCount = result.reduce(
-    (sum, conversation) => sum + conversation.unreadCount,
-    0
-  )
-
-  const displayUnreadCount =
-    totalUnreadCount > 999
-      ? "999+"
-      : String(totalUnreadCount)
-
-  console.log("전체 unread:", displayUnreadCount)
-}
-
-onMounted(() => {
-  // loadUnreadCounts()
-})
 
 </script>
 

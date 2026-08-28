@@ -1,4 +1,4 @@
-import { Server } from "socket.io";
+import { Socket } from "socket.io";
 import { getSocketIO, userSockets } from "../../socket/socket";
 
 export const joinConversationMembers = (

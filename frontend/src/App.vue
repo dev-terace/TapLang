@@ -89,7 +89,7 @@
 
 
 <script setup lang="ts">
-import FriendList from './friends/components/FriendList.vue'
+
 import Header from './shared/ui/components/Header.vue'
 import Ad from './ad/Ad.vue'
 import FindPeople from './find_people/components/FindPeople.vue'
@@ -98,15 +98,15 @@ import Footer from './shared/ui/components/Footer.vue'
 import Chat from './chat/components/Chat.vue'
 import ChatRoom from './chat/components/ChatRoom.vue'
 import GroupChat from './custom_chat/components/CustomChat.vue'
-import Quiz from './quiz/components/Quiz.vue'
+
 import ViewPort from './shared/ui/components/ViewPort.vue'
 import FriendSidebar from './friends/components/FriendSidebar.vue'
-import InviteChatRoom from './chat/components/InviteChatRoom.vue'
-import { ref, computed, watch } from 'vue'
+
+import {  computed, watch } from 'vue'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
 import { storeToRefs } from 'pinia'
 import { useSocketRegister } from '@/shared/socket/socket.register.js'
-import ChatNotification from './shared/notification/components/chatNotification.vue'
+import ChatNotification from '@/shared/notification/components/ChatNotification.vue'
 import CustomChatRoom from './custom_chat/components/CustomChatRoom.vue'
 import QuizStudio from './quiz/components/QuizStudio.vue'
 

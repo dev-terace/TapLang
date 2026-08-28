@@ -25,7 +25,7 @@ const props = defineProps<{
     attachments?: ChatRoomApi.Attachment[] | null
     createdAt: string
   }
-  ownId: string | number
+  ownId: number | null
 }>()
 
 const isMine = computed(() => {

@@ -23,13 +23,30 @@ import './chat/services/cleanupScheduler.service'
 
 const app: Application = express();
 
+const clientUrl = process.env.CLIENT_URL;
+
+if (!clientUrl) {
+  throw new Error("CLIENT_URL이 설정되지 않았습니다.");
+}
+
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: clientUrl,
   credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: [
+    "Content-Type",
+    "Authorization",
+  ],
 }));
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({
+  limit: "10mb"
+}));
+
+app.use(express.urlencoded({
+  extended: true,
+  limit: "10mb"
+}));
 
 
 
@@ -54,7 +71,7 @@ app.use("/api/custom-chat", requireApiAuth, customChatRouter)
 app.use("/api/custom-chat-room", requireApiAuth, customChatRoomRouter)
 app.use("/api/quiz", requireApiAuth, quizRouter)
 app.use("/api/find-people", requireApiAuth, findPeopleRouter);
-app.use("/api/notices", noticeRouter);
+app.use("/api/notices", requireApiAuth, noticeRouter);
 
 app.get("/health", (req: Request, res: Response) => {
   res.status(200).json({

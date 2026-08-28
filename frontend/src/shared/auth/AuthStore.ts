@@ -11,6 +11,7 @@ interface UserInfo {
   flag: string
   email: string
   statusMsg: string
+  showOnlineStatus: boolean
 }
 
 // 💡 기본값 객체 정의
@@ -19,6 +20,7 @@ const DEFAULT_USER_INFO: Omit<UserInfo, 'id'> = {
   flag: '🌐',
   email: '',
   statusMsg: '상태 메시지가 없습니다.',
+  showOnlineStatus: true
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -38,15 +40,16 @@ export const useAuthStore = defineStore('auth', () => {
   const userInfo = ref<UserInfo | null>(null)
 
   // 💡 Template 등에서 안전하게 사용할 수 있는 기본값 포함 Computed
-  const currentUserInfo = computed<UserInfo>(() => {
-    return {
-      id: userInfo.value?.id ?? 0,
-      name: userInfo.value?.name || name.value || DEFAULT_USER_INFO.name,
-      flag: userInfo.value?.flag || DEFAULT_USER_INFO.flag,
-      email: userInfo.value?.email || email.value || DEFAULT_USER_INFO.email,
-      statusMsg: userInfo.value?.statusMsg || DEFAULT_USER_INFO.statusMsg,
-    }
-  })
+const currentUserInfo = computed<UserInfo>(() => {
+  return {
+    id: userInfo.value?.id ?? 0,
+    name: userInfo.value?.name || name.value || DEFAULT_USER_INFO.name,
+    flag: userInfo.value?.flag || DEFAULT_USER_INFO.flag,
+    email: userInfo.value?.email || email.value || DEFAULT_USER_INFO.email,
+    statusMsg: userInfo.value?.statusMsg || DEFAULT_USER_INFO.statusMsg,
+    showOnlineStatus: userInfo.value?.showOnlineStatus ?? DEFAULT_USER_INFO.showOnlineStatus,
+  }
+})
 
 
 async function syncAndAssignUser(payload: { provider: string; email: string; name: string }) {

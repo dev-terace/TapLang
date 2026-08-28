@@ -1,9 +1,29 @@
 import { ref, watch } from 'vue'
 import { useUIStore } from '@/shared/ui/UiStore'
-import { useCustomChatStore } from '@/custom_chat/stores/CustomChatStore'
 import { customChatApi } from '@/custom_chat/api/customChat.api'
+import {
+  useCustomChatStore,
+  type CustomRoom
+} from '@/custom_chat/stores/CustomChatStore'
 
 export type RoomListMode = 'all' | 'secret' | 'my'
+
+
+
+const toCustomRoom = (
+  item: customChatApi.CustomChatItem
+): CustomRoom => ({
+  id: item.id,
+  title: item.title ?? '이름 없는 채팅방',
+  desc: item.desc ?? '',
+  ownerId: item.ownerId ?? 0,
+  owner: item.owner ?? '',
+  members: item.members ?? 0,
+  isSecret: item.isSecret ?? false,
+  type: 'CUSTOM',
+  lastMessageAt: item.lastMessageAt,
+  createdAt: item.createdAt
+})
 
 export function useCustomChatList() {
   const uiStore = useUIStore()
@@ -15,7 +35,7 @@ export function useCustomChatList() {
   const nextCursor = ref<customChatApi.CustomChatCursor | null>(null)
   const myNextCursor = ref<customChatApi.MyCustomChatCursor | null>(null)
 
-  const roomListMode = ref<RoomListMode>('all')
+  const roomListMode = ref<RoomListMode>('my')
 
   // =========================================================
   // CUSTOM 채팅방 목록 조회
@@ -31,10 +51,15 @@ export function useCustomChatList() {
         loadMore ? nextCursor.value ?? undefined : undefined
       )
 
+      const rooms = response.items.map(toCustomRoom)
+
+      console.log("loadCustom chat response item", response.items)
+
+
       if (loadMore) {
-        customChatStore.addCustomRooms(response.items)
+        customChatStore.addCustomRooms(rooms)
       } else {
-        customChatStore.setCustomRooms(response.items)
+        customChatStore.setCustomRooms(rooms)
       }
 
       nextCursor.value = response.nextCursor
@@ -114,7 +139,7 @@ export function useCustomChatList() {
   // 채팅방 입장 로직
   // =========================================================
   const enterCustomRoom = async (
-    room: ReturnType<typeof customChatStore.filteredCustomRooms>[0],
+    room: CustomRoom,
     password?: string
   ) => {
     if (isLoading.value) return false
@@ -151,7 +176,7 @@ export function useCustomChatList() {
   }
 
   const handleCustomRoomClick = async (
-    room: ReturnType<typeof customChatStore.filteredCustomRooms>[0]
+     room: (typeof customChatStore.filteredCustomRooms)[number]
   ) => {
     let password: string | undefined
 
@@ -182,14 +207,14 @@ export function useCustomChatList() {
     (tab) => {
       if (tab !== 'customChat') return
 
-      roomListMode.value = 'all'
-      customChatStore.changeCustomFilter('all')
+      roomListMode.value = 'my'
+      customChatStore.changeCustomFilter('my')
 
       nextCursor.value = null
       myNextCursor.value = null
 
       customChatStore.setCustomRooms([])
-      loadCustomChats()
+      loadMyCustomChats()
     },
     { immediate: true }
   )

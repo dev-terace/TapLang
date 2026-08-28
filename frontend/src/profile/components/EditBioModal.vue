@@ -249,6 +249,12 @@ const handleSaveProfile = async () => {
     // 3. 성공 처리
     alert('프로필이 업데이트 되었습니다.')
 
+
+    if(!authStore.userInfo)
+    {
+      return;
+    }
+    
     authStore.syncAndAssignUser({
             provider: 'clerk',
             email: authStore.userInfo.email,

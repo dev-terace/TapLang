@@ -11,14 +11,14 @@ export namespace ChatRoomApi{
    interface CreateChatRequest {
       memberIds: number[];
       chatType: "DIRECT" | "GROUP";
-      name?: String
-      message: String
+      name?: string | null
+      message: string
       attachments?: unknown | null;
    }
 
 
    interface CreateChatResponse{
-      conversationId: String
+      conversationId: string
    }
 
    export interface Attachment {
@@ -48,7 +48,11 @@ export namespace ChatRoomApi{
     `/api/chat-room/${conversationId}`,
   )
 
-
+ if(!socketStore.socket)
+ {
+  return 
+ }
+  
  if (response.data.data.deleted) {
     socketStore.socket.emit("chat-room:leave", conversationId)
  }

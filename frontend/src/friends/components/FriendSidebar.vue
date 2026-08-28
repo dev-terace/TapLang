@@ -30,7 +30,7 @@ const authStore = useAuthStore()
 const uiStore = useUIStore()
 const blockStore = useBlockStore()
 const profileStore = useProfileStore()
-const isMyOnlineStatus = ref<boolean | null>(null)
+const isMyOnlineStatus = ref(false)
 const chatStore = useChatStore()
 
 const socket = useSocketRegister()
@@ -47,14 +47,15 @@ watch(
 )
 
 // 드롭다운 메뉴 상태
-const activeMenuId = ref<string | null>(null)
-const toggleMenu = (id: string) => activeMenuId.value = activeMenuId.value === id ? null : id
+const activeMenuId = ref<number | null>(null)
+const toggleMenu = (id: number) => activeMenuId.value = activeMenuId.value === id ? null : id
 const closeMenu = () => activeMenuId.value = null
 
 // 메뉴 핸들러 통합
-const handleMenuAction = async (action: string, friendId: string) => {
+const handleMenuAction = async (action: string, friendId: number) => {
   closeMenu()
   if (['editBio', 'editStatus', 'goOffline', 'goOnline'].includes(action)) {
+    if(!socket.socket) return;
     if (action === 'editBio') modalStore.openModal('editBio')
     if (action === 'editStatus') modalStore.openModal('updateStatus')
     if (action === 'goOffline') {
@@ -68,7 +69,7 @@ const handleMenuAction = async (action: string, friendId: string) => {
       socket.socket.emit("friend:own:init");
     }
   } else {
-    uiStore.profileMenuFriendId = friendId
+    uiStore.profileMenuFriendId = Number(friendId)
 
     // 💡 서브메뉴에서 채팅하기 클릭 시 처리
     if (action === 'chat') {
@@ -97,7 +98,7 @@ const handleMenuAction = async (action: string, friendId: string) => {
 // 검색 및 초대 모드 관련 상태
 const searchQuery = ref('')
 const isInviteMode = ref(false)
-const selectedFriends = ref<string[]>([])
+const selectedFriends = ref<number[]>([])
 
 const startInviteMode = () => {
   isInviteMode.value = true
@@ -110,7 +111,7 @@ const cancelInvite = () => {
   selectedFriends.value = []
 }
 
-const toggleSelection = (id: string) => {
+const toggleSelection = (id: number) => {
   if (selectedFriends.value.includes(id)) {
     selectedFriends.value = selectedFriends.value.filter(fid => fid !== id)
   } else {
@@ -148,7 +149,11 @@ const filteredBlockedUsers = computed(() => {
 const isCreateRoomModalOpen = ref(false)
 
 const selectedFriendNames = computed(() => {
-  const allFriends = [...onlineList.value, ...friendStore.offlineFriends]
+  const allFriends = [
+    ...onlineList.value,
+    ...friendStore.offlineFriends
+  ]
+
   return allFriends
     .filter(f => selectedFriends.value.includes(f.id))
     .map(f => f.name)
@@ -163,7 +168,7 @@ const handleCreateChatRoom = (roomName: string) => {
   if (!authStore.userInfo?.id) return alertFunc('사용자 정보를 찾을 수 없습니다.')
 
   uiStore.conversationId = null
-  const allMemberIds = [...selectedFriends.value]
+  const allMemberIds = selectedFriends.value.map(Number)
   
   uiStore.currentTab = 'inviteChatRoom'
   uiStore.chatRoomMemberIds = allMemberIds
@@ -239,6 +244,7 @@ const handleCreateChatRoom = (roomName: string) => {
             :key="friend.id"
             :friend="friend"
             :isOffline="true"
+            :isMyOnlineStatus="isMyOnlineStatus"
             :isInviteMode="isInviteMode"
             :isSelected="selectedFriends.includes(friend.id)"
             :isActiveMenu="activeMenuId === friend.id"
@@ -260,8 +266,10 @@ const handleCreateChatRoom = (roomName: string) => {
             :key="'block-' + friend.id"
             :friend="friend"
             :isOffline="true"
+            :isSelected="false"
             :isInviteMode="false"
             :isBlocked="true"
+            :isMyOnlineStatus="isMyOnlineStatus"
             :isActiveMenu="activeMenuId === friend.id"
             @toggle-menu="toggleMenu"
             @menu-action="handleMenuAction"

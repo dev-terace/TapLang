@@ -19,11 +19,13 @@ export interface Conversation {
   lastMessageId: string | null
   lastMessageAt: string | null
   notification?: boolean
+
 }
 
 export interface ConversationMember {
   userId: number
-  role: 'OWNER' | 'MEMBER'
+  role: 'OWNER' | 'MEMBER',
+  flag: string
 }
 
 export interface LastMessage {

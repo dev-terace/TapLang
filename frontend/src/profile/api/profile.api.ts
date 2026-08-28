@@ -50,6 +50,7 @@ export namespace ProfileApi {
 
 export interface CheckUsernameTagResponse {
   available: boolean
+  tag: string
 }
 
 

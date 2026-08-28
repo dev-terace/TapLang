@@ -10,6 +10,9 @@ const emit = defineEmits<{(e: 'navigate', view: 'shared' | 'generator' | 'practi
 const quizStore = useQuizStore()
 const mySentinel = ref<HTMLElement | null>(null)
 
+
+
+
 useInfiniteScroll({
   container: () => props.scrollContainer,
   sentinel: mySentinel,

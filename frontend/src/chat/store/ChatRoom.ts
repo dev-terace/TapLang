@@ -7,7 +7,7 @@ export interface Message {
   id: string
   conversationId: string
   senderId: number
-  senderName?: string
+  senderName: string
   content: string
   attachments?: ChatRoomApi.Attachment[] | null
   createdAt: string

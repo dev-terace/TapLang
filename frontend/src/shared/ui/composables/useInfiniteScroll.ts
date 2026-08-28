@@ -1,15 +1,21 @@
-// composables/useInfiniteScroll.ts
 import { nextTick, onBeforeUnmount, type Ref } from 'vue'
 
 interface UseInfiniteScrollOptions {
-  container: Ref<HTMLElement | null>
+  container:
+    | Ref<HTMLElement | null>
+    | (() => HTMLElement | null)
+
   sentinel: Ref<HTMLElement | null>
+
   hasMore: () => boolean
   isLoading: () => boolean
+
   /** 반환값이 falsy(0, undefined)면 스크롤 보정을 건너뜁니다 */
   loadMore: () => Promise<number | void> | number | void
+
   /** true면 로드 후 이전 스크롤 위치를 유지 (위쪽 방향 로딩용) */
   preserveScroll?: boolean
+
   rootMargin?: string
   threshold?: number
   debugLabel?: string
@@ -30,16 +36,25 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions) {
 
   let observer: IntersectionObserver | null = null
 
+  // Ref / getter 모두 지원
+  const getContainer = (): HTMLElement | null => {
+    return typeof container === 'function'
+      ? container()
+      : container.value
+  }
+
   const setup = async () => {
     await nextTick()
 
-    if (!container.value || !sentinel.value) return
+    const el = getContainer()
+
+    if (!el || !sentinel.value) return
 
     observer?.disconnect()
 
     observer = new IntersectionObserver(
       async (entries) => {
-        const isIntersecting = entries[0].isIntersecting
+        const isIntersecting = entries[0]?.isIntersecting ?? false
 
         if (debugLabel) {
           console.log(`[IO:${debugLabel}]`, {
@@ -53,27 +68,31 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions) {
         if (!hasMore()) return
         if (isLoading()) return
 
-        const el = container.value
-        if (!el) return
+        const currentContainer = getContainer()
+
+        if (!currentContainer) return
 
         if (!preserveScroll) {
           await loadMore()
           return
         }
 
-        const prevScrollHeight = el.scrollHeight
-        const prevScrollTop = el.scrollTop
+        const prevScrollHeight = currentContainer.scrollHeight
+        const prevScrollTop = currentContainer.scrollTop
 
         const added = await loadMore()
 
         if (added) {
           await nextTick()
-          const newScrollHeight = el.scrollHeight
-          el.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight)
+
+          const newScrollHeight = currentContainer.scrollHeight
+
+          currentContainer.scrollTop =
+            prevScrollTop + (newScrollHeight - prevScrollHeight)
         }
       },
       {
-        root: container.value,
+        root: el,
         rootMargin,
         threshold,
       }
@@ -89,5 +108,8 @@ export function useInfiniteScroll(options: UseInfiniteScrollOptions) {
 
   onBeforeUnmount(teardown)
 
-  return { setup, teardown }
+  return {
+    setup,
+    teardown,
+  }
 }

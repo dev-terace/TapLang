@@ -176,6 +176,13 @@ export const joinCustomChat = async (
       })
     }
 
+    if (await customBanChatService.isBanned(conversationId, userId)) {
+      return res.status(403).json({
+        message: 'REJOIN_RESTRICTED'
+      })
+    }
+
+
     const result =
       await chatRoomService.joinCustomChat(
         conversationId,

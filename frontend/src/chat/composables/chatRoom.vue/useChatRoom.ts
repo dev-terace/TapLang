@@ -89,12 +89,12 @@ export function useChatRoom(options: UseChatRoomOptions) {
             : 'DIRECT'
 
 
-          console.log('createChat request', {
-      memberIds,
-      chatType,
-      name: chatType === 'GROUP' ? uiStore.roomName : null,
-            
-    })      
+      console.log('createChat request', {
+        memberIds,
+        chatType,
+        name: chatType === 'GROUP' ? uiStore.roomName : null,
+
+      })
       const conversationId = await chatRoomStore.createChat({
         memberIds,
         chatType,
@@ -145,19 +145,23 @@ export function useChatRoom(options: UseChatRoomOptions) {
       isProcessing.value = true
 
       try {
-        let targetId = conversationId
+        let targetId: string | null = conversationId
 
         // 1:1 채팅 진입 시 conversationId가 없으면 내 대화 목록에서 기존 방 탐색
         if (!targetId && currentTab === 'chatRoom' && memberIds.length === 1) {
           const targetMemberId = memberIds[0]
 
           await chatStore.getMyConversations()
-          const existingRoom = chatStore.myConversations?.find(
-            (c: any) => c.chatType === 'DIRECT' && c.targetUserId === targetMemberId
+          const existingRoom = chatStore.conversations.find(
+            c =>
+              c.type === 'DIRECT' &&
+              c.members.some(
+                member => member.userId === targetMemberId
+              )
           )
 
           if (existingRoom) {
-            targetId = existingRoom.id
+            targetId = existingRoom.conversationId
             uiStore.conversationId = targetId
             uiStore.isChatRoomCreate = false
           }

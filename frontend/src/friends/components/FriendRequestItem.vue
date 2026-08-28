@@ -1,11 +1,11 @@
 <script setup lang="ts">
 defineProps<{
-  friend: { id: string, name: string, flag: string, status: string }
+  friend: { id: number, name: string, flag: string, status: 'SENT' | 'RECEIVED' }
 }>()
 
 const emit = defineEmits<{
-  (e: 'accept', id: string): void
-  (e: 'decline', id: string, isSent: boolean): void
+  (e: 'accept', id: number): void
+  (e: 'decline', id: number, isSent: boolean): void
 }>()
 </script>
 

@@ -94,7 +94,7 @@ const visiblePages = computed(() => {
 })
 
 const handleOpenViewBio = (userId: number | string) => {
-  uiStore.profileMenuFriendId = String(userId)
+  uiStore.profileMenuFriendId = Number(userId)
   modalStore.openModal('viewBio')
 }
 

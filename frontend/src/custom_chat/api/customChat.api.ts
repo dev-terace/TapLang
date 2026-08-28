@@ -15,6 +15,9 @@ export namespace customChatApi {
 
 
   
+
+
+  
   export const createCustomChat = async (
     data: CreateCustomChatRequest
   ): Promise<CreateCustomChatResponse> => {
@@ -49,20 +52,20 @@ export namespace customChatApi {
   };
 
 
-  export interface CustomChatItem {
-    id: string;
-    type: "CUSTOM";
-    name: string | null;
-    description: string | null;
-
-    memberCount: number;
-
-    lastMessageId: string | null;
-    lastMessageAt: string | null;
-
-    createdAt: string;
-    updatedAt: string;
-  }
+export interface CustomChatItem {
+  id: string;
+  type: "CUSTOM";
+  title: string | null;      // (기존 name -> title)
+  desc: string | null;       // (기존 description -> desc)
+  members: number;           // (기존 memberCount -> members)
+  ownerId?: number;
+  owner?: string;
+  isSecret?: boolean;
+  lastMessageId: string | null;
+  lastMessageAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
 
 
   export interface CustomChatCursor {

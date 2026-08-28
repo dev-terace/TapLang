@@ -387,8 +387,6 @@ export const createMessage = async (
   req: Request,
   res: Response
 ) => {
-
-
   try {
     const {
       conversationId,
@@ -396,9 +394,33 @@ export const createMessage = async (
       attachments
     } = req.body;
 
-    // 로그인 유저
-    const ownId = await userService.findUserIdByAuthToken(req);
+    // --------------------------------
+    // 1. conversationId 검증
+    // --------------------------------
+    if (!conversationId) {
+      return res.status(400).json({
+        message: "conversationId가 필요합니다."
+      });
+    }
 
+    // --------------------------------
+    // 2. 메시지 내용 검증
+    // --------------------------------
+    if (content == null) {
+      return res.status(400).json({
+        message: "메시지를 입력해주세요!"
+      });
+    }
+
+    // --------------------------------
+    // 3. 로그인 유저
+    // --------------------------------
+    const ownId =
+      await userService.findUserIdByAuthToken(req);
+
+    // --------------------------------
+    // 4. 메시지 전송 Rate Limit
+    // --------------------------------
     const allowed =
       await chatRedisService.checkMessageRateLimit(ownId);
 
@@ -409,52 +431,88 @@ export const createMessage = async (
       });
     }
 
-    if (content == null) {
-      return res.status(400).json({
-        message: "메시지를 입력해주세요!"
-      });
-    }
+    // --------------------------------
+    // 5. 채팅방 멤버 수 확인
+    // --------------------------------
+    const memberCount =
+      await chatRoomService.getMemberCount(conversationId);
 
-
-
-    const memberCount = await chatRoomService.getMemberCount(conversationId);
-
-    // 2. 멤버가 1명 이하(혼자 남아있거나 아무도 없는 경우)면 메시지 전송 차단
+    // 혼자 남아있거나 멤버가 없는 방에는 전송 불가
     if (memberCount <= 1) {
       return res.status(400).json({
         message: "대화 상대가 없거나 채팅방을 나갔습니다."
       });
     }
 
-    const createdMessage = await chatRoomService.createMessage(conversationId, ownId, content, attachments)
+    // --------------------------------
+    // 6. 메시지 생성
+    // --------------------------------
+    const createdMessage =
+      await chatRoomService.createMessage(
+        conversationId,
+        ownId,
+        content,
+        attachments
+      );
 
-    const userInfo = await userService.findUserById(ownId)
-
-    const conversationInfo = await chatRoomService.getConversationInfo(conversationId, ownId);
-
+    // --------------------------------
+    // 7. 유저 정보 조회
+    // --------------------------------
+    const userInfo =
+      await userService.findUserById(ownId);
 
     if (!userInfo) {
       throw new Error("유저 없음");
     }
 
+    // --------------------------------
+    // 8. 대화방 정보 조회
+    // --------------------------------
+    const conversationInfo =
+      await chatRoomService.getConversationInfo(
+        conversationId,
+        ownId
+      );
 
-    emitNewMessage(conversationId, createdMessage, userInfo, conversationInfo.name);
+    if (!conversationInfo) {
+      throw new Error("대화방 정보 없음");
+    }
 
+    // --------------------------------
+    // 9. WebSocket 메시지 전파
+    // --------------------------------
+    if(!conversationInfo.name)
+    {
+      throw new Error("방 제목 없음");
+    }
 
+    emitNewMessage(
+      conversationId,
+      createdMessage,
+      userInfo,
+      conversationInfo.name
+    );
+
+    // --------------------------------
+    // 10. 응답
+    // --------------------------------
     return res.status(201).json({
-      createMessage: createMessage
+      createMessage: createdMessage
     });
 
   } catch (error) {
     console.error(error);
 
     return res.status(400).json({
-      message: error instanceof Error
-        ? error.message
-        : "채팅 생성 실패"
+      message:
+        error instanceof Error
+          ? error.message
+          : "채팅 생성 실패"
     });
   }
 };
+
+
 
 
 export const inviteMembers = async (req: Request, res: Response) => {

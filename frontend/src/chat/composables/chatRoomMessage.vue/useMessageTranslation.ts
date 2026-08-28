@@ -1,7 +1,7 @@
 import { computed, ref, type Ref } from 'vue'
 
-import type { useChatSettingsStore } from '../store/ChatSettingsStore'
-import type { useTranslatorStore } from '../store/AiTransStore.js'
+import type { useChatSettingsStore } from '@/chat/store/ChatSettingsStore.js'
+import type { useTranslatorStore } from '@/chat/store/AiTransStore'
 
 type Message = {
   id: string | number

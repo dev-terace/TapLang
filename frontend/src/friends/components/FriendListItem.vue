@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 const props = defineProps<{
-  friend: { id: string, name: string, flag?: string, statusMsg?: string, isMe?: boolean }
+  friend: { id: number, name: string, flag?: string, statusMsg?: string, isMe?: boolean }
   isOffline?: boolean
   isInviteMode: boolean
   isSelected: boolean
@@ -12,9 +12,9 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  (e: 'toggle-menu', id: string): void
-  (e: 'toggle-select', id: string): void
-  (e: 'menu-action', action: string, friendId: string): void
+  (e: 'toggle-menu', id: number): void
+  (e: 'toggle-select', id: number): void
+  (e: 'menu-action', action: string, friendId: number): void
   (e: 'open-country-modal'): void
 }>()
 
