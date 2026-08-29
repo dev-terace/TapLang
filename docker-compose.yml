@@ -50,7 +50,7 @@ services:
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
     networks:
-      - app-network
+      - tap-lang-network
 
   # 1. PostgreSQL 데이터베이스
   postgres:
