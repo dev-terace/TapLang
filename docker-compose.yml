@@ -49,6 +49,9 @@ services:
     command: tunnel --no-autoupdate run
     environment:
       - TUNNEL_TOKEN=${TUNNEL_TOKEN}
+    networks:
+      - app-network
+
   # 1. PostgreSQL 데이터베이스
   postgres:
     image: postgres:15-alpine
