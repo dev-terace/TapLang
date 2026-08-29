@@ -67,12 +67,14 @@ allowedStyles: {
 
 export const noticeService = {
   // 관리자 권한 확인 함수
-  async checkAdminPermission(userId: number): Promise<boolean> {
-    const profile = await prisma.myProfile.findUnique({
-      where: { id: userId },
-      select: { providerId: true },
-    });
-    return profile?.providerId === ADMIN_PROVIDER_ID;
+async checkAdminPermission(userId: number): Promise<boolean> {
+  const profile = await prisma.myProfile.findUnique({
+    where: { id: userId },
+    select: { providerId: true },
+  });
+  
+  // 💡 [원인 1] .env가 안 읽혔거나, 숫자형 vs 문자열 차이로 false가 날 수 있음
+  return String(profile?.providerId) === String(ADMIN_PROVIDER_ID);
   },
 
   async getNotices() {
