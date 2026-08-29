@@ -78,14 +78,13 @@ const fetchFriends = async () => {
 
 
 const findReqFriends = async () => {
-    const response  = await FriendApi.findReqFriends();
-  
-    if(response != null)
-    {
-      console.log("response.data.friends:  ", response)
-      reqFriends.value = response.friends;
-    }  
-}
+  const response = await FriendApi.findReqFriends();
+
+  if (response != null) {
+    // as unknown as ReqFriends[] 로 타입 단언 처리
+    reqFriends.value = response as unknown as ReqFriends[];
+  }
+};
   const addFriendRequest = FriendApi.addFriendRequest
 
   const acceptFriendRequest = FriendApi.acceptFriendRequest

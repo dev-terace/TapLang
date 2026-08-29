@@ -5,6 +5,7 @@
 
 # prisma 듀얼 DB 환경
 # docker compose exec backend npx prisma db push --schema prisma/mongodb/schema.prisma
+# docker compose exec backend npx prisma db push --schema prisma/postgres/schema.prisma
 # docker compose exec backend npx prisma generate --schema prisma/postgres/schema.prisma
 # docker compose exec backend npx prisma generate --schema prisma/mongodb/schema.prisma
 
@@ -133,9 +134,9 @@ services:
     container_name: vite
     restart: always
     ports:
-      - "5173:80" #nginx 포트
+      - ${NGINX_PORT} #nginx 포트
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_URL= ${VITE_API_URL}
       - CHOKIDAR_USEPOLLING=true
       - WATCHPACK_POLLING=true
     depends_on:

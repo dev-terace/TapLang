@@ -1,10 +1,12 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useAuthStore } from '@/shared/auth/AuthStore' // 작성하신 authStore 경로
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useModalStore } from '@/shared/modal/ModalStore'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation'
 import { findPeopleApi, type FindPeopleUser } from '@/find_people/api/findPeople.api'
 
+const authStore = useAuthStore()
 const uiStore = useUIStore()
 const modalStore = useModalStore()
 const { openDirectChatWithUser } = useChatNavigation()
@@ -14,7 +16,7 @@ const currentPage = ref(1)
 const totalPages = ref(1)
 const isLoading = ref(false)
 
-// 💡 내 정보 숨기기(비공개) 토글 상태
+// 내 정보 숨기기(비공개) 토글 상태
 const isPrivate = ref(false)
 const isUpdatingPrivacy = ref(false)
 
@@ -35,14 +37,13 @@ const fetchPrivacyStatus = async () => {
 const handleTogglePrivacy = async () => {
   if (isUpdatingPrivacy.value) return
 
-  const targetState = isPrivate.value // 변경하려는 목적 상태 저장
+  const targetState = isPrivate.value
 
   try {
     isUpdatingPrivacy.value = true
     await findPeopleApi.updatePrivacyStatus(targetState)
   } catch (error) {
     console.error('비공개 상태 업데이트 실패:', error)
-    // 💡 API 실패 시 원래 상태로 롤백
     isPrivate.value = !targetState
     alert('설정 변경에 실패했습니다.')
   } finally {
@@ -50,6 +51,9 @@ const handleTogglePrivacy = async () => {
   }
 }
 
+/**
+ * 탐색자 목록 조회
+ */
 const fetchPeople = async (page: number = 1) => {
   if (isLoading.value) return
 
@@ -102,10 +106,17 @@ const handleStartChat = (user: FindPeopleUser) => {
   openDirectChatWithUser(String(user.id), user.name)
 }
 
-onMounted(() => {
-  fetchPrivacyStatus()
-  fetchPeople(1)
-})
+// 💡 핵심 변경: authStore.userInfo가 완료되어 ID가 할당된 시점에만 API 호출
+watch(
+  () => authStore.userInfo?.id,
+  async (userId) => {
+    if (userId && userId > 0) {
+      await fetchPrivacyStatus()
+      await fetchPeople(1)
+    }
+  },
+  { immediate: true }
+)
 </script>
 
 <template>

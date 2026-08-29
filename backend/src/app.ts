@@ -23,20 +23,26 @@ import './chat/services/cleanupScheduler.service'
 
 const app: Application = express();
 
-const clientUrl = process.env.CLIENT_URL;
+const clientUrlRaw = process.env.CLIENT_URL;
 
-if (!clientUrl) {
+if (!clientUrlRaw) {
   throw new Error("CLIENT_URL이 설정되지 않았습니다.");
 }
 
+const allowedOrigins = clientUrlRaw.split(",").map((url) => url.trim());
+
 app.use(cors({
-  origin: clientUrl,
+  origin: (origin, callback) => {
+    // origin이 없거나(Postman, 동일 출처 등) 허용 목록에 있으면 해당 origin 단 하나만 반환
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("CORS 정책에 의해 차단되었습니다."));
+    }
+  },
   credentials: true,
   methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: [
-    "Content-Type",
-    "Authorization",
-  ],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
 app.use(express.json({
