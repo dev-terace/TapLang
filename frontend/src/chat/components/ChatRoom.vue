@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, nextTick, watch, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
@@ -16,13 +17,13 @@ import { useTranslatorStore } from '../store/AiTransStore.js'
 import { Settings, X } from 'lucide-vue-next'
 import ChatSettingsModal from './ChatSettingsModal.vue'
 import StickerModal from './StickerModal.vue'
-// import axios from 'axios' // 이미지 업로드용 (프로젝트의 axios 인스턴스로 대체 가능)
 import { useChatRoom } from '../composables/chatRoom.vue/useChatRoom.js'
 import { useChatImage } from '../composables/chatRoom.vue/useChatImage.js'
 import { useChatTranslate } from '../composables/chatRoom.vue/useChatTranslate.js'
 import { useChatLeave } from '../composables/chatRoom.vue/useChatLeaves.js'
 import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll.js'
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 const chatRoomStore = useChatRoomStore()
 const { translate } = useChatTranslate()
@@ -32,12 +33,10 @@ const friendStore = useFriendStore()
 const blockStore = useBlockStore()
 const translatorStore = useTranslatorStore()
 
-
 const ownId = computed<number | null>(
   () => authStore.userInfo?.id ?? null
 )
 const newMessage = ref('')
-
 
 // 1:1 채팅과 그룹 채팅을 정확하게 구분하는 로직
 const isGroupChat = computed(() => {
@@ -64,8 +63,6 @@ const {
   scrollToBottom
 })
 
-
-
 const { setup: setupTopObserver, teardown: teardownTopObserver } = useInfiniteScroll({
   container: messageContainer,
   sentinel: topSentinel,
@@ -75,10 +72,6 @@ const { setup: setupTopObserver, teardown: teardownTopObserver } = useInfiniteSc
   preserveScroll: true,
   debugLabel: 'chatRoomTop',
 })
-
-
-
-
 
 watch(
   () => chatRoomStore.conversationId,
@@ -91,10 +84,6 @@ watch(
   },
   { immediate: true }
 )
-
-
-
-
 
 const {
   fileInputRef,
@@ -110,10 +99,6 @@ const {
   scrollToBottom
 })
 
-
-
-
-
 const conversationId = computed(
   () => chatRoomStore.conversationId
 )
@@ -122,7 +107,6 @@ const { leaveChatRoom } = useChatLeave({
   conversationId,
 
   onLeave: async () => {
-    // 실제 나가기 API 연결 부분
     console.log(
       '채팅방 나가기:',
       conversationId.value
@@ -137,7 +121,6 @@ const { leaveChatRoom } = useChatLeave({
 // 대화 상대 모달 상태 (그룹 채팅 전용)
 const isMembersModalOpen = ref(false)
 
-// 초대 버튼 클릭 핸들러
 const handleInvite = () => {
   console.log('초대하기 버튼 클릭됨')
 }
@@ -146,17 +129,13 @@ const handleStickerSelect = (sticker: string) => {
   newMessage.value += sticker
 }
 
-
-
 const sendMessage = async () => {
   const trimmed = newMessage.value.trim()
 
-  // 빈 메시지는 전송하지 않음
   if (!trimmed) {
     return
   }
 
-  // 채팅방이 없으면 먼저 생성
   if (!chatRoomStore.conversationId) {
     const conversationId = await createRoom()
 
@@ -165,8 +144,7 @@ const sendMessage = async () => {
     }
   }
 
-  const conversationId =
-    chatRoomStore.conversationId
+  const conversationId = chatRoomStore.conversationId
 
   if (!conversationId) {
     return
@@ -178,7 +156,6 @@ const sendMessage = async () => {
   })
 
   newMessage.value = ''
-
   scrollToBottom()
 }
 
@@ -193,13 +170,10 @@ const selectFeature = async (feature: Feature) => {
       break;
 
     case "Image":
-      // 📷 파일 탐색기 열기
       openFilePicker()
       break;
   }
 };
-
-
 
 const translateWithAI = async () => {
   const translatedText = await translate(newMessage.value)
@@ -221,18 +195,12 @@ const handleMemberAction = async (action: string, member: GroupChatMember) => {
     } else if (action === 'block') {
       await blockStore.requestBlockUser(friendId)
     } else if (action === 'delete') {
-      if (confirm('정말 삭제하시겠습니까?')) {
-        alert('삭제 기능 준비중입니다.')
+      if (confirm(t('chat-room.deleteConfirmAlert'))) {
+        alert(t('chat-room.featureInDevelopmentAlert'))
       }
     }
   }
 }
-
-
-
-console.log("formatDate", formatDate(new Date()))
-
-
 </script>
 
 <template>
@@ -245,16 +213,16 @@ console.log("formatDate", formatDate(new Date()))
     <div class="bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center">
       <button @click="uiStore.currentTab = 'chat'"
         class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
-        <span>&lt;</span> 뒤로
+        <span>&lt;</span> {{ t('chat-room.back') }}
       </button>
 
       <span class="text-xs font-bold tracking-wider truncate px-2 max-w-[150px]">
-        {{ uiStore.roomName || (isGroupChat ? '그룹 채팅방' : '1:1 채팅방') }}
+        {{ uiStore.roomName || (isGroupChat ? t('chat-room.groupChat') : t('chat-room.directChat')) }}
       </span>
 
       <div class="flex items-center gap-3">
         <button v-if="isGroupChat" @click="isMembersModalOpen = true"
-          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" title="대화 상대 목록">
+          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" :title="t('chat-room.memberList')">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
             <path
               d="M5.25 6.375a4.125 4.125 0 1 1 8.25 0 4.125 4.125 0 0 1-8.25 0ZM2.25 19.125a7.125 7.125 0 0 1 14.25 0v.003l-.001.119a.75.75 0 0 1-.363.63 13.067 13.067 0 0 1-6.761 1.873c-2.472 0-4.786-.684-6.76-1.873a.75.75 0 0 1-.364-.63l-.001-.122ZM18.75 7.5a3.375 3.375 0 1 1-6.75 0 3.375 3.375 0 0 1 6.75 0ZM21 18.75a.75.75 0 0 0-.42-.643 4.875 4.875 0 0 0-6.957-4.611 8.586 8.586 0 0 1 1.71 5.157v.003l-.001.144a2.25 2.25 0 0 1-.233.96 10.088 10.088 0 0 0 5.06-1.01Z" />
@@ -270,7 +238,7 @@ console.log("formatDate", formatDate(new Date()))
               transition-colors
               flex
               items-center
-              justify-center" title="채팅방 나가기">
+              justify-center" :title="t('chat-room.leaveRoom')">
           <X class="w-5 h-5 stroke-[2.5]" />
         </button>
       </div>
@@ -281,7 +249,7 @@ console.log("formatDate", formatDate(new Date()))
 
       <div ref="topSentinel" class="flex justify-center py-2">
         <span v-if="chatRoomStore.isLoadingMoreMessages" class="text-[10px] text-[#726e67]">
-          이전 메시지 불러오는 중...
+          {{ t('chat-room.loadingOlderMessages') }}
         </span>
       </div>
 
@@ -303,18 +271,18 @@ console.log("formatDate", formatDate(new Date()))
       <div class="flex gap-2 items-center">
         <ChatFeatureModal :loading="translatorStore.isInputTranslating" @select="selectFeature" />
 
-        <input v-model="newMessage" type="text" placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
+        <input v-model="newMessage" type="text" :placeholder="t('chat-room.inputPlaceholder')"
           @keyup.enter="sendMessage"
           class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9" />
 
         <button @click="sendMessage"
           class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
-          전송
+          {{ t('chat-room.send') }}
         </button>
       </div>
     </div>
 
-    <!-- 🖼️ 이미지 미리보기 및 설명 입력 모달 -->
+    <!-- 이미지 미리보기 및 설명 입력 모달 -->
     <Teleport to="body">
       <div v-if="isImageModalOpen" class="fixed inset-0 z-[150] flex items-center justify-center bg-black/60 p-4"
         @click.self="closeImageModal">
@@ -323,7 +291,7 @@ console.log("formatDate", formatDate(new Date()))
 
           <!-- 모달 헤더 -->
           <div class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold">
-            <span>// 이미지_전송_프로토콜.img</span>
+            <span>{{ t('chat-room.imageModalTitle') }}</span>
             <button type="button" @click="closeImageModal" class="hover:text-red-400 text-lg leading-none">
               <X class="w-4 h-4" />
             </button>
@@ -333,12 +301,12 @@ console.log("formatDate", formatDate(new Date()))
           <div class="p-4 flex flex-col gap-3">
             <div
               class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
-              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="미리보기"
+              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" :alt="t('chat-room.imagePreviewAlt')"
                 class="max-w-full max-h-[290px] object-contain" />
             </div>
 
             <!-- 설명 입력창 -->
-            <input v-model="imageCaption" type="text" placeholder="이미지에 대한 설명을 입력하세요 (선택)"
+            <input v-model="imageCaption" type="text" :placeholder="t('chat-room.imageCaptionPlaceholder')"
               @keyup.enter="sendImageMessage"
               class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]" />
 
@@ -346,12 +314,12 @@ console.log("formatDate", formatDate(new Date()))
             <div class="flex justify-end gap-2 mt-2">
               <button type="button" @click="closeImageModal" :disabled="isUploadingImage"
                 class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
-                취소
+                {{ t('chat-room.cancel') }}
               </button>
               <button type="button" @click="sendImageMessage" :disabled="isUploadingImage"
                 class="px-4 py-1.5 bg-[#2d2b28] text-white text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] flex items-center gap-2">
                 <span v-if="isUploadingImage" class="animate-spin text-xs">🌀</span>
-                <span>{{ isUploadingImage ? '업로드 중...' : '전송' }}</span>
+                <span>{{ isUploadingImage ? t('chat-room.uploading') : t('chat-room.send') }}</span>
               </button>
             </div>
           </div>

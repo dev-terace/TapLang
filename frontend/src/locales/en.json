@@ -1,0 +1,535 @@
+{
+  "header": {
+    "ad": "📢 Ads",
+    "findPeople": "🔍 Find People",
+    "notice": "📢 Notice",
+    "logout": "Logout"
+  },
+  "footer": {
+    "chat": "Chat Room",
+    "customChat": "Group Chat",
+    "quiz": "Quiz"
+  },
+  "friend-sidebar": {
+    "friendRequests": "Friend Requests",
+    "onlineFriends": "Online Friends",
+    "offlineFriends": "Offline Friends",
+    "blockedUsers": "Blocked Users",
+    "searchPlaceholder": "Search name...",
+    "addFriend": "+ Add",
+    "invite": "Invite",
+    "cancel": "Cancel",
+    "completeInvite": "Done",
+    "deleteConfirm_alert": "Are you sure you want to delete?",
+    "selectFriendToInvite_alert": "Please select friends to invite.",
+    "userInfoNotFound_alert": "User information not found."
+  },
+  "friend-sidebar-header": {
+    "searchPlaceholder": "Search name...",
+    "addFriend": "+ Add",
+    "invite": "Invite",
+    "cancel": "Cancel",
+    "completeInvite": "Done"
+  },
+  "friend-status-message-modal": {
+    "title": "// STATUS_MSG_CHANGE_PROTOCOL.cfg",
+    "statusMessageLabel": "Status Message :",
+    "placeholder": "e.g. Have a nice day!",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "userInfoNotFound_alert": "User information not found."
+  },
+  "friend-request-item": {
+    "pendingRequest": "Friend request pending",
+    "receivedRequest": "Friend request received",
+    "cancel": "Cancel",
+    "accept": "Accept",
+    "decline": "Decline"
+  },
+  "friend-modal": {
+    "title": "// FRIEND_REQUEST_PROTOCOL.cfg",
+    "subtitle": "// SEARCH NEW CONTACT",
+    "nameLabel": "Identifier Name :",
+    "placeholder": "e.g. human#0",
+    "close": "Close",
+    "sendRequest": "Send Request"
+  },
+  "friend-list-item": {
+    "me": "ME",
+    "offline": "Offline",
+    "noStatusMsg": "No status message.",
+    "menu": {
+      "editBio": "Bio",
+      "editStatus": "Status",
+      "goOffline": "Offline",
+      "goOnline": "Online",
+      "chat": "Chat",
+      "viewBio": "Bio",
+      "unblock": "Unblock",
+      "block": "Block",
+      "delete": "Delete"
+    }
+  },
+  "create-room-modal": {
+    "title": "// CREATE_CHAT_ROOM_PROTOCOL.cfg",
+    "subtitle": "// NEW SESSION CONFIG",
+    "roomNameLabel": "Chat Room Name :",
+    "placeholder": "Enter chat room name",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "emptyRoomNameAlert": "Please enter a chat room name."
+  },
+  "chat": {
+    "title": "// CHAT_ROOM_LIST.sh",
+    "count": "{count} items",
+    "directChat": "1-on-1 Chat",
+    "notificationsOff": "Notifications Off",
+    "loading": "Loading..."
+  },
+  "chat-feature-model": {
+    "recentFeatureTitle": "Recent Feature (Ctrl + E)",
+    "modalTitle": "// FEATURE_SELECTION_PROTOCOL.cfg",
+    "translating": "Translating...",
+    "features": {
+      "ai": {
+        "name": "AI Translate",
+        "subName": "Smart Convert"
+      },
+      "sticker": {
+        "name": "Emoticon",
+        "subName": "Sticker"
+      },
+      "image": {
+        "name": "Photo",
+        "subName": "Upload"
+      }
+    }
+  },
+  "chat-room": {
+    "back": "Back",
+    "groupChat": "Group Chat",
+    "directChat": "1:1 Chat",
+    "memberList": "Member List",
+    "leaveRoom": "Leave Room",
+    "loadingOlderMessages": "Loading older messages...",
+    "inputPlaceholder": "Type a message... (Ctrl+V to paste image)",
+    "send": "Send",
+    "imageModalTitle": "// IMAGE_SEND_PROTOCOL.img",
+    "imagePreviewAlt": "Preview",
+    "imageCaptionPlaceholder": "Enter image caption (optional)",
+    "cancel": "Cancel",
+    "uploading": "Uploading...",
+    "deleteConfirmAlert": "Are you sure you want to delete?",
+    "featureInDevelopmentAlert": "Feature under development."
+  },
+  "chat-room-message": {
+    "imageExpiredTitle": "Photo has expired",
+    "imageExpiredDesc": "This photo was deleted after the retention period ended",
+    "attachmentAlt": "Attached image",
+    "translatingOtherMessage": "Translating another message...",
+    "doubleClickToTranslate": "Double-click to translate",
+    "listenOriginal": "Listen to original text",
+    "translating": "Translating...",
+    "listenTranslated": "Listen to translated text",
+    "zoomedImageAlt": "Enlarged image"
+  },
+  "chat-settings-modal": {
+    "header": {
+      "title": "// CHAT_SETTINGS.cfg"
+    },
+    "notification": {
+      "title": "Notification",
+      "description": "Current chat room notifications"
+    },
+    "chatTranslation": {
+      "title": "Chat Translation",
+      "description": "Select translation direction.",
+      "sourceLabel": "Source Language",
+      "targetLabel": "Target Language"
+    },
+    "messageTranslation": {
+      "title": "Message Translation",
+      "description": "AI automatically detects the source language.",
+      "targetLabel": "Result Language"
+    },
+    "voice": {
+      "title": "Voice Settings",
+      "description": "Set languages for original and translated voices.",
+      "originalLabel": "Original Voice",
+      "translatedLabel": "Translated Voice",
+      "autoDetect": "Auto Detect"
+    },
+    "actions": {
+      "confirm": "Confirm"
+    },
+    "errors": {
+      "saveFailed": "Failed to save chat settings:"
+    }
+  },
+  "group-chat-member-modal": {
+    "header": {
+      "inviteTitle": "// INVITE_MEMBERS.cfg",
+      "memberListTitle": "// CHAT_MEMBER_LIST.cfg"
+    },
+    "subtitle": {
+      "inviteMode": "Select members to invite (multiple selection allowed)",
+      "memberList": "Current Members"
+    },
+    "loading": "Loading data...",
+    "emptyInvitableFriends": "No friends available to invite.",
+    "noStatusMsg": "No status message.",
+    "emptyMembers": "No members in this chat.",
+    "memberActions": {
+      "viewBio": "Bio",
+      "addFriend": "Add Friend",
+      "block": "Block"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "submitInvite": "Invite Selected ({count})",
+      "close": "Close",
+      "openInvite": "Invite to Room"
+    },
+    "alerts": {
+      "inviteSuccess": "Invitation completed.",
+      "inviteFailed": "Failed to invite. Please try again."
+    },
+    "errors": {
+      "fetchMembersFailed": "Error fetching member list:",
+      "fetchInvitableFailed": "Error fetching invitable friends:",
+      "noConversationId": "Conversation ID does not exist.",
+      "inviteSubmitFailed": "Error while inviting members:"
+    }
+  },
+  "Sticker-modal": {
+    "stickerTitle": "select_sticker.cfg"
+  },
+  "customChat": {
+    "title": "custom_chat_list.net",
+    "description": "List of custom channels created by users.",
+    "refresh": "↻ Refresh",
+    "refreshLoading": "↻ Loading...",
+    "createRoom": "+ Create Room",
+    "filter": {
+      "my": "My Rooms",
+      "all": "All Rooms",
+      "secret": "🔒 Private Rooms"
+    },
+    "status": {
+      "loadingInitial": "Loading custom chat rooms...",
+      "loadingMore": "Loading...",
+      "empty": "No custom chat rooms found."
+    },
+    "roomCard": {
+      "owner": "Host: {owner}",
+      "members": "Members: {count}"
+    }
+  },
+  "custom-chat-create-modal": {
+    "header": {
+      "title": "// CREATE_PRIVATE_ROOM.exe",
+      "subtitle": "Create a new custom chat room."
+    },
+    "fields": {
+      "titleLabel": "Room Title",
+      "titlePlaceholder": "Enter a room title.",
+      "descriptionLabel": "Room Description",
+      "descriptionPlaceholder": "Describe what this chat room is about.",
+      "passwordLabel": "Password",
+      "passwordPlaceholder": "Private room password",
+      "passwordHint": "Only users who know the password can enter."
+    },
+    "secretToggle": {
+      "secretTitle": "Private Room",
+      "publicTitle": "Public Room",
+      "secretDescription": "A password is required to enter.",
+      "publicDescription": "Anyone can view this chat room."
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "creating": "Creating...",
+      "create": "Create Room"
+    },
+    "alerts": {
+      "titleRequired": "Please enter a room title.",
+      "titleTooLong": "Room title must be 50 characters or fewer.",
+      "descriptionTooLong": "Room description must be 200 characters or fewer.",
+      "passwordRequired": "Please enter a password for the private room.",
+      "createSuccess": "Private chat room created successfully.",
+      "createFailed": "Failed to create the private chat room."
+    },
+    "errors": {
+      "createFailed": "Failed to create private chat room:"
+    }
+  },
+  "custom-chat-feature-member-modal": {
+    "header": {
+      "transferOwner": "// TRANSFER_HOST.cfg",
+      "kickMember": "// KICK_MEMBER.cfg",
+      "default": "// MEMBER_MANAGEMENT.cfg"
+    },
+    "subtitle": "Select Target Member",
+    "loading": "Loading data...",
+    "empty": "No members found.",
+    "noStatusMsg": "No status message.",
+    "actions": {
+      "delegateHost": "Transfer Host",
+      "kick": "Kick"
+    },
+    "buttons": {
+      "close": "Close"
+    },
+    "errors": {
+      "fetchMembersFailed": "Error fetching member list:"
+    }
+  },
+  "custom-chat-feature-model": {
+    "recentFeatureTitle": "Recent Feature (Ctrl + E)",
+    "modalTitle": "// FEATURE_SELECTION_PROTOCOL.cfg",
+    "translating": "Translating...",
+    "features": {
+      "ai": {
+        "name": "AI Translate",
+        "subName": "Smart Convert"
+      },
+      "sticker": {
+        "name": "Emoticon",
+        "subName": "Sticker"
+      },
+      "image": {
+        "name": "Photo",
+        "subName": "Upload"
+      },
+      "transferOwner": {
+        "name": "Transfer Host",
+        "subName": "Change Host"
+      },
+      "kickMember": {
+        "name": "Kick Member",
+        "subName": "Remove Member"
+      }
+    },
+    "alerts": {
+      "transferOwnerComingSoon": "The transfer host feature is coming soon.",
+      "kickMemberComingSoon": "The kick member feature is coming soon."
+    }
+  },
+  "custom-chat-member-modal": {
+    "header": {
+      "title": "// CHAT_MEMBER_LIST.cfg"
+    },
+    "subtitle": "Current Members",
+    "loading": "Loading data...",
+    "empty": "No members in this chat.",
+    "noStatusMsg": "No status message.",
+    "actions": {
+      "viewBio": "Bio",
+      "addFriend": "Add Friend",
+      "block": "Block"
+    },
+    "buttons": {
+      "close": "Close"
+    },
+    "errors": {
+      "fetchMembersFailed": "Error fetching member list:"
+    }
+  },
+  "custom-chat-room": {
+    "header": {
+      "back": "Back",
+      "defaultRoomName": "CUSTOM Chat Room",
+      "ownerInfo": "Host {owner} · {count} members",
+      "memberListTitle": "Member List",
+      "settingsTitle": "Chat Settings",
+      "leaveTitle": "Leave Room"
+    },
+    "entering": "Entering CUSTOM chat room...",
+    "loadingOlderMessages": "Loading older messages...",
+    "emptyMessages": {
+      "line1": "No messages yet.",
+      "line2": "Send the first message."
+    },
+    "input": {
+      "placeholder": "Type a message... (Ctrl+V to paste image)",
+      "send": "Send"
+    },
+    "imageModal": {
+      "title": "// IMAGE_SEND_PROTOCOL.img",
+      "previewAlt": "Preview",
+      "captionPlaceholder": "Enter image caption (optional)",
+      "cancel": "Cancel",
+      "uploading": "Uploading...",
+      "send": "Send"
+    },
+    "alerts": {
+      "rejoinRestricted": "You have been kicked or banned and cannot enter this chat room.",
+      "passwordInvalid": "The password is incorrect.",
+      "entryForbidden": "You cannot enter this chat room.",
+      "entryFailed": "Failed to enter the chat room.",
+      "confirmDelegateHost": "Transfer host to {name}?",
+      "confirmKick": "Kick {name} from the room?",
+      "confirmDelete": "Are you sure you want to delete?",
+      "deleteComingSoon": "The delete feature is coming soon."
+    },
+    "errors": {
+      "enterFailed": "[CUSTOM ROOM] Failed to enter:",
+      "joinFailed": "Failed to enter CUSTOM chat room:",
+      "sendMessageFailed": "Failed to send CUSTOM message:"
+    }
+  },
+  "use-chat-leaves": {
+    "confirmLeave": "Are you sure you want to leave this chat room?",
+    "leaveFailedLog": "Failed to leave chat room:",
+    "leaveFailedAlert": "Failed to leave the chat room."
+  },
+  "use-custom-chat-list": {
+    "unnamedRoom": "Unnamed Chat Room",
+    "errorLogList": "Failed to load custom chat list:",
+    "errorAlertList": "Failed to load the custom chat room list.",
+    "logMyList": "My custom chats:",
+    "errorLogMyList": "Failed to load my custom chats:",
+    "errorLogEnter": "[CUSTOM ROOM] Failed to enter:",
+    "promptSecretPassword": "[{title}] is a private chat room.\nPlease enter the password:"
+  },
+  "use-chat-translate": {
+    "untranslatable": "This content cannot be translated.",
+    "errorLog": "AI translation failed:",
+    "rateLimitAlert": "Too many translation requests.\nPlease try again later.",
+    "failAlert": "Failed to perform AI translation."
+  },
+  "use-chat-image": {
+    "onlyImageAllowed": "Only image files can be uploaded.",
+    "errorLogSend": "Failed to send image:",
+    "errorAlertUpload": "An error occurred while uploading the image."
+  },
+  "country-modal" : {
+    "selectCountry" : "SELECT_COUNTRY.exe"
+  },
+
+  "edit-bio-modal": {
+      "enterId": "Please enter a username.",
+      "idLengthError": "Username must be between 2 and 20 characters.",
+      "tagFetched": "Available tag ({tag}) loaded. You must click 'Update Profile' to save it.",
+      "errorLogTag": "Failed to fetch tag:",
+      "errorAlertTag": "Failed to load tag information.",
+      "profileUpdated": "Profile updated successfully.",
+      "errorLogSave": "Profile save error:",
+      "errorAlertSave": "An error occurred while saving.",
+      "errorLogLoad": "Failed to load profile data:",
+      "website": "Website",
+      "kakaoPlaceholder": "Enter KakaoTalk ID",
+      "linePlaceholder": "Enter Line ID",
+      "discordPlaceholder": "Enter Discord ID",
+      "headerTitle": "// Profile_Update.exe",
+      "userIdTitle": "> Username",
+      "idPlaceholder": "Enter Username",
+      "checkTagBtn": "Check Tag",
+      "tagNotice": "※ Tag numbers cannot be changed.",
+      "current": "Current:",
+      "idFallback": "Username",
+      "languageTitle": "> Languages",
+      "spokenLangLabel": "Spoken Languages",
+      "langPlaceholder": "Enter language and press Enter",
+      "addBtn": "Add",
+      "noLang": "No languages added.",
+      "learningLangLabel": "Learning Languages",
+      "bioTitle": "> Bio",
+      "bioPlaceholder": "Feel free to introduce yourself.",
+      "snsTitle": "> SNS Links",
+      "goToLink": "Go to link",
+      "forCopyId": "For copying ID",
+      "deleteBtn": "Delete",
+      "noSns": "No SNS links added.",
+      "cancelBtn": "Cancel",
+      "updateProfileBtn": "Update Profile"
+    },
+    "view-bio-modal": {
+      "errorNoId": "No target ID found for profile lookup.",
+      "errorLoadFail": "Failed to load profile:",
+      "website": "Website",
+      "headerTitle": "// Profile_View.exe",
+      "loading": "> Loading data...",
+      "unknownUser": "Unknown User",
+      "activityLog": "'s Activity Log",
+      "attendanceDays": "Attendance",
+      "days": "days",
+      "aiTranslationCount": "AI Translations",
+      "times": "times",
+      "myQuizCollectionCount": "Quiz Collections",
+      "languageTitle": "> Spoken & Learning Languages",
+      "spokenLang": "Spoken Languages",
+      "noLang": "No languages added.",
+      "learningLang": "Learning Languages",
+      "bioTitle": "> Bio",
+      "noBio": "No bio provided.",
+      "snsTitle": "> SNS Links",
+      "goToLink": "Go to link",
+      "isId": "For copying ID",
+      "noSns": "No SNS links added.",
+      "closeBtn": "Close",
+      "editProfileBtn": "Edit Profile"
+    },
+
+   "quiz-studio": {
+      "dataLoading": "Data Loading...",
+      "backToList": "← Back to List",
+      "selectTtsLang": "🌐 Select TTS Language:",
+      "ttsPlaying": "🔊 Playing...",
+      "ttsListen": "🔊 Listen",
+      "typeHere": "Type here...",
+      "check": "Check",
+      "showAnswer": "Show Answer",
+      "hint": "Hint:"
+    },
+    "quiz-menu": {
+      "badgeTag": "COLLECTION-BASED LEARNING",
+      "mainTitle": "English Collection Learning Studio",
+      "myCollectionsTitle": "📚 My Collections ({count})",
+      "sharedBoard": "🌐 Shared Board",
+      "newCollection": "+ New Collection",
+      "sentenceCount": "{count} sentences",
+      "statusShared": "🌐 Shared",
+      "statusPrivate": "🔒 Private",
+      "edit": "✏️ Edit",
+      "delete": "🗑️ Delete",
+      "author": "Author: {name}",
+      "startPractice": "🎧 Start Practice",
+      "loading": "Loading list...",
+      "noMore": "No more collections.",
+      "anonymous": "Anonymous",
+      "alertCannotEditImported": "Imported collections cannot be edited."
+    },
+    "quiz-shared": {
+      "headerTitle": "🌐 Shared Board",
+      "refresh": "Refresh",
+      "sortRecent": "Most Recent",
+      "sortPopular": "Most Popular",
+      "backToMain": "← Back to Main",
+      "sentenceCount": "{count} sentences",
+      "authorLabel": "✍️ By:",
+      "learnersStudying": "🔥 {count} studying",
+      "importToMine": "📥 Import to My Collections",
+      "loading": "Loading list...",
+      "noMore": "No more collections.",
+      "anonymous": "Anonymous"
+    },
+   "quiz-form": {
+      "editTitle": "✏️ Edit Collection",
+      "newTitle": "✍️ New Collection",
+      "backToMain": "← Back to Main",
+      "titlePlaceholder": "Collection Title",
+      "descPlaceholder": "Collection Description",
+      "publishToShared": "Publish to Shared Board",
+      "sentenceList": "Registered Sentences ({count})",
+      "delete": "🗑️ Delete",
+      "originPlaceholder": "Voice sentence",
+      "translationPlaceholder": "Translated sentence",
+      "addSentence": "+ Add Sentence",
+      "save": "💾 Save",
+      "alertNoOrigin": "Please enter a voice sentence.",
+      "alertNoTranslation": "Please enter a translated sentence.",
+      "alertNoTitle": "Please enter a collection title.",
+      "alertNoSentences": "Please add at least one sentence."
+    }
+  
+}

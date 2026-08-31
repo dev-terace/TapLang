@@ -1,12 +1,16 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
+
 defineProps<{
-  friend: { id: number, name: string, flag: string, status: 'SENT' | 'RECEIVED' }
+  friend: { id: number; name: string; flag: string; status: 'SENT' | 'RECEIVED' }
 }>()
 
 const emit = defineEmits<{
   (e: 'accept', id: number): void
   (e: 'decline', id: number, isSent: boolean): void
 }>()
+
+const { t } = useI18n()
 </script>
 
 <template>
@@ -23,32 +27,32 @@ const emit = defineEmits<{
         <span class="text-xs font-bold truncate text-[#2d2b28]">{{ friend.name }}</span>
       </div>
       <div class="text-[9px] text-[#726e67] truncate mt-0.5">
-        {{ friend.status == "SENT" ? "친구 요청 대기중" : "친구 요청이 도착했습니다" }}
+        {{ friend.status === 'SENT' ? t('friend-request-item.pendingRequest') : t('friend-request-item.receivedRequest') }}
       </div>
     </div>
 
     <!-- 액션 버튼 -->
     <div class="flex gap-1 shrink-0">
       <button
-        v-if="friend.status == 'SENT'"
+        v-if="friend.status === 'SENT'"
         @click="emit('decline', friend.id, true)"
         class="bg-amber-500 text-white border border-[#2d2b28] text-[9px] px-1.5 py-0.5 font-bold hover:bg-amber-600 transition-colors shadow-[1px_1px_0px_0px_#2d2b28]"
       >
-        취소
+        {{ t('friend-request-item.cancel') }}
       </button>
 
-      <template v-else-if="friend.status == 'RECEIVED'">
+      <template v-else-if="friend.status === 'RECEIVED'">
         <button
           @click="emit('accept', friend.id)"
           class="bg-emerald-600 text-white border border-[#2d2b28] text-[9px] px-1.5 py-0.5 font-bold hover:bg-emerald-700 transition-colors shadow-[1px_1px_0px_0px_#2d2b28]"
         >
-          수락
+          {{ t('friend-request-item.accept') }}
         </button>
         <button
           @click="emit('decline', friend.id, false)"
           class="bg-rose-600 text-white border border-[#2d2b28] text-[9px] px-1.5 py-0.5 font-bold hover:bg-rose-700 transition-colors shadow-[1px_1px_0px_0px_#2d2b28]"
         >
-          거절
+          {{ t('friend-request-item.decline') }}
         </button>
       </template>
     </div>

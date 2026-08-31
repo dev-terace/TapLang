@@ -5,6 +5,7 @@ import {
   onMounted,
   onUnmounted
 } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 
@@ -21,6 +22,7 @@ import {
 import type { Component } from 'vue'
 
 const uiStore = useUIStore()
+const { t } = useI18n()
 
 // =========================================================
 // Feature 타입
@@ -60,45 +62,45 @@ const emit = defineEmits<{
 // 기본 기능
 // =========================================================
 
-const baseFeatures: Feature[] = [
+const baseFeatures = computed<Feature[]>(() => [
   {
     id: 'AI',
-    name: 'AI 번역',
-    subName: '스마트 변환',
+    name: t('custom-chat-feature-model.features.ai.name'),
+    subName: t('custom-chat-feature-model.features.ai.subName'),
     icon: Bot
   },
   {
     id: 'Sticker',
-    name: '이모티콘',
-    subName: '스티커',
+    name: t('custom-chat-feature-model.features.sticker.name'),
+    subName: t('custom-chat-feature-model.features.sticker.subName'),
     icon: Sticker
   },
   {
     id: 'Image',
-    name: '사진',
-    subName: '업로드',
+    name: t('custom-chat-feature-model.features.image.name'),
+    subName: t('custom-chat-feature-model.features.image.subName'),
     icon: ImageIcon
   }
-]
+])
 
 // =========================================================
 // 방장 전용 기능
 // =========================================================
 
-const ownerFeatures: Feature[] = [
+const ownerFeatures = computed<Feature[]>(() => [
   {
     id: 'TransferOwner',
-    name: '방장 위임',
-    subName: '방장 변경',
+    name: t('custom-chat-feature-model.features.transferOwner.name'),
+    subName: t('custom-chat-feature-model.features.transferOwner.subName'),
     icon: Crown
   },
   {
     id: 'KickMember',
-    name: '멤버 내보내기',
-    subName: '멤버 퇴장',
+    name: t('custom-chat-feature-model.features.kickMember.name'),
+    subName: t('custom-chat-feature-model.features.kickMember.subName'),
     icon: UserMinus
   }
-]
+])
 
 // =========================================================
 // 최종 기능 목록
@@ -107,12 +109,12 @@ const ownerFeatures: Feature[] = [
 const features = computed<Feature[]>(() => {
   if (props.showOwnerFeatures) {
     return [
-      ...baseFeatures,
-      ...ownerFeatures
+      ...baseFeatures.value,
+      ...ownerFeatures.value
     ]
   }
 
-  return baseFeatures
+  return baseFeatures.value
 })
 
 // =========================================================
@@ -128,7 +130,7 @@ const showTransferOwnerModal = ref(false)
 const showKickMemberModal = ref(false)
 
 const recentFeature = ref<Feature>(
-  baseFeatures[0]
+  baseFeatures.value[0]
 )
 
 const isRecentFeaturePressed = ref(false)
@@ -153,7 +155,7 @@ const closeTransferOwnerModal = () => {
 
 const confirmTransferOwner = () => {
   // 실제 API 연결 예정
-  window.alert('방장 위임 기능은 준비 중입니다.')
+  window.alert(t('custom-chat-feature-model.alerts.transferOwnerComingSoon'))
 
   showTransferOwnerModal.value = false
 }
@@ -168,7 +170,7 @@ const closeKickMemberModal = () => {
 
 const confirmKickMember = () => {
   // 실제 API 연결 예정
-  window.alert('멤버 내보내기 기능은 준비 중입니다.')
+  window.alert(t('custom-chat-feature-model.alerts.kickMemberComingSoon'))
 
   showKickMemberModal.value = false
 }
@@ -252,7 +254,7 @@ onUnmounted(() => {
       type="button"
       @click="useRecentFeature"
       :disabled="loading"
-      title="최근 사용한 기능 (Ctrl + E)"
+      :title="t('custom-chat-feature-model.recentFeatureTitle')"
       class="
         w-11 h-11
         shrink-0
@@ -369,7 +371,7 @@ onUnmounted(() => {
               "
             >
               <span>
-                // 기능_선택_프로토콜.cfg
+                {{ t('custom-chat-feature-model.modalTitle') }}
               </span>
 
               <button
@@ -559,7 +561,7 @@ onUnmounted(() => {
                 tracking-wide
               "
             >
-              번역 중...
+              {{ t('custom-chat-feature-model.translating') }}
             </span>
 
           </div>

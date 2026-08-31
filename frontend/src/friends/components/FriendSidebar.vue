@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useFriendStore } from '@/friends/stores/FriendStore.js'
 import { useModalStore } from '@/shared/modal/ModalStore.js'
 import { useAuthStore } from '@/shared/auth/AuthStore.js'
@@ -8,6 +9,7 @@ import { useBlockStore } from '@/block/store/BlockStore.js'
 import { useProfileStore } from '@/profile/store/ProfileStore.js'
 import { useSocketRegister } from '@/shared/socket/socket.register.js'
 import { useChatStore } from '@/chat/store/Chat.js'
+
 // Modals
 import FriendModal from './FriendModal.vue'
 import CountryModal from '@/profile/components/CountryModal.vue'
@@ -22,6 +24,7 @@ import FriendListItem from './FriendListItem.vue'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
 import FriendStatusMessageModal from './FriendStatusMessageModal.vue'
 
+const { t } = useI18n()
 const { openDirectChatWithUser } = useChatNavigation()
 
 const friendStore = useFriendStore()
@@ -71,7 +74,6 @@ const handleMenuAction = async (action: string, friendId: number) => {
   } else {
     uiStore.profileMenuFriendId = Number(friendId)
 
-    // 💡 서브메뉴에서 채팅하기 클릭 시 처리
     if (action === 'chat') {
       const allFriends = [...onlineList.value, ...friendStore.offlineFriends]
       const targetFriend = allFriends.find(f => String(f.id) === String(friendId))
@@ -87,13 +89,11 @@ const handleMenuAction = async (action: string, friendId: number) => {
     if (action === 'unblock') {
       await blockStore.unBlockedUser(Number(friendId))
     }
-    if (action === 'delete' && confirm('정말 삭제하시겠습니까?')) {
+    if (action === 'delete' && confirm(t('friend-sidebar.deleteConfirm_alert'))) {
       friendStore.deleteFriend(Number(friendId))
     }
   }
 }
-
-
 
 // 검색 및 초대 모드 관련 상태
 const searchQuery = ref('')
@@ -160,12 +160,12 @@ const selectedFriendNames = computed(() => {
 })
 
 const completeInvite = () => {
-  if (selectedFriends.value.length === 0) return alertFunc('초대할 친구를 선택해주세요.')
+  if (selectedFriends.value.length === 0) return alertFunc(t('friend-sidebar.selectFriendToInvite_alert'))
   isCreateRoomModalOpen.value = true
 }
 
 const handleCreateChatRoom = (roomName: string) => {
-  if (!authStore.userInfo?.id) return alertFunc('사용자 정보를 찾을 수 없습니다.')
+  if (!authStore.userInfo?.id) return alertFunc(t('friend-sidebar.userInfoNotFound_alert'))
 
   uiStore.conversationId = null
   const allMemberIds = selectedFriends.value.map(Number)
@@ -197,7 +197,7 @@ const handleCreateChatRoom = (roomName: string) => {
       <!-- 친구 요청 -->
       <div v-if="reqFriends?.length > 0 && !searchQuery && !isInviteMode">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mb-2">
-          ● 친구 요청
+          ● {{ t('friend-sidebar.friendRequests') }}
         </div>
         <div class="space-y-2">
           <FriendRequestItem 
@@ -213,7 +213,7 @@ const handleCreateChatRoom = (roomName: string) => {
       <!-- 온라인 인맥 -->
       <div v-if="filteredOnlineList.length > 0">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mt-4 mb-2">
-          ● 온라인 인맥
+          ● {{ t('friend-sidebar.onlineFriends') }}
         </div>
         <div class="space-y-2">
           <FriendListItem
@@ -236,7 +236,7 @@ const handleCreateChatRoom = (roomName: string) => {
       <!-- 오프라인 인맥 -->
       <div v-if="filteredOfflineFriends.length > 0">
         <div class="text-[10px] font-bold text-[#726e67] tracking-widest border-b border-[#c5bfb6] pb-1 mt-5 mb-2">
-          ○ 오프라인 인맥
+          ○ {{ t('friend-sidebar.offlineFriends') }}
         </div>
         <div class="space-y-2">
           <FriendListItem
@@ -258,7 +258,7 @@ const handleCreateChatRoom = (roomName: string) => {
       <!-- 차단된 인맥 -->
       <div v-if="filteredBlockedUsers.length > 0 && !isInviteMode">
         <div class="text-[10px] font-bold text-red-700/70 tracking-widest border-b border-red-700/30 pb-1 mt-5 mb-2">
-          ■ 차단된 인맥
+          ■ {{ t('friend-sidebar.blockedUsers') }}
         </div>
         <div class="space-y-2 opacity-50 grayscale">
           <FriendListItem

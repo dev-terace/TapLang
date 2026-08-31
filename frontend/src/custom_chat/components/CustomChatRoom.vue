@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onBeforeUnmount } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
@@ -50,6 +51,7 @@ const friendStore = useFriendStore()
 const blockStore = useBlockStore()
 const translatorStore = useTranslatorStore()
 const customChatStore = useCustomChatStore()
+const { t } = useI18n()
 
 const { translate } = useChatTranslate()
 const { loadMessages, loadOlderMessages } = useChatMessages()
@@ -218,7 +220,7 @@ const enterCustomRoom = async () => {
     })
 
   } catch (error) {
-    console.error('[CUSTOM ROOM] 입장 실패:', error)
+    console.error(t('custom-chat-room.errors.enterFailed'), error)
   } finally {
     // isEntering이 이미 false로 세팅되지 않은 예외 상황(에러 등) 대비
     isEntering.value = false
@@ -264,11 +266,11 @@ watch(
 
       if (isForbidden) {
         if (rawMessage.includes('REJOIN_RESTRICTED')) {
-          window.alert('강퇴/제재 처리되어 입장할 수 없는 채팅방입니다.')
+          window.alert(t('custom-chat-room.alerts.rejoinRestricted'))
         } else if (rawMessage.includes('PASSWORD_INVALID')) {
-          window.alert('비밀번호가 올바르지 않습니다.')
+          window.alert(t('custom-chat-room.alerts.passwordInvalid'))
         } else {
-          window.alert('이 채팅방에 입장할 수 없습니다.')
+          window.alert(t('custom-chat-room.alerts.entryForbidden'))
         }
 
         // 입장 거부 시 상태 리셋 및 목록으로 강제 이동
@@ -278,8 +280,8 @@ watch(
         return
       }
 
-      console.error('CUSTOM 채팅방 입장 실패:', error)
-      window.alert(typeof rawMessage === 'string' && rawMessage ? rawMessage : '채팅방 입장에 실패했습니다.')
+      console.error(t('custom-chat-room.errors.joinFailed'), error)
+      window.alert(typeof rawMessage === 'string' && rawMessage ? rawMessage : t('custom-chat-room.alerts.entryFailed'))
 
       // 기타 네트워크/서버 에러 시에도 안전하게 목록 화면으로 복귀
       chatRoomStore.setConversationId(null)
@@ -324,10 +326,7 @@ const sendMessage = async () => {
 
   } catch (error) {
 
-    console.error(
-      'CUSTOM 메시지 전송 실패:',
-      error
-    )
+    console.error(t('custom-chat-room.errors.sendMessageFailed'), error)
   }
 }
 
@@ -427,7 +426,7 @@ const handleMemberAction = async (
 
   // 2. 방장 위임
   if (action === 'delegateHost') {
-    if (window.confirm(`${member.name}님에게 방장을 위임하시겠습니까?`)) {
+    if (window.confirm(t('custom-chat-room.alerts.confirmDelegateHost', { name: member.name }))) {
       if (conversationId) {
         // TODO: chatRoomStore의 방장 위임 API 메서드로 연결
         await customChatRoomApi.transferOwner({ conversationId, targetUserId: friendId })
@@ -439,7 +438,7 @@ const handleMemberAction = async (
 
   // 3. 강퇴 / 내보내기
   if (action === 'kick') {
-    if (window.confirm(`${member.name}님을 방에서 내보내시겠습니까?`)) {
+    if (window.confirm(t('custom-chat-room.alerts.confirmKick', { name: member.name }))) {
       if (conversationId) {
         // TODO: chatRoomStore의 멤버 내보내기 API 메서드로 연결
         await customChatRoomApi.kickMember({ conversationId, targetUserId: friendId })
@@ -456,8 +455,8 @@ const handleMemberAction = async (
   } else if (action === 'block') {
     await blockStore.requestBlockUser(friendId)
   } else if (action === 'delete') {
-    if (window.confirm('정말 삭제하시겠습니까?')) {
-      window.alert('삭제 기능 준비중입니다.')
+    if (window.confirm(t('custom-chat-room.alerts.confirmDelete'))) {
+      window.alert(t('custom-chat-room.alerts.deleteComingSoon'))
     }
   }
 }
@@ -502,7 +501,7 @@ const goBack = () => {
       <button type="button" @click="goBack"
         class="text-xs font-bold hover:text-white transition-colors flex items-center gap-1">
         <span>&lt;</span>
-        뒤로
+        {{ t('custom-chat-room.header.back') }}
       </button>
 
 
@@ -527,7 +526,7 @@ const goBack = () => {
             {{
               currentRoom?.title
               || uiStore.roomName
-              || 'CUSTOM 채팅방'
+              || t('custom-chat-room.header.defaultRoomName')
             }}
           </span>
 
@@ -537,9 +536,7 @@ const goBack = () => {
         <!-- 방장 / 인원 -->
 
         <span v-if="currentRoom" class="text-[9px] text-neutral-600 mt-0.5">
-          방장 {{ currentRoom.owner }}
-          ·
-          {{ currentRoom.members }}명
+          {{ t('custom-chat-room.header.ownerInfo', { owner: currentRoom.owner, count: currentRoom.members }) }}
         </span>
 
       </div>
@@ -552,7 +549,7 @@ const goBack = () => {
         <!-- 멤버 -->
 
         <button type="button" @click="isMembersModalOpen = true"
-          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" title="대화 상대 목록">
+          class="text-[#2d2b28] hover:text-white transition-colors flex items-center justify-center" :title="t('custom-chat-room.header.memberListTitle')">
 
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6">
 
@@ -567,7 +564,7 @@ const goBack = () => {
         <!-- 설정 -->
 
         <button type="button" @click="modalStore.openModal('chatRoomSettings')"
-          class="hover:text-white transition-colors" title="채팅방 설정">
+          class="hover:text-white transition-colors" :title="t('custom-chat-room.header.settingsTitle')">
 
           <Settings class="w-5 h-5 stroke-[2.5]" />
 
@@ -577,7 +574,7 @@ const goBack = () => {
         <!-- 나가기 -->
 
         <button type="button" @click="leaveChatRoom"
-          class="text-[#2d2b28] hover:text-red-600 transition-colors flex items-center justify-center" title="채팅방 나가기">
+          class="text-[#2d2b28] hover:text-red-600 transition-colors flex items-center justify-center" :title="t('custom-chat-room.header.leaveTitle')">
 
           <X class="w-5 h-5 stroke-[2.5]" />
 
@@ -594,7 +591,7 @@ const goBack = () => {
 
     <div v-if="isEntering" class="flex-1 flex items-center justify-center text-xs font-bold text-neutral-500">
 
-      CUSTOM 채팅방에 접속하는 중...
+      {{ t('custom-chat-room.entering') }}
 
     </div>
 
@@ -608,7 +605,7 @@ const goBack = () => {
 
       <div ref="topSentinel" class="flex justify-center py-2">
         <span v-if="chatRoomStore.isLoadingMoreMessages" class="text-[10px] text-[#726e67]">
-          이전 메시지 불러오는 중...
+          {{ t('custom-chat-room.loadingOlderMessages') }}
         </span>
       </div>
 
@@ -648,11 +645,11 @@ const goBack = () => {
             💬
           </div>
 
-          아직 메시지가 없습니다.
+          {{ t('custom-chat-room.emptyMessages.line1') }}
 
           <br>
 
-          첫 메시지를 보내보세요.
+          {{ t('custom-chat-room.emptyMessages.line2') }}
 
         </div>
 
@@ -673,14 +670,14 @@ const goBack = () => {
           @select="selectFeature" />
 
 
-        <input v-model="newMessage" type="text" placeholder="메시지를 입력하세요... (이미지 붙여넣기 Ctrl+V 가능)"
+        <input v-model="newMessage" type="text" :placeholder="t('custom-chat-room.input.placeholder')"
           @keyup.enter="sendMessage"
           class="flex-1 bg-[#f4f1eb] text-xs p-2 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none focus:ring-0 shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)] h-9" />
 
 
         <button type="button" @click="sendMessage"
           class="bg-[#2d2b28] text-white text-xs font-bold px-4 h-9 border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px] transition-all">
-          전송
+          {{ t('custom-chat-room.input.send') }}
         </button>
 
       </div>
@@ -703,7 +700,7 @@ const goBack = () => {
           <div class="bg-[#2d2b28] text-[#fbf9f5] px-4 py-2 flex justify-between items-center text-xs font-bold">
 
             <span>
-              // 이미지_전송_프로토콜.img
+              {{ t('custom-chat-room.imageModal.title') }}
             </span>
 
             <button type="button" @click="closeImageModal" class="hover:text-red-400 text-lg leading-none">
@@ -720,13 +717,13 @@ const goBack = () => {
             <div
               class="w-full max-h-[300px] overflow-hidden rounded border-2 border-[#2d2b28] bg-black/5 flex items-center justify-center">
 
-              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" alt="미리보기"
+              <img v-if="imagePreviewUrl" :src="imagePreviewUrl" :alt="t('custom-chat-room.imageModal.previewAlt')"
                 class="max-w-full max-h-[290px] object-contain" />
 
             </div>
 
 
-            <input v-model="imageCaption" type="text" placeholder="이미지에 대한 설명을 입력하세요 (선택)"
+            <input v-model="imageCaption" type="text" :placeholder="t('custom-chat-room.imageModal.captionPlaceholder')"
               @keyup.enter="sendImageMessage"
               class="w-full bg-[#f4f1eb] text-xs p-2.5 border-2 border-[#2d2b28] text-[#2d2b28] placeholder-[#726e67] focus:outline-none shadow-[inset_2px_2px_0px_0px_rgba(0,0,0,0.1)]" />
 
@@ -735,7 +732,7 @@ const goBack = () => {
 
               <button type="button" @click="closeImageModal" :disabled="isUploadingImage"
                 class="px-3 py-1.5 bg-white text-[#2d2b28] text-xs font-bold border-2 border-[#2d2b28] shadow-[2px_2px_0px_0px_#2d2b28] active:shadow-none active:translate-x-[2px] active:translate-y-[2px]">
-                취소
+                {{ t('custom-chat-room.imageModal.cancel') }}
               </button>
 
 
@@ -749,8 +746,8 @@ const goBack = () => {
                 <span>
                   {{
                     isUploadingImage
-                      ? '업로드 중...'
-                      : '전송'
+                      ? t('custom-chat-room.imageModal.uploading')
+                      : t('custom-chat-room.imageModal.send')
                   }}
                 </span>
 

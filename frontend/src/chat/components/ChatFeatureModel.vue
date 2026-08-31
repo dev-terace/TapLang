@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/shared/ui/UiStore'
 import {
   Bot,
@@ -9,6 +10,7 @@ import {
 } from 'lucide-vue-next'
 import type { Component } from 'vue'
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 
 export interface Feature {
@@ -31,34 +33,40 @@ const emit = defineEmits<{
   (e: 'select', feature: Feature): void
 }>()
 
-const features: Feature[] = [
+// 언어 변경에 즉각 반응하도록 computed 반응형 배열로 처리
+const features = computed<Feature[]>(() => [
   {
     id: 'AI',
-    name: 'AI 번역',
-    subName: '스마트 변환',
+    name: t('chat-feature-model.features.ai.name'),
+    subName: t('chat-feature-model.features.ai.subName'),
     icon: Bot
   },
   {
     id: 'Sticker',
-    name: '이모티콘',
-    subName: '스티커',
+    name: t('chat-feature-model.features.sticker.name'),
+    subName: t('chat-feature-model.features.sticker.subName'),
     icon: Sticker
   },
   {
     id: 'Image',
-    name: '사진',
-    subName: '업로드',
+    name: t('chat-feature-model.features.image.name'),
+    subName: t('chat-feature-model.features.image.subName'),
     icon: ImageIcon
   }
-]
+])
 
 const showFeatureModal = ref(false)
 
-const recentFeature = ref<Feature>(features[0])
+// 최근 사용 기능 ID 저장 및 언어 변경 시 자동 다국어 반영 처리
+const recentFeatureId = ref<string>('AI')
+const recentFeature = computed<Feature>(() => {
+  return features.value.find(f => f.id === recentFeatureId.value) || features.value[0]
+})
+
 const isRecentFeaturePressed = ref(false)
 
 const select = (feature: Feature) => {
-  recentFeature.value = feature
+  recentFeatureId.value = feature.id
   showFeatureModal.value = false
 
   emit('select', feature)
@@ -110,7 +118,7 @@ onUnmounted(() => {
       type="button"
       @click="useRecentFeature"
       :disabled="loading"
-      title="최근 사용한 기능 (Ctrl + E)"
+      :title="t('chat-feature-model.recentFeatureTitle')"
       class="w-11 h-11 shrink-0 bg-[#e6e2db] text-[#2d2b28]
              flex items-center justify-center
              border-2 border-[#2d2b28]
@@ -180,7 +188,7 @@ onUnmounted(() => {
                      flex justify-between items-center
                      text-xs font-bold"
             >
-              <span>// 기능_선택_프로토콜.cfg</span>
+              <span>{{ t('chat-feature-model.modalTitle') }}</span>
 
               <button
                 type="button"
@@ -312,7 +320,7 @@ onUnmounted(() => {
                      text-white
                      tracking-wide"
             >
-              번역 중...
+              {{ t('chat-feature-model.translating') }}
             </span>
 
           </div>

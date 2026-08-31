@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/shared/ui/UiStore'
 
 const props = defineProps<{
@@ -12,6 +13,7 @@ const emit = defineEmits<{
   (e: 'confirm', roomName: string): void
 }>()
 
+const { t } = useI18n()
 const uiStore = useUIStore()
 const roomNameInput = ref('')
 
@@ -28,7 +30,7 @@ watch(() => props.isOpen, (newVal) => {
 
 const handleConfirm = () => {
   if (!roomNameInput.value.trim()) {
-    alert('채팅방 이름을 입력해주세요.')
+    alert(t('create-room-modal.emptyRoomNameAlert'))
     return
   }
   
@@ -57,7 +59,7 @@ const handleConfirm = () => {
                flex justify-between items-center
                text-xs font-bold"
       >
-        <span>// 새_채팅방_생성_프로토콜.cfg</span>
+        <span>{{ t('create-room-modal.title') }}</span>
 
         <button
           class="hover:text-red-400 font-pixel text-lg leading-none"
@@ -70,19 +72,19 @@ const handleConfirm = () => {
       <!-- 본문 영역 -->
       <div class="p-5 space-y-4">
         <p class="text-xs font-bold uppercase text-neutral-500">
-          // 신규 세션 설정
+          {{ t('create-room-modal.subtitle') }}
         </p>
 
         <!-- 채팅방 이름 입력 -->
         <div>
           <label class="block text-xs font-bold mb-1">
-            채팅방 명칭 :
+            {{ t('create-room-modal.roomNameLabel') }}
           </label>
 
           <input
             type="text"
             v-model="roomNameInput"
-            placeholder="채팅방 이름을 입력하세요"
+            :placeholder="t('create-room-modal.placeholder')"
             class="w-full bg-white
                    border-2 border-[#2d2b28]
                    p-2 text-xs
@@ -104,7 +106,7 @@ const handleConfirm = () => {
                    hover:bg-neutral-300
                    transition-all"
           >
-            취소
+            {{ t('create-room-modal.cancel') }}
           </button>
 
           <button
@@ -118,7 +120,7 @@ const handleConfirm = () => {
                    transition-all
                    shadow-[2px_2px_0px_0px_#a39b90]"
           >
-            확인
+            {{ t('create-room-modal.confirm') }}
           </button>
         </div>
       </div>

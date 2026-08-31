@@ -2,12 +2,15 @@
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatStore } from '@/chat/store/Chat'
 import { watch, computed, ref, onBeforeUnmount, nextTick } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { formatTime } from '@/shared/utils/DateUtils'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 import { storeToRefs } from 'pinia'
 import { useChatRoomStore } from '../store/ChatRoom'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation.js'
 import { useInfiniteScroll } from '@/shared/ui/composables/useInfiniteScroll'
+
+const { t } = useI18n()
 const { openConversation } = useChatNavigation()
 
 const uiStore = useUIStore()
@@ -43,8 +46,6 @@ watch(
 const loadMoreTrigger = ref<HTMLElement | null>(null)
 const scrollContainer = ref<HTMLElement | null>(null)
 
-
-
 const { setup: setupObserver, teardown: teardownObserver } = useInfiniteScroll({
   container: scrollContainer,
   sentinel: loadMoreTrigger,
@@ -54,7 +55,6 @@ const { setup: setupObserver, teardown: teardownObserver } = useInfiniteScroll({
   preserveScroll: false,
   debugLabel: 'chatList',
 })
-
 
 watch(
   () => uiStore.currentTab,
@@ -67,8 +67,6 @@ watch(
   },
   { immediate: true }
 )
-
-
 </script>
 
 <template>
@@ -81,11 +79,11 @@ watch(
       class="shrink-0 bg-[#c5bfb6] px-4 py-2 border-b-2 border-[#2d2b28] flex justify-between items-center"
     >
       <span class="text-xs font-bold tracking-wider">
-        // 채팅방_목록.sh
+        {{ t('chat.title') }}
       </span>
 
       <span class="text-[10px] text-[#726e67]">
-        {{ conversations.length }}개
+        {{ t('chat.count', { count: conversations.length }) }}
       </span>
     </div>
 
@@ -147,14 +145,14 @@ watch(
                   conversation?.name
                     ?.split('|')
                     .find(v => v !== userInfo?.name)
-                  ?? '1:1 채팅'
+                  ?? t('chat.directChat')
                 }}
               </span>
 
               <span
                 v-if="conversation.notification === false"
                 class="shrink-0 text-[10px] opacity-70 group-hover:opacity-100"
-                title="알림 꺼짐"
+                :title="t('chat.notificationsOff')"
               >
                 🔕
               </span>
@@ -197,7 +195,7 @@ watch(
           v-if="chatStore.isLoadingMore"
           class="text-[10px] text-[#726e67]"
         >
-          불러오는 중...
+          {{ t('chat.loading') }}
         </span>
       </div>
     </div>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useModalStore } from '@/shared/modal/ModalStore'
+import { useI18n } from 'vue-i18n'
 
 const modalStore = useModalStore()
 
@@ -91,50 +92,36 @@ const selectSticker = (sticker: string) => {
   emit('select', sticker)
   modalStore.closeModal()
 }
+
+const { t } = useI18n()
+
 </script>
 
 <template>
   <Teleport to="body">
-    <Transition
-      enter-active-class="transition duration-200 ease-out"
-      enter-from-class="opacity-0"
-      enter-to-class="opacity-100"
-      leave-active-class="transition duration-150 ease-in"
-      leave-from-class="opacity-100"
-      leave-to-class="opacity-0"
-    >
-      <div
-        v-if="modalStore.activeModal === 'sticker'"
-        class="fixed inset-0 z-[150]
+    <Transition enter-active-class="transition duration-200 ease-out" enter-from-class="opacity-0"
+      enter-to-class="opacity-100" leave-active-class="transition duration-150 ease-in" leave-from-class="opacity-100"
+      leave-to-class="opacity-0">
+      <div v-if="modalStore.activeModal === 'sticker'" class="fixed inset-0 z-[150]
                flex items-center justify-center
-               bg-black/50 p-4"
-        @click.self="modalStore.closeModal()"
-      >
+               bg-black/50 p-4" @click.self="modalStore.closeModal()">
 
-        <div
-          class="w-full max-w-sm
+        <div class="w-full max-w-sm
                  bg-[#e6e2db]
                  border-4 border-[#2d2b28]
                  shadow-[8px_8px_0px_0px_#121315]
-                 overflow-hidden"
-        >
+                 overflow-hidden">
 
           <!-- 헤더 -->
-          <div
-            class="bg-[#2d2b28] text-[#fbf9f5]
+          <div class="bg-[#2d2b28] text-[#fbf9f5]
                    px-4 py-2
-                   flex justify-between items-center"
-          >
+                   flex justify-between items-center">
             <span class="text-xs font-bold">
-              // 이모티콘_선택.cfg
+              // {{ $t('Sticker-modal.stickerTitle') }}
             </span>
 
-            <button
-              type="button"
-              @click="modalStore.closeModal()"
-              class="text-lg font-bold leading-none
-                     hover:text-red-400"
-            >
+            <button type="button" @click="modalStore.closeModal()" class="text-lg font-bold leading-none
+                     hover:text-red-400">
               ×
             </button>
           </div>
@@ -142,19 +129,13 @@ const selectSticker = (sticker: string) => {
           <!-- 이모티콘 -->
           <div class="p-4">
 
-            <div
-              class="grid grid-cols-6 gap-2
+            <div class="grid grid-cols-6 gap-2
                      max-h-[400px]
                      overflow-y-auto
-                     pr-1"
-            >
+                     pr-1">
 
-              <button
-                v-for="(sticker, index) in stickers"
-                :key="`${sticker}-${index}`"
-                type="button"
-                @click="selectSticker(sticker)"
-                class="aspect-square
+              <button v-for="(sticker, index) in stickers" :key="`${sticker}-${index}`" type="button"
+                @click="selectSticker(sticker)" class="aspect-square
                        flex items-center justify-center
                        text-2xl
                        bg-white
@@ -165,8 +146,7 @@ const selectSticker = (sticker: string) => {
                        hover:shadow-[2px_2px_0px_0px_#2d2b28]
                        active:translate-x-[2px]
                        active:translate-y-[2px]
-                       active:shadow-none"
-              >
+                       active:shadow-none">
                 {{ sticker }}
               </button>
 

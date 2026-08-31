@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useModalStore } from '@/shared/modal/ModalStore'
 import { useCustomChatStore } from '../stores/CustomChatStore'
@@ -8,6 +9,7 @@ import { useCustomChatList } from '../composable/CustomChat.vue/useCustomChatLis
 
 const modalStore = useModalStore()
 const customChatStore = useCustomChatStore()
+const { t } = useI18n()
 
 const title = ref('')
 const description = ref('')
@@ -43,22 +45,22 @@ const createRoom = async () => {
   const trimmedPassword = password.value.trim()
 
   if (!trimmedTitle) {
-    window.alert('방 제목을 입력해주세요.')
+    window.alert(t('custom-chat-create-modal.alerts.titleRequired'))
     return
   }
 
   if (trimmedTitle.length > 50) {
-    window.alert('방 제목은 50자 이하로 입력해주세요.')
+    window.alert(t('custom-chat-create-modal.alerts.titleTooLong'))
     return
   }
 
   if (trimmedDescription.length > 200) {
-    window.alert('방 설명은 200자 이하로 입력해주세요.')
+    window.alert(t('custom-chat-create-modal.alerts.descriptionTooLong'))
     return
   }
 
   if (isSecret.value && !trimmedPassword) {
-    window.alert('비밀방 비밀번호를 입력해주세요.')
+    window.alert(t('custom-chat-create-modal.alerts.passwordRequired'))
     return
   }
 
@@ -90,19 +92,19 @@ const createRoom = async () => {
 
     await closeModal()
 
-    window.alert('사설 대화방이 생성되었습니다.')
+    window.alert(t('custom-chat-create-modal.alerts.createSuccess'))
 
   } catch (error) {
 
     console.error(
-      '사설 대화방 생성 실패:',
+      t('custom-chat-create-modal.errors.createFailed'),
       error
     )
 
     window.alert(
       error instanceof Error
         ? error.message
-        : '사설 대화방 생성에 실패했습니다.'
+        : t('custom-chat-create-modal.alerts.createFailed')
     )
 
   } finally {
@@ -144,11 +146,11 @@ const createRoom = async () => {
           <div>
 
             <h2 class="text-sm font-bold tracking-wider">
-              // 사설방_개설.exe
+              {{ t('custom-chat-create-modal.header.title') }}
             </h2>
 
             <p class="text-[10px] text-[#c5bfb6] mt-1">
-              새로운 커스텀 대화방을 생성합니다.
+              {{ t('custom-chat-create-modal.header.subtitle') }}
             </p>
 
           </div>
@@ -175,14 +177,14 @@ const createRoom = async () => {
             <label
               class="block text-[10px] font-bold text-[#2d2b28] mb-2"
             >
-              방 제목
+              {{ t('custom-chat-create-modal.fields.titleLabel') }}
             </label>
 
             <input
               v-model="title"
               type="text"
               maxlength="50"
-              placeholder="방 제목을 입력하세요."
+              :placeholder="t('custom-chat-create-modal.fields.titlePlaceholder')"
               class="w-full px-3 py-2 bg-[#fbf9f5] border-2 border-[#2d2b28] text-xs outline-none focus:bg-white"
             />
 
@@ -199,14 +201,14 @@ const createRoom = async () => {
             <label
               class="block text-[10px] font-bold text-[#2d2b28] mb-2"
             >
-              방 설명
+              {{ t('custom-chat-create-modal.fields.descriptionLabel') }}
             </label>
 
             <textarea
               v-model="description"
               maxlength="200"
               rows="3"
-              placeholder="어떤 대화방인지 설명해주세요."
+              :placeholder="t('custom-chat-create-modal.fields.descriptionPlaceholder')"
               class="w-full px-3 py-2 bg-[#fbf9f5] border-2 border-[#2d2b28] text-xs outline-none resize-none focus:bg-white"
             ></textarea>
 
@@ -240,7 +242,7 @@ const createRoom = async () => {
                 <div class="text-left">
 
                   <div class="text-xs font-bold">
-                    {{ isSecret ? '비밀 대화방' : '공개 대화방' }}
+                    {{ isSecret ? t('custom-chat-create-modal.secretToggle.secretTitle') : t('custom-chat-create-modal.secretToggle.publicTitle') }}
                   </div>
 
                   <div
@@ -253,8 +255,8 @@ const createRoom = async () => {
                   >
                     {{
                       isSecret
-                        ? '비밀번호가 있어야 입장할 수 있습니다.'
-                        : '누구나 대화방을 확인할 수 있습니다.'
+                        ? t('custom-chat-create-modal.secretToggle.secretDescription')
+                        : t('custom-chat-create-modal.secretToggle.publicDescription')
                     }}
                   </div>
 
@@ -294,19 +296,19 @@ const createRoom = async () => {
             <label
               class="block text-[10px] font-bold text-[#2d2b28] mb-2"
             >
-              비밀번호
+              {{ t('custom-chat-create-modal.fields.passwordLabel') }}
             </label>
 
             <input
               v-model="password"
               type="password"
               maxlength="30"
-              placeholder="비밀방 비밀번호"
+              :placeholder="t('custom-chat-create-modal.fields.passwordPlaceholder')"
               class="w-full px-3 py-2 bg-[#fbf9f5] border-2 border-[#2d2b28] text-xs outline-none focus:bg-white"
             />
 
             <p class="text-[9px] text-neutral-500 mt-1">
-              비밀번호를 알고 있는 사용자만 입장할 수 있습니다.
+              {{ t('custom-chat-create-modal.fields.passwordHint') }}
             </p>
 
           </div>
@@ -326,7 +328,7 @@ const createRoom = async () => {
             class="px-4 py-2 text-xs font-bold border-2 border-[#2d2b28] bg-[#e6e2db] text-[#2d2b28] hover:bg-[#c5bfb6] disabled:opacity-50"
             @click="closeModal"
           >
-            취소
+            {{ t('custom-chat-create-modal.buttons.cancel') }}
           </button>
 
 
@@ -336,7 +338,7 @@ const createRoom = async () => {
             class="px-4 py-2 text-xs font-bold border-2 border-[#2d2b28] bg-[#2d2b28] text-white hover:bg-white hover:text-[#2d2b28] disabled:opacity-50"
             @click="createRoom"
           >
-            {{ isCreating ? '생성 중...' : '사설방 개설' }}
+            {{ isCreating ? t('custom-chat-create-modal.buttons.creating') : t('custom-chat-create-modal.buttons.create') }}
           </button>
 
         </div>

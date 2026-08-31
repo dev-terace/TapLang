@@ -271,37 +271,6 @@ export const useCustomChatStore = defineStore(
     // 방 클릭
     // =======================================================
 
-    const handleCustomRoomClick = (
-      room: CustomRoom
-    ) => {
-
-      if (room.isSecret) {
-
-        const password =
-          window.prompt(
-            `[${room.title}] 은(는) 비밀 대화방입니다.\n입장 비밀번호를 입력하세요:`
-          )
-
-        if (!password) {
-          return
-        }
-
-        console.log(
-          'CUSTOM 비밀방 입장:',
-          room.id,
-          password
-        )
-
-        return
-      }
-
-
-      console.log(
-        'CUSTOM 채팅방 입장:',
-        room.id
-      )
-    }
-
 
     // =======================================================
     // 멤버 수 변경
@@ -448,8 +417,6 @@ export const useCustomChatStore = defineStore(
       clearCurrentRoom,
 
       setCurrentConversation,
-
-      handleCustomRoomClick,
 
       updateRoomMemberCount,
       updateRoomOwner,

@@ -1,18 +1,15 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useUIStore } from '@/shared/ui/UiStore'
 
 const uiStore = useUIStore()
-
-
-
+const { t } = useI18n()
 </script>
 
 <template>
   <footer
     class="h-14 bg-[#dfdad1] border-t-4 border-[#2d2b28] flex items-center px-4 shrink-0 overflow-x-auto gap-3"
   >
-
-
     <button
       :class="[
         'px-3 py-1.5 text-xs font-bold border-2 border-[#2d2b28] flex items-center gap-2 transition-all shrink-0',
@@ -23,7 +20,7 @@ const uiStore = useUIStore()
       @click="uiStore.changeTab('chat')"
     >
       <span class="font-pixel text-lg">💬</span>
-      <span>채팅방</span>
+      <span>{{ t('footer.chat') }}</span>
     </button>
 
     <button
@@ -36,7 +33,7 @@ const uiStore = useUIStore()
       @click="uiStore.changeTab('customChat')"
     >
       <span class="font-pixel text-lg">🌐</span>
-      <span>그룹 채팅방</span>
+      <span>{{ t('footer.customChat') }}</span>
     </button>
 
     <button
@@ -49,8 +46,7 @@ const uiStore = useUIStore()
       @click="uiStore.changeTab('quiz')"
     >
       <span class="font-pixel text-lg">⁉️</span>
-      <span>퀴즈 맞추기</span>
+      <span>{{ t('footer.quiz') }}</span>
     </button>
   </footer>
 </template>
-

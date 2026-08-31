@@ -1,7 +1,7 @@
 import type { Ref } from 'vue'
+import { useI18n } from 'vue-i18n' // i18n 추가
 import { ChatRoomApi } from '@/chat/api/chatRoom.api'
 import { useChatStore } from '@/chat/store/Chat'
-
 
 interface UseChatLeaveOptions {
   conversationId: Ref<string | null>
@@ -14,6 +14,7 @@ export function useChatLeave({
   onLeave,
   onSuccess
 }: UseChatLeaveOptions) {
+  const { t } = useI18n() // t 함수 가져오기
   const chatStore = useChatStore()
 
   const leaveChatRoom = async () => {
@@ -22,7 +23,7 @@ export function useChatLeave({
     }
 
     const confirmed = window.confirm(
-      '정말 이 채팅방에서 나가시겠습니까?'
+      t('use-chat-leaves.confirmLeave')
     )
 
     if (!confirmed) {
@@ -41,12 +42,12 @@ export function useChatLeave({
 
     } catch (error) {
       console.error(
-        '채팅방 나가기 실패:',
+        t('use-chat-leaves.leaveFailedLog'),
         error
       )
 
       window.alert(
-        '채팅방 나가기에 실패했습니다.'
+        t('use-chat-leaves.leaveFailedAlert')
       )
     }
   }

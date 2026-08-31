@@ -73,7 +73,7 @@ const sendFriendRequest = async (
 
     if (friend) {
     
-      throw new Error("이미 친구입니다.");
+      throw new Error("You are already friends.");
     }
 
     const request = await tx.friendRequest.findUnique({
@@ -86,7 +86,7 @@ const sendFriendRequest = async (
     });
 
     if (request) {
-      throw new Error("이미 친구 요청을 보냈습니다.");
+      throw new Error("Friend request already sent.");
     }
 
     // 친구 요청 생성

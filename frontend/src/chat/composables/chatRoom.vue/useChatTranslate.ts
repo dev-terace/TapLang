@@ -1,7 +1,10 @@
+import { useI18n } from 'vue-i18n' // i18n 추가
 import { useTranslatorStore } from '../../store/AiTransStore.js'
 import { useChatSettingsStore } from '../../store/ChatSettingsStore.js'
 import axios from "axios"
+
 export function useChatTranslate() {
+  const { t } = useI18n() // t 함수 가져오기
   const translatorStore = useTranslatorStore()
   const chatSettingsStore = useChatSettingsStore()
 
@@ -30,7 +33,7 @@ export function useChatTranslate() {
         )
 
       if (result === false) {
-        alert('번역할 수 없는 내용입니다.')
+        alert(t('use-chat-translate.untranslatable'))
         return null
       }
 
@@ -39,7 +42,7 @@ export function useChatTranslate() {
     } catch (error) {
 
       console.error(
-        'AI 번역 실패:',
+        t('use-chat-translate.errorLog'),
         error
       )
 
@@ -49,13 +52,13 @@ export function useChatTranslate() {
         error.response?.status === 429
       ) {
         alert(
-          '번역 요청이 너무 많습니다.\n잠시 후 다시 시도해주세요.'
+          t('use-chat-translate.rateLimitAlert')
         )
 
         return null
       }
 
-      alert('AI 번역에 실패했습니다.')
+      alert(t('use-chat-translate.failAlert'))
 
       return null
     }

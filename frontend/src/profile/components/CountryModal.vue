@@ -5,6 +5,9 @@ import { useModalStore } from '@/shared/modal/ModalStore'
 import { useCountryStore } from '@/profile/store/CountryStore'
 import { useFriendStore } from '@/friends/stores/FriendStore'
 import { useAuthStore } from '@/shared/auth/AuthStore'
+import { useI18n } from 'vue-i18n'
+
+const { t } = useI18n()
 
 const authStore = useAuthStore()
 const modalStore = useModalStore()
@@ -77,7 +80,7 @@ const closeModal = () => {
                flex justify-between items-center"
       >
         <span class="text-xs font-bold">
-          // 국가_선택.exe
+         {{  t('country-modal.selectCountry') }}
         </span>
 
         <button

@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 
 const authStore = useAuthStore()
 const chatRoomStore = useChatRoomStore()
+const { t } = useI18n()
 
 // =========================================================
 // Props / Emits
@@ -87,7 +89,7 @@ const loadMembers = async () => {
   } catch (error) {
 
     console.error(
-      '멤버 목록을 불러오는 중 오류 발생:',
+      t('custom-chat-member-modal.errors.fetchMembersFailed'),
       error
     )
 
@@ -201,7 +203,7 @@ const toggleMember = (
       >
 
         <span>
-          // 대화_상대_목록.cfg
+          {{ t('custom-chat-member-modal.header.title') }}
         </span>
 
         <button
@@ -250,7 +252,7 @@ const toggleMember = (
             shrink-0
           "
         >
-          // 현재 참여 인원
+          // {{ t('custom-chat-member-modal.subtitle') }}
         </p>
 
 
@@ -282,7 +284,7 @@ const toggleMember = (
               animate-pulse
             "
           >
-            // 데이터를 불러오는 중...
+            // {{ t('custom-chat-member-modal.loading') }}
           </div>
 
 
@@ -299,7 +301,7 @@ const toggleMember = (
               text-neutral-500
             "
           >
-            // 대화 상대가 존재하지 않습니다.
+            // {{ t('custom-chat-member-modal.empty') }}
           </div>
 
 
@@ -450,7 +452,7 @@ const toggleMember = (
                   >
                     {{
                       member.statusMsg
-                      || '상태 메시지가 없습니다.'
+                      || t('custom-chat-member-modal.noStatusMsg')
                     }}
                   </div>
 
@@ -550,7 +552,7 @@ const toggleMember = (
                     "
                   >
                     <span>📄</span>
-                    소개글
+                    {{ t('custom-chat-member-modal.actions.viewBio') }}
                   </button>
 
 
@@ -585,7 +587,7 @@ const toggleMember = (
                     "
                   >
                     <span>➕</span>
-                    친구 추가
+                    {{ t('custom-chat-member-modal.actions.addFriend') }}
                   </button>
 
 
@@ -622,7 +624,7 @@ const toggleMember = (
                     "
                   >
                     <span>🚫</span>
-                    차단
+                    {{ t('custom-chat-member-modal.actions.block') }}
                   </button>
 
                 </div>
@@ -681,7 +683,7 @@ const toggleMember = (
               transition-all
             "
           >
-            닫기
+            {{ t('custom-chat-member-modal.buttons.close') }}
           </button>
 
         </div>

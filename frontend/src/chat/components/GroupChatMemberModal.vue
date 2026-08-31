@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import api from '@/shared/auth/api.config'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 
 const authStore = useAuthStore()
 const chatRoomStore = useChatRoomStore()
+const { t } = useI18n()
 
 // 부모 컴포넌트로부터 받을 데이터(Props)와 보낼 이벤트(Emits) 정의
 const props = defineProps<{
@@ -56,7 +58,7 @@ watch(
           (member) => member.id !== authStore.userInfo?.id
         )
       } catch (error) {
-        console.error('멤버 목록을 불러오는 중 오류 발생:', error)
+        console.error(t('group-chat-member-modal.errors.fetchMembersFailed'), error)
         members.value = []
       } finally {
         isLoading.value = false
@@ -100,7 +102,7 @@ const openInviteMode = async () => {
     )
 
   } catch (error) {
-    console.error('초대 가능 인원을 불러오는 중 오류 발생:', error)
+    console.error(t('group-chat-member-modal.errors.fetchInvitableFailed'), error)
     invitableFriends.value = []
   } finally {
     isLoading.value = false
@@ -127,7 +129,7 @@ const submitInvite = async () => {
 
   const convId = chatRoomStore.conversationId
   if (!convId) {
-    console.error('대화방 ID가 존재하지 않습니다.')
+    console.error(t('group-chat-member-modal.errors.noConversationId'))
     return
   }
 
@@ -140,7 +142,7 @@ const submitInvite = async () => {
       memberIds: selectedFriendIds.value // 초대할 친구 ID 배열
     })
 
-    alert('초대가 완료되었습니다.')
+    alert(t('group-chat-member-modal.alerts.inviteSuccess'))
 
     // 초대 모드 종료 및 선택 상태 초기화
     isInviteMode.value = false
@@ -157,8 +159,8 @@ const submitInvite = async () => {
     emit('invite-submit', selectedFriendIds.value)
 
   } catch (error) {
-    console.error('인원 초대 중 오류 발생:', error)
-    alert('초대에 실패했습니다. 다시 시도해 주세요.')
+    console.error(t('group-chat-member-modal.errors.inviteSubmitFailed'), error)
+    alert(t('group-chat-member-modal.alerts.inviteFailed'))
   } finally {
     isLoading.value = false
   }
@@ -184,7 +186,7 @@ const submitInvite = async () => {
                px-4 py-1.5 flex justify-between items-center 
                text-xs font-bold shrink-0"
       >
-        <span>{{ isInviteMode ? '// 인원_초대.cfg' : '// 대화_상대_목록.cfg' }}</span>
+        <span>{{ isInviteMode ? t('group-chat-member-modal.header.inviteTitle') : t('group-chat-member-modal.header.memberListTitle') }}</span>
 
         <button
           class="hover:text-red-400 font-pixel text-lg leading-none transition-colors"
@@ -199,7 +201,7 @@ const submitInvite = async () => {
         
         <!-- 동적 타이틀 텍스트 -->
         <p class="text-xs font-bold uppercase text-neutral-500 shrink-0">
-          // {{ isInviteMode ? '초대할 인원 선택 (다중 선택 가능)' : '현재 참여 인원' }}
+          // {{ isInviteMode ? t('group-chat-member-modal.subtitle.inviteMode') : t('group-chat-member-modal.subtitle.memberList') }}
         </p>
 
         <!-- 스크롤 영역 -->
@@ -207,13 +209,13 @@ const submitInvite = async () => {
           
           <!-- 로딩 상태 -->
           <div v-if="isLoading" class="text-center py-8 text-xs font-bold text-neutral-500 animate-pulse">
-            // 데이터를 불러오는 중...
+            // {{ t('group-chat-member-modal.loading') }}
           </div>
           
           <!-- 1. [초대할 인원] 목록 화면 -->
           <template v-else-if="isInviteMode">
             <div v-if="invitableFriends.length === 0" class="text-center py-8 text-xs font-bold text-neutral-500">
-              // 초대할 수 있는 친구가 없습니다.
+              // {{ t('group-chat-member-modal.emptyInvitableFriends') }}
             </div>
             
             <div
@@ -245,7 +247,7 @@ const submitInvite = async () => {
                   </span>
                 </div>
                 <div class="text-[9px] truncate mt-0.5 text-neutral-500">
-                  {{ friend.statusMsg || '상태 메시지가 없습니다.' }}
+                  {{ friend.statusMsg || t('group-chat-member-modal.noStatusMsg') }}
                 </div>
               </div>
             </div>
@@ -254,7 +256,7 @@ const submitInvite = async () => {
           <!-- 2. [현재 참여 인원] 목록 화면 -->
           <template v-else>
             <div v-if="members.length === 0" class="text-center py-8 text-xs font-bold text-neutral-500">
-              // 대화 상대가 존재하지 않습니다.
+              // {{ t('group-chat-member-modal.emptyMembers') }}
             </div>
 
             <div
@@ -291,7 +293,7 @@ const submitInvite = async () => {
                     class="text-[9px] truncate mt-0.5"
                     :class="expandedMemberIndex === index ? 'text-[#c5bfb6]' : 'text-neutral-500'"
                   >
-                    {{ member.statusMsg || '상태 메시지가 없습니다.' }}
+                    {{ member.statusMsg || t('group-chat-member-modal.noStatusMsg') }}
                   </div>
                 </div>
 
@@ -312,19 +314,19 @@ const submitInvite = async () => {
                     @click.stop="emit('member-action', 'viewBio', member)" 
                     class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
                   >
-                    <span>📄</span> 소개글
+                    <span>📄</span> {{ t('group-chat-member-modal.memberActions.viewBio') }}
                   </button>
                   <button 
                     @click.stop="emit('member-action', 'addFriend', member)" 
                     class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
                   >
-                    <span>➕</span> 친구 추가
+                    <span>➕</span> {{ t('group-chat-member-modal.memberActions.addFriend') }}
                   </button>
                   <button 
                     @click.stop="emit('member-action', 'block', member)" 
                     class="flex-1 py-1.5 px-1 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors flex items-center justify-center gap-1"
                   >
-                    <span>🚫</span> 차단
+                    <span>🚫</span> {{ t('group-chat-member-modal.memberActions.block') }}
                   </button>
                 </div>
               </Transition>
@@ -341,7 +343,7 @@ const submitInvite = async () => {
               @click="cancelInviteMode"
               class="bg-[#c5bfb6] text-[#2d2b28] border-2 border-[#2d2b28] px-4 py-1.5 font-bold hover:bg-neutral-300 transition-all"
             >
-              취소
+              {{ t('group-chat-member-modal.buttons.cancel') }}
             </button>
             <button
               @click="submitInvite"
@@ -351,7 +353,7 @@ const submitInvite = async () => {
                 ? 'bg-[#2d2b28] text-[#fbf9f5] hover:bg-neutral-800' 
                 : 'bg-neutral-400 text-neutral-600 cursor-not-allowed shadow-none border-neutral-500'"
             >
-              선택 초대 ({{ selectedFriendIds.length }}명)
+              {{ t('group-chat-member-modal.buttons.submitInvite', { count: selectedFriendIds.length }) }}
             </button>
           </template>
 
@@ -361,13 +363,13 @@ const submitInvite = async () => {
               @click="emit('close')"
               class="bg-[#c5bfb6] text-[#2d2b28] border-2 border-[#2d2b28] px-4 py-1.5 font-bold hover:bg-neutral-300 transition-all"
             >
-              닫기
+              {{ t('group-chat-member-modal.buttons.close') }}
             </button>
             <button
               @click="openInviteMode"
               class="bg-[#2d2b28] text-[#fbf9f5] border-2 border-[#2d2b28] px-4 py-1.5 font-bold hover:bg-neutral-800 transition-all shadow-[2px_2px_0px_0px_#a39b90]"
             >
-              대화방 초대
+              {{ t('group-chat-member-modal.buttons.openInvite') }}
             </button>
           </template>
 

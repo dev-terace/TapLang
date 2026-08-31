@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 import { useAuthStore } from '@/shared/auth/AuthStore'
 
 const authStore = useAuthStore()
 const chatRoomStore = useChatRoomStore()
+const { t } = useI18n()
 
 // =========================================================
 // Types & Props / Emits
@@ -51,11 +53,11 @@ const isLoading = ref(false)
 const headerTitle = computed(() => {
     switch (props.mode) {
         case 'transferOwner':
-            return '// 방장_위임.cfg'
+            return t('custom-chat-feature-member-modal.header.transferOwner')
         case 'kickMember':
-            return '// 멤버_내보내기.cfg'
+            return t('custom-chat-feature-member-modal.header.kickMember')
         default:
-            return '// 멤버_관리.cfg'
+            return t('custom-chat-feature-member-modal.header.default')
     }
 })
 
@@ -82,7 +84,7 @@ const loadMembers = async () => {
             (member) => member.id !== authStore.userInfo?.id
         )
     } catch (error) {
-        console.error('멤버 목록을 불러오는 중 오류 발생:', error)
+        console.error(t('custom-chat-feature-member-modal.errors.fetchMembersFailed'), error)
         members.value = []
     } finally {
         isLoading.value = false
@@ -140,19 +142,19 @@ const toggleMember = (index: number) => {
             <div class="p-5 flex flex-col flex-1 overflow-hidden space-y-4">
                 <!-- Title -->
                 <p class="text-xs font-bold uppercase text-neutral-500 shrink-0">
-                    // 대상 멤버 선택
+                    // {{ t('custom-chat-feature-member-modal.subtitle') }}
                 </p>
 
                 <!-- Member List -->
                 <div class="flex-1 overflow-y-auto space-y-2.5 pr-1">
                     <!-- Loading -->
                     <div v-if="isLoading" class="text-center py-8 text-xs font-bold text-neutral-500 animate-pulse">
-                        // 데이터를 불러오는 중...
+                        // {{ t('custom-chat-feature-member-modal.loading') }}
                     </div>
 
                     <!-- Empty -->
                     <div v-else-if="members.length === 0" class="text-center py-8 text-xs font-bold text-neutral-500">
-                        // 대상 상대가 존재하지 않습니다.
+                        // {{ t('custom-chat-feature-member-modal.empty') }}
                     </div>
 
                     <!-- Members -->
@@ -190,7 +192,7 @@ const toggleMember = (index: number) => {
                                             ? 'text-[#c5bfb6]'
                                             : 'text-neutral-500'
                                         ">
-                                        {{ member.statusMsg || '상태 메시지가 없습니다.' }}
+                                        {{ member.statusMsg || t('custom-chat-feature-member-modal.noStatusMsg') }}
                                     </div>
                                 </div>
 
@@ -211,7 +213,7 @@ const toggleMember = (index: number) => {
                                         emit('member-action', 'delegateHost', member)
                                         " class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
                                         <span>👑</span>
-                                        방장 위임
+                                        {{ t('custom-chat-feature-member-modal.actions.delegateHost') }}
                                     </button>
 
                                     <!-- 내보내기 버튼 (mode가 'all' 이거나 'kickMember'일 때) -->
@@ -219,7 +221,7 @@ const toggleMember = (index: number) => {
                                         @click.stop="emit('member-action', 'kick', member)"
                                         class="flex-1 py-1.5 px-1 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors flex items-center justify-center gap-1">
                                         <span>🚪</span>
-                                        내보내기
+                                        {{ t('custom-chat-feature-member-modal.actions.kick') }}
                                     </button>
                                 </div>
                             </Transition>
@@ -231,7 +233,7 @@ const toggleMember = (index: number) => {
                 <div class="mt-2 flex justify-end text-xs shrink-0 pt-4 border-t-2 border-dashed border-[#2d2b28]">
                     <button type="button" @click="emit('close')"
                         class="bg-[#c5bfb6] text-[#2d2b28] border-2 border-[#2d2b28] px-4 py-1.5 font-bold hover:bg-neutral-300 transition-all">
-                        닫기
+                        {{ t('custom-chat-feature-member-modal.buttons.close') }}
                     </button>
                 </div>
             </div>

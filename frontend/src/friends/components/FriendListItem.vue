@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 
 const props = defineProps<{
-  friend: { id: number, name: string, flag?: string, statusMsg?: string, isMe?: boolean }
+  friend: { id: number; name: string; flag?: string; statusMsg?: string; isMe?: boolean }
   isOffline?: boolean
   isInviteMode: boolean
   isSelected: boolean
@@ -17,6 +18,8 @@ const emit = defineEmits<{
   (e: 'menu-action', action: string, friendId: number): void
   (e: 'open-country-modal'): void
 }>()
+
+const { t } = useI18n()
 
 // 💡 항목 클릭 시: 초대 모드면 선택, 일반 모드면 메뉴 열기/닫기
 const handleClick = () => {
@@ -46,7 +49,7 @@ const containerClass = computed(() => {
   <div :class="containerClass">
     <div 
       @click="handleClick"
-      @dblclick="!friend.isMe && !isInviteMode "
+      @dblclick="!friend.isMe && !isInviteMode"
       class="group flex items-center gap-2.5 p-2 cursor-pointer transition-colors relative"
       :class="isActiveMenu ? 'bg-[#3d3a36] text-[#fbf9f5]' : (isOffline ? 'hover:bg-[#e8e3d8] text-[#5c5851]' : 'hover:bg-[#e8e3d8] text-[#2d2b28]')"
     >
@@ -67,7 +70,7 @@ const containerClass = computed(() => {
       >
         <span class="transition-opacity" :class="friend.isMe ? 'group-hover/avatar:opacity-30' : ''">
           <img 
-            :src="`https://flagcdn.com/w40/${ friend.flag }.png`"
+            :src="`https://flagcdn.com/w40/${friend.flag}.png`"
             alt=""
             class="w-4 h-3 object-cover flex-shrink-0"
           />
@@ -87,13 +90,13 @@ const containerClass = computed(() => {
           <span class="text-xs font-bold truncate tracking-tight" :class="isOffline && !isActiveMenu ? 'group-hover:text-[#2d2b28]' : ''">
             {{ friend.name }}
           </span>
-          <span v-if="friend.isMe" class="text-[9px] px-1 py-0.2 bg-[#c5bfb6] text-[#2d2b28] font-bold border border-[#2d2b28]">ME</span>
+          <span v-if="friend.isMe" class="text-[9px] px-1 py-0.2 bg-[#c5bfb6] text-[#2d2b28] font-bold border border-[#2d2b28]">{{ t('friend-list-item.me') }}</span>
         </div>
         <div 
           class="text-[9px] truncate mt-0.5"
           :class="isActiveMenu ? 'text-[#c5bfb6]' : 'text-neutral-500'"
         >
-          {{ friend.statusMsg || (isOffline ? '오프라인' : '상태 메시지가 없습니다.') }}
+          {{ friend.statusMsg || (isOffline ? t('friend-list-item.offline') : t('friend-list-item.noStatusMsg')) }}
         </div>
       </div>
 
@@ -113,48 +116,47 @@ const containerClass = computed(() => {
         <!-- 내 계정일 때 메뉴 -->
         <template v-if="friend.isMe">
           <button @click.stop="emit('menu-action', 'editBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>✎</span> 소개글
+            <span>✎</span> {{ t('friend-list-item.menu.editBio') }}
           </button>
           <button @click.stop="emit('menu-action', 'editStatus', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>💬</span> 상태메시지
+            <span>💬</span> {{ t('friend-list-item.menu.editStatus') }}
           </button>
           <button
             v-if="isMyOnlineStatus"
             @click.stop="emit('menu-action', 'goOffline', friend.id)"
             class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
           >
-            <span>🌙</span> 오프라인
+            <span>🌙</span> {{ t('friend-list-item.menu.goOffline') }}
           </button>
           <button
             v-else
             @click.stop="emit('menu-action', 'goOnline', friend.id)"
             class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1"
           >
-            <span>☀️</span> 온라인
+            <span>☀️</span> {{ t('friend-list-item.menu.goOnline') }}
           </button>
         </template>
 
         <!-- 친구 계정일 때 메뉴 -->
         <template v-else>
-          <!-- 💡 새로 추가: 서브메뉴 내 채팅하기 버튼 -->
           <button @click.stop="emit('menu-action', 'chat', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>💬</span> 채팅
+            <span>💬</span> {{ t('friend-list-item.menu.chat') }}
           </button>
 
           <button @click.stop="emit('menu-action', 'viewBio', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>📄</span> 소개글
+            <span>📄</span> {{ t('friend-list-item.menu.viewBio') }}
           </button>
 
           <!-- 차단 상태에 따른 분기 처리 -->
           <button v-if="isBlocked" @click.stop="emit('menu-action', 'unblock', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>⭕</span> 차단 해제
+            <span>⭕</span> {{ t('friend-list-item.menu.unblock') }}
           </button>
           <button v-else @click.stop="emit('menu-action', 'block', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-[#e6c875] hover:text-[#2d2b28] transition-colors flex items-center justify-center gap-1">
-            <span>🚫</span> 차단
+            <span>🚫</span> {{ t('friend-list-item.menu.block') }}
           </button>
 
           <button v-if="!isBlocked" @click.stop="emit('menu-action', 'delete', friend.id)" class="flex-1 py-1.5 px-1 hover:bg-rose-600 hover:text-white text-rose-400 transition-colors flex items-center justify-center gap-1">
-            <span>✕</span> 삭제
+            <span>✕</span> {{ t('friend-list-item.menu.delete') }}
           </button>
         </template>
       </div>

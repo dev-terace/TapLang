@@ -1,4 +1,5 @@
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n' // i18n 추가
 import { useUIStore } from '@/shared/ui/UiStore'
 import { customChatApi } from '@/custom_chat/api/customChat.api'
 import {
@@ -8,13 +9,13 @@ import {
 
 export type RoomListMode = 'all' | 'secret' | 'my'
 
-
-
+// t 함수를 두 번째 인자로 받도록 수정
 const toCustomRoom = (
-  item: customChatApi.CustomChatItem
+  item: customChatApi.CustomChatItem,
+  t: (key: string) => string
 ): CustomRoom => ({
   id: item.id,
-  title: item.title ?? '이름 없는 채팅방',
+  title: item.title ?? t('use-custom-chat-list.unnamedRoom'),
   desc: item.desc ?? '',
   ownerId: item.ownerId ?? 0,
   owner: item.owner ?? '',
@@ -26,6 +27,7 @@ const toCustomRoom = (
 })
 
 export function useCustomChatList() {
+  const { t } = useI18n() // t 함수 가져오기
   const uiStore = useUIStore()
   const customChatStore = useCustomChatStore()
 
@@ -51,10 +53,10 @@ export function useCustomChatList() {
         loadMore ? nextCursor.value ?? undefined : undefined
       )
 
-      const rooms = response.items.map(toCustomRoom)
+      // t 함수 전달
+      const rooms = response.items.map((item) => toCustomRoom(item, t))
 
       console.log("loadCustom chat response item", response.items)
-
 
       if (loadMore) {
         customChatStore.addCustomRooms(rooms)
@@ -64,9 +66,9 @@ export function useCustomChatList() {
 
       nextCursor.value = response.nextCursor
     } catch (error) {
-      console.error('CUSTOM 채팅방 목록 조회 실패:', error)
+      console.error(t('use-custom-chat-list.errorLogList'), error)
       window.alert(
-        error instanceof Error ? error.message : '사설 대화방 목록을 불러오지 못했습니다.'
+        error instanceof Error ? error.message : t('use-custom-chat-list.errorAlertList')
       )
     } finally {
       isLoading.value = false
@@ -82,7 +84,6 @@ export function useCustomChatList() {
         loadMore ? myNextCursor.value ?? undefined : undefined
       )
 
-      console.log('내 CUSTOM 채팅방:', response)
 
       if (!loadMore) {
         customChatStore.setJoinedCustomRooms(response.items)
@@ -92,7 +93,7 @@ export function useCustomChatList() {
 
       myNextCursor.value = response.nextCursor
     } catch (error) {
-      console.error('내 CUSTOM 채팅방 조회 실패:', error)
+      console.error(t('use-custom-chat-list.errorLogMyList'), error)
     } finally {
       isLoading.value = false
     }
@@ -135,9 +136,6 @@ export function useCustomChatList() {
   // =========================================================
   // 채팅방 입장 로직
   // =========================================================
-  // =========================================================
-  // 채팅방 입장 로직
-  // =========================================================
   const enterCustomRoom = async (
     room: CustomRoom,
     password?: string
@@ -168,7 +166,7 @@ export function useCustomChatList() {
 
       return true
     } catch (error) {
-      console.error('[CUSTOM ROOM] 입장 실패:', error)
+      console.error(t('use-custom-chat-list.errorLogEnter'), error)
       return false
     } finally {
       isLoading.value = false
@@ -189,8 +187,9 @@ export function useCustomChatList() {
 
     // 비밀방이더라도 (내 참여 방 탭이거나 || 이미 가입된 방이면) prompt를 띄우지 않음
     if (room.isSecret && roomListMode.value !== 'my' && !isAlreadyJoined) {
+      // 변수 보간 적용
       password = window.prompt(
-        `[${room.title}] 은(는) 비밀 대화방입니다.\n입장 비밀번호를 입력하세요:`
+        t('use-custom-chat-list.promptSecretPassword', { title: room.title })
       ) ?? undefined
 
       if (!password) return
@@ -219,8 +218,6 @@ export function useCustomChatList() {
     { immediate: true }
   )
 
-
-
   const refreshCustomChats = async () => {
     if (isLoading.value) return
 
@@ -236,7 +233,6 @@ export function useCustomChatList() {
     customChatStore.setCustomRooms([])
     await loadCustomChats()
   }
-
 
   return {
     isLoading,

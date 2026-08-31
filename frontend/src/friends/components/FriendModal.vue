@@ -1,15 +1,16 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useFriendStore } from '@/friends/stores/FriendStore'
 import { useModalStore } from '@/shared/modal/ModalStore'
 
+const { t } = useI18n()
 const friendStore = useFriendStore()
 const modalStore = useModalStore()
 
 const friendFormData = ref({
   name: ''
 })
-
 
 const handleReqFriend = async () => {
   try {
@@ -19,7 +20,7 @@ const handleReqFriend = async () => {
 
     modalStore.closeModal()
   } catch (error) {
-    
+    console.error(error)
   }
 }
 
@@ -39,7 +40,6 @@ const closeModal = () => {
              shadow-[8px_8px_0px_0px_#121315]
              overflow-hidden"
     >
-
       <!-- 헤더 -->
       <div
         class="bg-[#2d2b28] text-[#fbf9f5]
@@ -47,7 +47,7 @@ const closeModal = () => {
                flex justify-between items-center
                text-xs font-bold"
       >
-        <span>// 친구_요청_프로토콜.cfg</span>
+        <span>{{ t('friend-modal.title') }}</span>
 
         <button
           class="hover:text-red-400 font-pixel text-lg leading-none"
@@ -57,24 +57,22 @@ const closeModal = () => {
         </button>
       </div>
 
-
       <div class="p-5 space-y-4">
-
         <p class="text-xs font-bold uppercase text-neutral-500">
-          // 신규 인맥 검색
+          {{ t('friend-modal.subtitle') }}
         </p>
-
 
         <!-- 친구 검색 -->
         <div>
           <label class="block text-xs font-bold mb-1">
-            식별 성명 :
+            {{ t('friend-modal.nameLabel') }}
           </label>
 
           <input
             type="text"
             v-model="friendFormData.name"
-            placeholder="예: human#0"
+            :placeholder="t('friend-modal.placeholder')"
+            @keyup.enter="handleReqFriend"
             class="w-full bg-white
                    border-2 border-[#2d2b28]
                    p-2 text-xs
@@ -83,10 +81,8 @@ const closeModal = () => {
           />
         </div>
 
-
         <!-- 버튼 -->
         <div class="mt-6 flex justify-end gap-3 text-xs">
-
           <button
             @click="closeModal"
             class="bg-[#c5bfb6]
@@ -97,9 +93,8 @@ const closeModal = () => {
                    hover:bg-neutral-300
                    transition-all"
           >
-            닫기
+            {{ t('friend-modal.close') }}
           </button>
-
 
           <button
             @click="handleReqFriend"
@@ -112,13 +107,10 @@ const closeModal = () => {
                    transition-all
                    shadow-[2px_2px_0px_0px_#a39b90]"
           >
-            친구 요청
+            {{ t('friend-modal.sendRequest') }}
           </button>
-
         </div>
-
       </div>
     </div>
-
   </div>
 </template>

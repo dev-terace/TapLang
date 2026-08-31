@@ -4,6 +4,7 @@ import {
   onUnmounted
 } from 'vue'
 
+import { useI18n } from 'vue-i18n' // i18n 추가
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useChatRoomStore } from '@/chat/store/ChatRoom'
 
@@ -16,6 +17,7 @@ interface UseChatImageOptions {
 export function useChatImage(
   options: UseChatImageOptions
 ) {
+  const { t } = useI18n() // t 함수 가져오기
   const uiStore = useUIStore()
   const chatRoomStore = useChatRoomStore()
 
@@ -44,7 +46,7 @@ export function useChatImage(
    */
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert('이미지 파일만 업로드할 수 있습니다.')
+      alert(t('use-chat-image.onlyImageAllowed'))
       return
     }
 
@@ -177,12 +179,12 @@ export function useChatImage(
 
     } catch (error) {
       console.error(
-        '이미지 전송 실패:',
+        t('use-chat-image.errorLogSend'),
         error
       )
 
       alert(
-        '이미지 업로드 중 오류가 발생했습니다.'
+        t('use-chat-image.errorAlertUpload')
       )
 
     } finally {

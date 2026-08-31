@@ -16,7 +16,8 @@
     "axios": "^1.6.8",
     "flag-icons": "^7.2.3",
     "@clerk/vue": "^2.0.0",
-    "lucide-vue-next": "^0.470.0"
+    "lucide-vue-next": "^0.470.0",
+    "vue-i18n": "^10.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.4",
