@@ -56,11 +56,10 @@ export namespace FriendApi {
             return response;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                alert(error.response?.data?.message ?? "친구 요청 중 오류가 발생했습니다.");
+                alert(error.response?.data?.message ?? "An error occurred while sending the friend request.");
             } else {
-                alert("알 수 없는 오류가 발생했습니다.");
+                alert("An unknown error occurred.");
             }
-
             throw error;
         }
     }
@@ -74,9 +73,9 @@ export namespace FriendApi {
             return response.data;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                alert(error.response?.data?.message ?? "친구 요청 중 오류가 발생했습니다.");
+                alert(error.response?.data?.message ?? "An error occurred while sending the friend request.");
             } else {
-                alert("알 수 없는 오류가 발생했습니다.");
+                alert("An unknown error occurred.");
             }
 
             throw error;
@@ -102,9 +101,9 @@ export namespace FriendApi {
             return response;
         } catch (error) {
             if (axios.isAxiosError(error)) {
-                alert(error.response?.data?.message ?? "친구 삭제 요청 중 오류가 발생했습니다.");
+                alert(error.response?.data?.message ?? "An error occurred while sending the friend request.");
             } else {
-                alert("알 수 없는 오류가 발생했습니다.");
+                alert("An unknown error occurred.");
             }
 
             throw error;

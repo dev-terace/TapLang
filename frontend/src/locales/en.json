@@ -530,6 +530,69 @@
       "alertNoTranslation": "Please enter a translated sentence.",
       "alertNoTitle": "Please enter a collection title.",
       "alertNoSentences": "Please add at least one sentence."
-    }
+    },
+
+    "find-people": {
+    "title": "// FindPeople_Directory.net",
+    "description": "Explore connected users on the global server.",
+    "hideInfoTooltip": "When activated, your profile will be hidden from other users' lists.",
+    "hideMyInfo": "Hide my profile",
+    "refresh": "↻ Refresh",
+    "loading": "> Synchronizing data...",
+    "noStatus": "No status message.",
+    "viewBio": "View Bio",
+    "startChat": "Chat",
+    "updateFailed": "Failed to update settings."
+  },
+
+  "notice": {
+    "title": "// System_Notice.sys",
+    "description": "Server maintenance and general notice list.",
+    "createNotice": "+ New Notice",
+    "loading": "> Loading notices...",
+    "badgeUrgent": "[Urgent]",
+    "badgeNormal": "[Notice]",
+    "edit": "Edit",
+    "delete": "Delete",
+    "modalCreateTitle": "Write New Notice",
+    "modalEditTitle": "Edit Notice",
+    "htmlMode": "HTML MODE",
+    "urgentLabel": "Urgent",
+    "titlePlaceholder": "Enter title",
+    "contentPlaceholder": "<div>Type HTML code directly here.</div>\nFeel free to use <br> tags or style attributes.",
+    "cancel": "Cancel",
+    "save": "Save",
+    "noPermission": "You do not have permission.",
+    "alertEnterTitle": "Please enter a title.",
+    "alertEnterContent": "Please enter content.",
+    "saveError": "An error occurred while saving.",
+    "confirmDelete": "Are you sure you want to delete this?",
+    "deleteError": "Failed to delete."
+  },
+
+  "quiz-store": {
+    "importedTag": "(Imported)",
+    "noSentences": "No registered sentences.",
+    "anonymous": "Anonymous",
+    "confirmDelete": "Are you sure you want to delete the '{title}' collection?",
+    "alertDeleteSuccess": "Collection deleted successfully.",
+    "alertAlreadyImported": "This collection is already saved in your learning list.",
+    "alertImportSuccess": "Imported '{title}' collection to your learning list!",
+    "alertShared": "Published to the shared board.",
+    "alertUnshared": "Sharing has been cancelled.",
+    "alertUpdateSuccess": "Collection updated successfully!",
+    "alertCreateSuccess": "New collection registered successfully!"
+  },
+  "custom-chat-room-socket": {
+    "kickedAlert": "You have been removed from the chat room."
+  },
+
+  "block-api": {
+    "CANNOT_BLOCK_SELF": "You cannot block yourself.",
+    "USER_NOT_FOUND": "User not found.",
+    "ALREADY_BLOCKED": "User is already blocked.",
+    "defaultError": "An error occurred while processing the block request.",
+    "unknownError": "An unknown error has occurred."
+  }
   
 }

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { quizApi, Collection, Sentence, CreateCollectionDto } from '@/quiz/api/quiz.api'
+import i18n from '@/i18n' // 💡 프로젝트의 i18n 인스턴스 경로
 
 const IMPORTED_AUTHORS_KEY = 'quiz_imported_authors'
 
@@ -30,7 +31,8 @@ export const useQuizStore = defineStore('quiz', () => {
 
   const saveImportedAuthor = (id: number, authorName: string) => {
     const map = getImportedMap()
-    map[id] = authorName.includes('(가져옴)') ? authorName : `${authorName} (가져옴)`
+    const importedTag = i18n.global.t('quiz-store.importedTag')
+    map[id] = authorName.includes(importedTag) ? authorName : `${authorName} ${importedTag}`
     localStorage.setItem(IMPORTED_AUTHORS_KEY, JSON.stringify(map))
   }
 
@@ -51,7 +53,7 @@ export const useQuizStore = defineStore('quiz', () => {
 
   const currentSentence = computed<Sentence>(() => {
     if (!activeCollection.value || !activeCollection.value.sentences?.length) {
-      return { id: 0, translatedText: '등록된 문장이 없습니다.', voiceText: '' }
+      return { id: 0, translatedText: i18n.global.t('quiz-store.noSentences'), voiceText: '' }
     }
     return activeCollection.value.sentences[selectedSentenceIndex.value] || activeCollection.value.sentences[0]
   })
@@ -80,7 +82,6 @@ export const useQuizStore = defineStore('quiz', () => {
       myCollections.value.push(...mappedItems)
       myCursor.value = nextCursor
 
-      // 💡 배열 응답인 경우 요청 limit(10개) 수신 여부로 다음 페이지 유무 판단
       myHasMore.value = Array.isArray(res) ? items.length === 10 : !!nextCursor
       return mappedItems.length
     } catch (error) {
@@ -153,7 +154,7 @@ export const useQuizStore = defineStore('quiz', () => {
   }
 
   const deleteCollection = async (col: Collection) => {
-    if (!confirm(`'${col.title}' 컬렉션을 정말 삭제하시겠습니까?`)) return
+    if (!confirm(i18n.global.t('quiz-store.confirmDelete', { title: col.title }))) return
     isLoading.value = true
     try {
       await quizApi.deleteCollection(col.id)
@@ -162,7 +163,7 @@ export const useQuizStore = defineStore('quiz', () => {
       if (selectedCollectionId.value === col.id && myCollections.value.length > 0) {
         selectedCollectionId.value = myCollections.value[0].id
       }
-      alert('컬렉션이 성공적으로 삭제되었습니다.')
+      alert(i18n.global.t('quiz-store.alertDeleteSuccess'))
     } finally {
       isLoading.value = false
     }
@@ -170,14 +171,15 @@ export const useQuizStore = defineStore('quiz', () => {
 
   const importCollection = async (col: Collection) => {
     const exists = myCollections.value.find(c => c.id === col.id || c.title === col.title)
-    if (exists) return alert('이미 내 학습장에 저장된 컬렉션입니다.')
+    if (exists) return alert(i18n.global.t('quiz-store.alertAlreadyImported'))
 
     isLoading.value = true
     try {
       const imported = await quizApi.importCollection(col.id)
       const rawAuthor = typeof col.author === 'object' ? (col.author as any)?.name : col.author
-      const originalAuthor = rawAuthor || '익명'
-      const displayAuthor = originalAuthor.includes('(가져옴)') ? originalAuthor : `${originalAuthor} (가져옴)`
+      const originalAuthor = rawAuthor || i18n.global.t('quiz-store.anonymous')
+      const importedTag = i18n.global.t('quiz-store.importedTag')
+      const displayAuthor = originalAuthor.includes(importedTag) ? originalAuthor : `${originalAuthor} ${importedTag}`
 
       saveImportedAuthor(imported.id, displayAuthor)
       imported.author = displayAuthor
@@ -186,7 +188,7 @@ export const useQuizStore = defineStore('quiz', () => {
       myCollections.value.unshift(imported)
       selectedCollectionId.value = imported.id
       selectedSentenceIndex.value = 0
-      alert(`'${imported.title}' 컬렉션을 내 학습장에 가져왔습니다!`)
+      alert(i18n.global.t('quiz-store.alertImportSuccess', { title: imported.title }))
     } catch (error) {
       console.error('컬렉션 가져오기 실패:', error)
     } finally {
@@ -200,7 +202,7 @@ export const useQuizStore = defineStore('quiz', () => {
     try {
       await quizApi.toggleShare(col.id, nextState)
       col.isShared = nextState
-      alert(col.isShared ? '공유 게시판에 등록되었습니다.' : '공유가 취소되었습니다.')
+      alert(col.isShared ? i18n.global.t('quiz-store.alertShared') : i18n.global.t('quiz-store.alertUnshared'))
     } finally {
       isLoading.value = false
     }
@@ -219,11 +221,11 @@ export const useQuizStore = defineStore('quiz', () => {
         const updated = await quizApi.updateCollection(editingCollectionId.value, dto)
         const idx = myCollections.value.findIndex(c => c.id === editingCollectionId.value)
         if (idx !== -1) myCollections.value[idx] = updated
-        alert('컬렉션 수정이 완료되었습니다!')
+        alert(i18n.global.t('quiz-store.alertUpdateSuccess'))
       } else {
         const created = await quizApi.createCollection(dto)
         myCollections.value.unshift(created)
-        alert('새로운 컬렉션이 등록되었습니다!')
+        alert(i18n.global.t('quiz-store.alertCreateSuccess'))
       }
       editingCollectionId.value = null
     } finally {

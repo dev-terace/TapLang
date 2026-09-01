@@ -1,85 +1,65 @@
 import api from "@/shared/auth/api.config";
-import axios from "axios"
-// 1. 차단된 사용자 정보 타입
+import axios from "axios";
+import i18n from "@/i18n"; // 프로젝트 i18n 인스턴스 경로
+
 export interface BlockedUser {
-    id: number;
-    name: string;
-    flag: string;
-    statusMessage: string | null; // Prisma에서 statusMsg가 String?이므로 null 허용
+  id: number;
+  name: string;
+  flag: string;
+  statusMessage: string | null;
 }
 
-// 2. 차단 요청 응답(Response) 타입
 export interface getBlockUserResponse {
-    message: string;
-    blockedUsers: BlockedUser[];
+  blockedUsers: BlockedUser[];
 }
+
+// 공통 에러 알림 핸들러
+const handleBlockApiError = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    const errorCode = error.response?.data?.code;
+    const i18nKey = `block-api.${errorCode}`;
+
+    // 백엔드 에러 코드가 i18n 키에 존재하는지 확인 후 출력
+    if (errorCode && i18n.global.te(i18nKey)) {
+      alert(i18n.global.t(i18nKey));
+    } else {
+      alert(i18n.global.t("block-api.defaultError"));
+    }
+  } else {
+    alert(i18n.global.t("block-api.unknownError"));
+  }
+};
 
 export namespace BlockApi {
-    export async function requestBlockUser(blockedId: number) {
-        try {
-            // 💡 POST 요청 시 백엔드로 blockedId 전달
-            const response = await api.post("/api/block", { blockedId });
-
-            console.log("response : ", response.data);
-
-            return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                // 백엔드에서 내려준 에러 메시지가 있으면 출력, 없으면 기본 메시지
-                alert(error.response?.data?.message ?? "사용자 차단 처리 중 오류가 발생했습니다.");
-            } else {
-                alert("알 수 없는 오류가 발생했습니다.");
-            }
-
-            // 호출한 곳(컴포넌트)에서도 에러 발생 여부를 알 수 있도록 rethrow
-            throw error;
-        }
+  export async function requestBlockUser(blockedId: number) {
+    try {
+      const response = await api.post("/api/block", { blockedId });
+      return response.data;
+    } catch (error) {
+      handleBlockApiError(error);
+      throw error;
     }
+  }
 
-
-    export async function getBlockedUsers(): Promise<getBlockUserResponse> {
-        try {
-            // 💡 POST 요청 시 백엔드로 blockedId 전달
-            const response = await api.get<getBlockUserResponse>("/api/block");
-
-            console.log("response : ", response.data);
-
-            return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                // 백엔드에서 내려준 에러 메시지가 있으면 출력, 없으면 기본 메시지
-                alert(error.response?.data?.message ?? "사용자 차단 처리 중 오류가 발생했습니다.");
-            } else {
-                alert("알 수 없는 오류가 발생했습니다.");
-            }
-
-            // 호출한 곳(컴포넌트)에서도 에러 발생 여부를 알 수 있도록 rethrow
-            throw error;
-        }
+  export async function getBlockedUsers(): Promise<getBlockUserResponse> {
+    try {
+      const response = await api.get<getBlockUserResponse>("/api/block");
+      return response.data;
+    } catch (error) {
+      handleBlockApiError(error);
+      throw error;
     }
+  }
 
-
-    export async function unBlockedUser(blockedId: number) {
-        try {
-            // 💡 POST 요청 시 백엔드로 blockedId 전달
-            const response = await api.delete("/api/block", {
-                params: { blockedId }
-            });
-
-            console.log("response : ", response.data);
-
-            return response.data;
-        } catch (error) {
-            if (axios.isAxiosError(error)) {
-                // 백엔드에서 내려준 에러 메시지가 있으면 출력, 없으면 기본 메시지
-                alert(error.response?.data?.message ?? "사용자 차단 처리 중 오류가 발생했습니다.");
-            } else {
-                alert("알 수 없는 오류가 발생했습니다.");
-            }
-
-            // 호출한 곳(컴포넌트)에서도 에러 발생 여부를 알 수 있도록 rethrow
-            throw error;
-        }
+  export async function unBlockedUser(blockedId: number) {
+    try {
+      const response = await api.delete("/api/block", {
+        params: { blockedId }
+      });
+      return response.data;
+    } catch (error) {
+      handleBlockApiError(error);
+      throw error;
     }
-
+  }
 }

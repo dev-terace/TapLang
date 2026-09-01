@@ -1,11 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
-import { useAuthStore } from '@/shared/auth/AuthStore' // 작성하신 authStore 경로
+import { useI18n } from 'vue-i18n' // 💡 i18n 추가
+import { useAuthStore } from '@/shared/auth/AuthStore'
 import { useUIStore } from '@/shared/ui/UiStore'
 import { useModalStore } from '@/shared/modal/ModalStore'
 import { useChatNavigation } from '@/chat/composables/chatRoom.vue/useChatNavigation'
 import { findPeopleApi, type FindPeopleUser } from '@/find_people/api/findPeople.api'
 
+const { t } = useI18n() // 💡 다국어 t 함수 활성화
 const authStore = useAuthStore()
 const uiStore = useUIStore()
 const modalStore = useModalStore()
@@ -45,7 +47,7 @@ const handleTogglePrivacy = async () => {
   } catch (error) {
     console.error('비공개 상태 업데이트 실패:', error)
     isPrivate.value = !targetState
-    alert('설정 변경에 실패했습니다.')
+    alert(t('find-people.updateFailed')) // 💡 i18n 적용
   } finally {
     isUpdatingPrivacy.value = false
   }
@@ -125,19 +127,19 @@ watch(
       <!-- 헤더 영역 -->
       <div class="border-b-2 border-dashed border-[#2d2b28] pb-4 mb-6 flex justify-between items-center">
         <div>
-          <h3 class="font-bold text-base tracking-wider">// 사람찾기_디렉토리.net</h3>
-          <p class="text-[10px] text-neutral-500">글로벌 서버의 접속자를 탐색합니다.</p>
+          <!-- 💡 i18n 적용 -->
+          <h3 class="font-bold text-base tracking-wider">{{ t('find-people.title') }}</h3>
+          <p class="text-[10px] text-neutral-500">{{ t('find-people.description') }}</p>
         </div>
 
-        <!-- 💡 새로고침 및 내 정보 숨기기 토글 스위치 영역 -->
+        <!-- 새로고침 및 내 정보 숨기기 토글 스위치 영역 -->
         <div class="flex items-center gap-3">
           <label
             class="flex items-center gap-1.5 cursor-pointer text-[10px] font-bold select-none border-2 border-[#2d2b28] bg-white px-2 py-1 shadow-[2px_2px_0px_0px_#2d2b28] active:translate-x-[1px] active:translate-y-[1px]"
-            title="활성화 시 다른 사용자 목록에 내 정보가 노출되지 않습니다.">
+            :title="t('find-people.hideInfoTooltip')"> <!-- 💡 i18n 적용 -->
             <input type="checkbox" v-model="isPrivate" @change="handleTogglePrivacy" :disabled="isUpdatingPrivacy"
               class="sr-only" />
 
-            <!-- 💡 Vue의 isPrivate 상태값에 따라 배경색과 위치 변경 -->
             <div class="w-7 h-3.5 border border-[#2d2b28] relative transition-colors duration-200"
               :class="isPrivate ? 'bg-[#2d2b28]' : 'bg-neutral-300'">
               <div
@@ -145,19 +147,19 @@ watch(
                 :class="isPrivate ? 'translate-x-3.5' : 'translate-x-0'"></div>
             </div>
 
-            <span class="text-[10px]">내 정보 숨기기</span>
+            <span class="text-[10px]">{{ t('find-people.hideMyInfo') }}</span> <!-- 💡 i18n 적용 -->
           </label>
 
           <button @click="fetchPeople(currentPage)"
             class="border-2 border-[#2d2b28] bg-white text-[10px] px-2 py-1 font-bold hover:bg-[#2d2b28] hover:text-white transition-all shadow-[2px_2px_0px_0px_#2d2b28]">
-            ↻ 새로고침
+            {{ t('find-people.refresh') }} <!-- 💡 i18n 적용 -->
           </button>
         </div>
       </div>
 
       <!-- 로딩 중 상태 -->
       <div v-if="isLoading" class="py-16 text-center text-xs font-bold animate-pulse text-[#2d2b28]">
-        > 데이터 동기화 중...
+        {{ t('find-people.loading') }} <!-- 💡 i18n 적용 -->
       </div>
 
       <!-- 탐색자 카드리스트 -->
@@ -173,7 +175,7 @@ watch(
             <div class="min-w-0">
               <div class="text-xs font-bold truncate">{{ user.name }}</div>
               <div class="text-[9px] text-neutral-500 truncate">
-                {{ user.statusMsg || '상태 메시지가 없습니다.' }}
+                {{ user.statusMsg || t('find-people.noStatus') }} <!-- 💡 i18n 적용 -->
               </div>
             </div>
           </div>
@@ -181,18 +183,18 @@ watch(
           <div class="flex gap-1.5 items-center shrink-0">
             <button @click="handleOpenViewBio(user.id)"
               class="border-2 border-[#2d2b28] bg-white text-[10px] px-2 py-1 font-bold hover:bg-[#2d2b28] hover:text-white transition-all whitespace-nowrap">
-              소개글 보기
+              {{ t('find-people.viewBio') }} <!-- 💡 i18n 적용 -->
             </button>
             <button @click="handleStartChat(user)"
               class="border-2 border-[#2d2b28] bg-white text-[10px] px-2 py-1 font-bold hover:bg-[#2d2b28] hover:text-white transition-all whitespace-nowrap">
-              채팅하기
+              {{ t('find-people.startChat') }} <!-- 💡 i18n 적용 -->
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- 페이지네이션 -->
+    <!-- 페이지네이션 (기호 ◀, ▶ 와 숫자는 번역 제외) -->
     <div v-if="totalPages > 0" class="mt-8 flex justify-center items-center gap-1.5 select-none pb-2">
       <button @click="changePage(currentPage - 1)" :disabled="currentPage === 1"
         class="border-2 border-[#2d2b28] bg-white px-2 py-1 text-xs font-bold disabled:opacity-30 disabled:cursor-not-allowed hover:bg-[#2d2b28] hover:text-white shadow-[2px_2px_0px_0px_#2d2b28] transition-all active:translate-x-[1px] active:translate-y-[1px]">
